@@ -20,6 +20,12 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 
 [http://127.0.0.1:8000/api/current/](http://127.0.0.1:8000/api/current/)
 
+## Customizing the API for your facility
+
+At start the API will load the [facility adapter](app/facility_adapter.py) specified in the `IRI_API_ADAPTER` environment variable. If not set
+the value will default to the [demo adapter](app/demo_adapter.py). Implement your facility's business logic by subclassing the [facility adapter](app/facility_adapter.py).
+
+If using docker (see next section), your dockerfile could extend this reference implementation via a `FROM` line and add your custom facility adapter code via the environment variable.
 
 ## Docker support
 
