@@ -21,6 +21,11 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 [http://127.0.0.1:8000/api/current/](http://127.0.0.1:8000/api/current/)
 
 
+## Docker support
+
+You can build and run the included dockerfile, for example:
+`docker build -t iri . && docker run -p 8000:8000 iri`
+
 ## Next steps
 
 - Learn more about [fastapi](https://fastapi.tiangolo.com/), including how to run it [in production](https://fastapi.tiangolo.com/advanced/behind-a-proxy/)
