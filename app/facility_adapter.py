@@ -1,7 +1,9 @@
+from abc import ABC, abstractmethod
 from .routers.status import models as status_models
 import datetime
 
-class FacilityAdapter:
+
+class FacilityAdapter(ABC):
     """
     Facility-specific code is handled by the implementation of this interface.
     Use the `IRI_API_ADAPTER` environment variable (defaults to `app.demo_adapter.FacilityAdapter`) 
@@ -9,6 +11,7 @@ class FacilityAdapter:
     """
 
 
+    @abstractmethod
     def get_resources(
         self : "FacilityAdapter",
         name : str | None = None,
@@ -17,6 +20,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_resource(
         self : "FacilityAdapter",
         id : str
@@ -24,6 +28,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_events_resource(
         self : "FacilityAdapter",
         resource_id : str,
@@ -36,6 +41,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_events(
         self : "FacilityAdapter",
         name : str | None = None,
@@ -47,6 +53,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_event(
         self : "FacilityAdapter",
         id : str
@@ -54,6 +61,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_incidents(
         self : "FacilityAdapter",
         name : str | None = None,
@@ -66,6 +74,7 @@ class FacilityAdapter:
         pass
 
 
+    @abstractmethod
     def get_incident(
         self : "FacilityAdapter",
         id : str
