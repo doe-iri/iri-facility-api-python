@@ -25,7 +25,9 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 At start the API will load the [facility adapter](app/facility_adapter.py) specified in the `IRI_API_ADAPTER` environment variable. If not set
 the value will default to the [demo adapter](app/demo_adapter.py). Implement your facility's business logic by subclassing the [facility adapter](app/facility_adapter.py).
 
-If using docker (see next section), your dockerfile could extend this reference implementation via a `FROM` line and add your custom facility adapter code via the environment variable.
+You can also optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
+
+If using docker (see next section), your dockerfile could extend this reference implementation via a `FROM` line and add your custom facility adapter code and init parameters in `ENV` lines.
 
 ## Docker support
 

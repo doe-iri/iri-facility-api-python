@@ -1,6 +1,7 @@
 import os
 import importlib
 import logging
+import json
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from .facility_adapter import FacilityAdapter
@@ -24,17 +25,24 @@ For more information, see: [https://iri.science/](https://iri.science/)
 
 # version is the openapi.json spec version
 # /api/current mount point means it's the latest backward-compatible url
-api_app = FastAPI(
-    title="IRI Facility API reference implementation",
-    description=description,
-    version=API_VERSION,
-    docs_url="/",
-    contact={
+d = {
+    "title": "IRI Facility API reference implementation",
+    "description": description,
+    "version": API_VERSION,
+    "docs_url": "/",
+    "contact": {
         "name": "Facility API contact",
         "url": "https://www.somefacility.gov/about/contact-us/"
     },
-    terms_of_service="https://www.somefacility.gov/terms-of-service",
-)
+    "terms_of_service": "https://www.somefacility.gov/terms-of-service"
+}
+try:
+    # optionally overload the init params
+    d2 = json.loads(os.environ.get("IRI_API_PARAMS", "{}"))
+    d.update(d2)
+except Exception as exc:
+    logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
+api_app = FastAPI(**d)
 api_app.include_router(status.router)
 
 
