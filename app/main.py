@@ -67,5 +67,5 @@ app = FastAPI(lifespan=lifespan)
 
 # for non-backward compatible versions, we can mount specific versions, eg. /api/v1
 # but, /api/current is always the latest
-app.mount("/api/current", api_app)
+app.mount(d["docs_url"] + "api/current", api_app)
 
