@@ -1,6 +1,8 @@
 # <img src="https://iri.science/images/doe-icon-old.png" height=30 /> IRI API reference implementation in Python 3
 A proof-of-concept implementation of the IRI status api
 
+See it live: https://api.iri.nersc.gov/api/current/
+
 ## Prerequisites
 
 - [install python3](https://www.python.org/downloads/) (version 3.8 or higher)
