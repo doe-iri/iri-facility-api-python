@@ -72,7 +72,7 @@ class IncidentType(enum.Enum):
 class IncidentResponse(NamedResource):
     status : Status
     start : datetime.datetime
-    end : datetime.datetime
+    end : datetime.datetime | None
     type : IncidentType
     resolution : str
 
@@ -81,7 +81,7 @@ class Incident(NamedResource):
     status : Status
     events : list[Event]
     start : datetime.datetime
-    end : datetime.datetime
+    end : datetime.datetime | None
     type : IncidentType
     resolution : str
 
