@@ -70,7 +70,7 @@ class FacilityAdapter(ABC):
         type : status_models.IncidentType | None = None,
         start : datetime.datetime | None = None,
         end : datetime.datetime | None = None
-        ) -> list[status_models.IncidentResponse]:
+        ) -> list[status_models.Incident]:
         pass
 
 

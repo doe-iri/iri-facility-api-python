@@ -68,18 +68,9 @@ class IncidentType(enum.Enum):
     unplanned = "unplanned"
 
 
-# incident w/o the events
-class IncidentResponse(NamedResource):
-    status : Status
-    start : datetime.datetime
-    end : datetime.datetime | None
-    type : IncidentType
-    resolution : str
-
-
 class Incident(NamedResource):
     status : Status
-    events : list[Event]
+    events : list[Event] | None
     start : datetime.datetime
     end : datetime.datetime | None
     type : IncidentType

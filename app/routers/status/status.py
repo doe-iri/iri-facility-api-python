@@ -97,7 +97,7 @@ async def get_incidents(
     type : models.IncidentType | None = None,
     start : datetime.datetime | None = None,
     end : datetime.datetime | None = None
-    ) -> list[models.IncidentResponse]:
+    ) -> list[models.Incident]:
     return await request.app.state.adapter.get_incidents(name, description, status, type, start, end)
 
 

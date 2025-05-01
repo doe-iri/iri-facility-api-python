@@ -126,7 +126,7 @@ class DemoAdapter(FacilityAdapter):
         type : status_models.IncidentType | None = None,
         start : datetime.datetime | None = None,
         end : datetime.datetime | None = None
-        ) -> list[status_models.IncidentResponse]:
+        ) -> list[status_models.Incident]:
         return status_models.Incident.find(self.incidents, name, description, status, type, start, end)
 
 
