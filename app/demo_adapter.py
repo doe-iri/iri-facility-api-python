@@ -127,7 +127,19 @@ class DemoAdapter(FacilityAdapter):
         start : datetime.datetime | None = None,
         end : datetime.datetime | None = None
         ) -> list[status_models.Incident]:
-        return status_models.Incident.find(self.incidents, name, description, status, type, start, end)
+        # exclude events
+        ii = [status_models.Incident(
+            id=i.id,
+            name=i.name,
+            description=i.description,
+            start=i.start,
+            end=i.end,
+            status=i.status,
+            resolution=i.resolution,
+            type=i.type,
+            events=None,
+        ) for i in self.incidents]
+        return status_models.Incident.find(ii, name, description, status, type, start, end)
 
 
     async def get_incident(
