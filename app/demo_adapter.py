@@ -24,12 +24,13 @@ class DemoAdapter(FacilityAdapter):
         self.capabilities = [
             account_models.Capability(id="cpu", name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
             account_models.Capability(id="gpu", name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id="storage", name="Storage systems", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            account_models.Capability(id="tape_storage", name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            account_models.Capability(id="gpfs_storage", name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
         ]
 
         pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer", capability_ids=["cpu", "gpu"])
-        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["storage"])
-        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["storage"])
+        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"])
+        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"])
 
         self.resources = [
             pm,
