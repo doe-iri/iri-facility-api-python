@@ -10,18 +10,14 @@ router = APIRouter(
 
 
 @router.get(
-    "/capabilities/{resource_id}",
-    summary="Get the capabilities of a resource",
-    description="Get a list of capabilities for a resource at this facility."
+    "/capabilities",
+    summary="Get the list of capabilities",
+    description="Get a list of capabilities at this facility."
 )
 async def get_capabilities(
-    resource_id: str,
     request : Request,
     ) -> list[models.Capability]:
-    resource = await request.app.state.adapter.get_resource(resource_id)
-    if not resource:
-        raise HTTPException(status_code=404, detail="Resource not found")
-    return await request.app.state.adapter.get_capabilities(resource)
+    return await request.app.state.adapter.get_capabilities()
 
 
 @router.get(

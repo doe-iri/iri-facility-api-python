@@ -21,23 +21,22 @@ class DemoAdapter(FacilityAdapter):
     
     def _init_state(self):
 
-        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer")
-        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage")
-        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage")
+        self.capabilities = [
+            account_models.Capability(id="cpu", name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id="gpu", name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id="storage", name="Storage systems", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+        ]
+
+        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer", capability_ids=["cpu", "gpu"])
+        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["storage"])
+        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["storage"])
 
         self.resources = [
             pm,
             hpss,
             cfs,
-            status_models.Resource(id="iris", name="Iris", description="Iris webapp"),
-            status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API"),
-        ]
-
-        self.capabilities = [
-            account_models.Capability(id="pm_cpu", name="Perlmutter CPU", resource_id=pm.id, units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id="pm_gpu", name="Perlmutter GPU", resource_id=pm.id, units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id="hpss", name="HPSS", resource_id=hpss.id, units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-            account_models.Capability(id="cfs", name="CFS", resource_id=cfs.id, units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            status_models.Resource(id="iris", name="Iris", description="Iris webapp", capability_ids=[]),
+            status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API", capability_ids=[]),
         ]
 
         self.projects = [
@@ -219,9 +218,8 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_capabilities(
         self : "DemoAdapter",
-        resource : status_models.Resource
         ) -> list[account_models.Capability]:
-        return [c for c in self.capabilities if c.resource_id == resource.id]
+        return self.capabilities
     
 
     def get_current_user(

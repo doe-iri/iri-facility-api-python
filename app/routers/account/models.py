@@ -17,7 +17,6 @@ class Capability(BaseModel):
         The word "capability" is also known to users as something they need for a job to run. (eg. gpu)
     """
     id: str
-    resource_id: str
     name: str
     units: list[AllocationUnit]
 

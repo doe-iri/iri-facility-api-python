@@ -86,7 +86,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_capabilities(
         self : "FacilityAdapter",
-        resource : status_models.Resource
         ) -> list[account_models.Capability]:
         pass
 

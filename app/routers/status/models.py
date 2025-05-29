@@ -2,7 +2,6 @@ from pydantic import BaseModel
 import datetime
 import enum
 
-
 class Link(BaseModel):
     rel : str
     href : str
@@ -36,7 +35,7 @@ class NamedResource(BaseModel):
 
 
 class Resource(NamedResource):
-    pass
+    capability_ids: list[str]
 
 
 class Event(NamedResource):
