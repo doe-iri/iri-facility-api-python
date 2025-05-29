@@ -8,6 +8,7 @@ from .facility_adapter import FacilityAdapter
 
 # include other sub-components as needed
 from app.routers.status import status
+from app.routers.account import account
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
@@ -44,6 +45,7 @@ except Exception as exc:
     logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
 api_app = FastAPI(**d)
 api_app.include_router(status.router)
+api_app.include_router(account.router)
 
 
 @asynccontextmanager

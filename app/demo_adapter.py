@@ -2,6 +2,7 @@ import datetime
 import random
 from .facility_adapter import FacilityAdapter
 from .routers.status import models as status_models
+from .routers.account import models as account_models
 
 
 class DemoAdapter(FacilityAdapter):
@@ -9,18 +10,85 @@ class DemoAdapter(FacilityAdapter):
         self.resources = []
         self.incidents = []
         self.events = []
+        self.capabilities = []
+        self.user = account_models.User(id="gtorok", name="Gabor Torok")
+        self.projects = []
+        self.project_allocations = []
+        self.user_allocations = []
 
         self._init_state()
 
     
     def _init_state(self):
+
+        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer")
+        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage")
+        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage")
+
         self.resources = [
-            status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer"),
-            status_models.Resource(id="hpss", name="hpss", description="hpss tape storage"),
-            status_models.Resource(id="cfs", name="cfs", description="cfs storage"),
+            pm,
+            hpss,
+            cfs,
             status_models.Resource(id="iris", name="Iris", description="Iris webapp"),
             status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API"),
         ]
+
+        self.capabilities = [
+            account_models.Capability(id="pm_cpu", name="Perlmutter CPU", resource_id=pm.id, units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id="pm_gpu", name="Perlmutter GPU", resource_id=pm.id, units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id="hpss", name="HPSS", resource_id=hpss.id, units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            account_models.Capability(id="cfs", name="CFS", resource_id=cfs.id, units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+        ]
+
+        self.projects = [
+            account_models.Project(
+                id="staff",
+                name="Staff research project",
+                description="Compute and storage allocation for staff research use",
+                user_ids=[ "gtorok" ],
+            ),
+            account_models.Project(
+                id="test",
+                name="Test project",
+                description="Compute and storage allocation for testing use",
+                user_ids=[ "gtorok" ],
+            ),
+        ]
+
+        for p in self.projects:
+            for c in self.capabilities:
+                pa = account_models.ProjectAllocation(
+                    id=f"{p.id}_{c.id}",
+                    project_id=p.id,
+                    capability_id=c.id,
+                    entries=[
+                        account_models.AllocationEntry(
+                            id=f"{p.id}_{c.id}_{cu.name}",
+                            allocation=500 + random.random() * 500,
+                            usage=100 + random.random() * 100,
+                            units=cu,
+                        )
+                        for cu in c.units
+                    ]
+                )
+                self.project_allocations.append(pa)
+                self.user_allocations.append(
+                    account_models.UserAllocation(
+                        id=f"{pa.id}_gtorok",
+                        project_allocation_id=pa.id,
+                        user_id="gtorok",
+                        entries=[
+                            account_models.AllocationEntry(
+                                id=f"{a.id}_gtorok",
+                                allocation=a.allocation/10,
+                                usage=a.usage/10,
+                                units=a.units
+                            ) 
+                            for a in pa.entries
+                        ]
+                    )
+                )
+
         statuses = { r.name: status_models.Status.up for r in self.resources }        
         last_incidents = {}
         d = datetime.datetime(2025, 3, 1, 10, 0, 0)
@@ -147,3 +215,51 @@ class DemoAdapter(FacilityAdapter):
         id : str
         ) -> status_models.Incident:
         return status_models.Incident.find_by_id(self.incidents, id)
+
+
+    async def get_capabilities(
+        self : "DemoAdapter",
+        resource : status_models.Resource
+        ) -> list[account_models.Capability]:
+        return [c for c in self.capabilities if c.resource_id == resource.id]
+    
+
+    def get_current_user(
+            self : "DemoAdapter",
+            api_key: str
+        ) -> str:
+        """
+            In a real deployment, this would decode the api_key jwt and return the current user's id.
+            This method is not async.
+        """
+        return "gtorok"
+
+
+    async def get_user(
+            self : "DemoAdapter",
+            user_id: str
+            ) -> account_models.User:
+        return self.user
+
+
+    async def get_projects(
+            self : "DemoAdapter",
+            user: account_models.User
+            ) -> list[account_models.Project]:
+        return self.projects
+    
+
+    async def get_project_allocations(
+        self : "DemoAdapter",
+        project: account_models.Project
+        ) -> list[account_models.ProjectAllocation]:
+        return [pa for pa in self.project_allocations if pa.project_id == project.id]
+    
+
+    async def get_user_allocations(
+        self : "DemoAdapter",
+        user: account_models.User,
+        project_allocations: list[account_models.ProjectAllocation],
+        ) -> list[account_models.UserAllocation]:
+        pa_ids = set([pa.id for pa in project_allocations])
+        return [ua for ua in self.user_allocations if ua.project_allocation_id in pa_ids]
