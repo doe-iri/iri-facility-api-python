@@ -1,3 +1,4 @@
+from fastapi import Request
 from abc import ABC, abstractmethod
 from .routers.status import models as status_models
 from .routers.account import models as account_models
@@ -93,6 +94,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_current_user(
         self : "FacilityAdapter",
+        request: Request,
         api_key: str
         ) -> str:
         """

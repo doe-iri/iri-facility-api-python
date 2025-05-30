@@ -12,7 +12,7 @@ def current_user(
 ):
     user_id = None
     try:
-        user_id = request.app.state.adapter.get_current_user(api_key)
+        user_id = request.app.state.adapter.get_current_user(request, api_key)
     except Exception as exc:
         logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
     if not user_id:

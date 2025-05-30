@@ -1,3 +1,4 @@
+from fastapi import Request
 import datetime
 import random
 from .facility_adapter import FacilityAdapter
@@ -225,6 +226,7 @@ class DemoAdapter(FacilityAdapter):
 
     def get_current_user(
             self : "DemoAdapter",
+            request: Request,
             api_key: str
         ) -> str:
         """
