@@ -66,7 +66,7 @@ class DemoAdapter(FacilityAdapter):
                             id=f"{p.id}_{c.id}_{cu.name}",
                             allocation=500 + random.random() * 500,
                             usage=100 + random.random() * 100,
-                            units=cu,
+                            unit=cu,
                         )
                         for cu in c.units
                     ]
@@ -82,7 +82,7 @@ class DemoAdapter(FacilityAdapter):
                                 id=f"{a.id}_gtorok",
                                 allocation=a.allocation/10,
                                 usage=a.usage/10,
-                                units=a.units
+                                unit=a.unit
                             ) 
                             for a in pa.entries
                         ]

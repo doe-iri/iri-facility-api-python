@@ -41,7 +41,7 @@ class AllocationEntry(BaseModel):
     id: str
     allocation: float  # how much this allocation can spend
     usage: float # how much this allocation has spent
-    units: AllocationUnit
+    unit: AllocationUnit
 
 
 class ProjectAllocation(BaseModel):
