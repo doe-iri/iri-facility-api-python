@@ -29,10 +29,10 @@ async def get_capabilities(
 async def get_projects(
     request : Request,
     ) -> list[models.Project]:
-    user = await request.app.state.adapter.get_user(request.state.current_user_id)
+    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    return await request.app.state.adapter.get_projects(user)
+    return await request.app.state.adapter.get_projects(request, user)
 
 
 @router.get(
@@ -45,14 +45,14 @@ async def get_project_allocations(
     project_id: str,
     request : Request,
     ) -> list[models.ProjectAllocation]:
-    user = await request.app.state.adapter.get_user(request.state.current_user_id)
+    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(user)
+    projects = await request.app.state.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id))
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return await request.app.state.adapter.get_project_allocations(project)
+    return await request.app.state.adapter.get_project_allocations(request, project)
 
 
 @router.get(
@@ -65,12 +65,12 @@ async def get_user_allocations(
     project_id: str,
     request : Request,
     ) -> list[models.UserAllocation]:
-    user = await request.app.state.adapter.get_user(request.state.current_user_id)
+    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(user)
+    projects = await request.app.state.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id))
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    pas = await request.app.state.adapter.get_project_allocations(project)
-    return await request.app.state.adapter.get_user_allocations(user, pas)
+    pas = await request.app.state.adapter.get_project_allocations(request, project)
+    return await request.app.state.adapter.get_user_allocations(request, user, pas)

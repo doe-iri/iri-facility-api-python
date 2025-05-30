@@ -108,6 +108,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user(
         self : "FacilityAdapter",
+        request: Request,
         user_id: str
         ) -> account_models.User:
         pass
@@ -116,6 +117,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_projects(
         self : "FacilityAdapter",
+        request: Request,
         user: account_models.User
         ) -> list[account_models.Project]:
         pass
@@ -124,6 +126,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_project_allocations(
         self : "FacilityAdapter",
+        request: Request,
         project: account_models.Project
         ) -> list[account_models.ProjectAllocation]:
         pass
@@ -132,6 +135,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user_allocations(
         self : "FacilityAdapter",
+        request: Request,
         user: account_models.User,
         project_allocations: list[account_models.ProjectAllocation],
         ) -> list[account_models.UserAllocation]:

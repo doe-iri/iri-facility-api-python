@@ -238,6 +238,7 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_user(
             self : "DemoAdapter",
+            request: Request,
             user_id: str
             ) -> account_models.User:
         return self.user
@@ -245,6 +246,7 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_projects(
             self : "DemoAdapter",
+            request: Request,
             user: account_models.User
             ) -> list[account_models.Project]:
         return self.projects
@@ -252,6 +254,7 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_project_allocations(
         self : "DemoAdapter",
+        request: Request,
         project: account_models.Project
         ) -> list[account_models.ProjectAllocation]:
         return [pa for pa in self.project_allocations if pa.project_id == project.id]
@@ -259,6 +262,7 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_user_allocations(
         self : "DemoAdapter",
+        request: Request,
         user: account_models.User,
         project_allocations: list[account_models.ProjectAllocation],
         ) -> list[account_models.UserAllocation]:
