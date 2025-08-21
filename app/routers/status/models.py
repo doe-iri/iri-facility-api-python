@@ -43,13 +43,13 @@ class Resource(NamedResource):
 class Event(NamedResource):
     timestamp : datetime.datetime
     status : Status
-    resource : Resource = Field(exclude=True) 
+    resource_id : str = Field(exclude=True) 
 
 
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
-        return f"/{config.API_URL}/resources/{self.resource.id}"
+        return f"/{config.API_URL}/resources/{self.resource_id}"
     
 
     @staticmethod
@@ -64,7 +64,7 @@ class Event(NamedResource):
     ) -> list:
         events = NamedResource.find(events, name, description)
         if resource_id:
-            events = [e for e in events if e.resource.id == resource_id]
+            events = [e for e in events if e.resource_id == resource_id]
         if status:
             events = [e for e in events if e.status == status]
         if start:
@@ -81,8 +81,8 @@ class IncidentType(enum.Enum):
 
 class Incident(NamedResource):
     status : Status
-    resources : list[Resource] = Field(exclude=True)
-    events : list[Event] = Field(exclude=True)
+    resource_ids : list[str] = Field(exclude=True)
+    event_ids : list[str] = Field(exclude=True)
     start : datetime.datetime
     end : datetime.datetime | None
     type : IncidentType
@@ -92,13 +92,13 @@ class Incident(NamedResource):
     @computed_field(description="The list of past events in this incident")
     @property
     def event_uris(self) -> list[str]:
-        return [f"/{config.API_URL}/events/{e.id}" for e in self.events]
+        return [f"/{config.API_URL}/events/{e}" for e in self.event_ids]
 
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
-        return [f"/{config.API_URL}/resources/{r.id}" for r in self.resources]
+        return [f"/{config.API_URL}/resources/{r}" for r in self.resource_ids]
 
 
     def find(
@@ -113,7 +113,7 @@ class Incident(NamedResource):
     ) -> list:
         incidents = NamedResource.find(incidents, name, description)
         if resource_id:
-            incidents = [e for e in incidents if resource_id in [r.id for r in e.resources]]
+            incidents = [e for e in incidents if resource_id in e.resource_ids]
         if status:
             incidents = [e for e in incidents if e.status == status]
         if type:

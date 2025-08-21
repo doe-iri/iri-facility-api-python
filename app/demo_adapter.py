@@ -106,12 +106,11 @@ class DemoAdapter(FacilityAdapter):
                 description=f"{r.name} is {status.value}",
                 timestamp=d,
                 status=status,
-                resource=r,
-                resource_uri=None,
+                resource_id=r.id,
             )
             self.events.append(event)
             if r.name in last_incidents:
-                last_incidents[r.name].events.append(event)
+                last_incidents[r.name].event_ids.append(event.id)
                 if status == status_models.Status.up:
                     incident = last_incidents[r.name]
                     incident.end = d
@@ -128,8 +127,8 @@ class DemoAdapter(FacilityAdapter):
                         name=f"{r.name} incident at {dstr}", 
                         description=f"{r.name} incident at {dstr}", 
                         status=status_models.Status.down,
-                        events=[],
-                        resources=random.choices(self.resources, k=3),
+                        event_ids=[],
+                        resource_ids=random.choices([r.id for r in self.resources], k=3),
                         start=d,
                         end=d,
                         type=random.choice(list(status_models.IncidentType)),
