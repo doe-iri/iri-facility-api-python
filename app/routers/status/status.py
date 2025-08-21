@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query
 import datetime
 from . import models
 
@@ -17,10 +17,11 @@ async def get_resources(
     request : Request,
     name : str | None = None,
     description : str | None = None,
+    group : str | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
     ) -> list[models.Resource]:
-    return await request.app.state.adapter.get_resources(offset, limit, name, description)
+    return await request.app.state.adapter.get_resources(offset, limit, name, description, group)
 
 
 @router.get(
@@ -49,12 +50,13 @@ async def get_events(
     name : str | None = None,
     description : str | None = None,
     status : models.Status | None = None,
-    start : datetime.datetime | None = None,
-    end : datetime.datetime | None = None,
+    from_ : datetime.datetime | None = Query(alias="from", default=None),
+    time_ : datetime.datetime | None = Query(alias="time", default=None),
+    to : datetime.datetime | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
     ) -> list[models.Event]:
-    return await request.app.state.adapter.get_events(offset, limit, resource_id, name, description, status, start, end)
+    return await request.app.state.adapter.get_events(offset, limit, resource_id, name, description, status, from_, to, time_)
 
 
 @router.get(
@@ -83,13 +85,15 @@ async def get_incidents(
     description : str | None = None,
     status : models.Status | None = None,
     type : models.IncidentType | None = None,
-    start : datetime.datetime | None = None,
-    end : datetime.datetime | None = None,
+    from_ : datetime.datetime | None = Query(alias="from", default=None),
+    time_ : datetime.datetime | None = Query(alias="time", default=None),
+    to : datetime.datetime | None = None,
+    updated_since : datetime.datetime | None = None,
     resource_id : str | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
     ) -> list[models.Incident]:
-    return await request.app.state.adapter.get_incidents(offset, limit, name, description, status, type, start, end, resource_id)
+    return await request.app.state.adapter.get_incidents(offset, limit, name, description, status, type, from_, to, time_, updated_since, resource_id)
 
 
 @router.get(

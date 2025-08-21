@@ -1,6 +1,7 @@
 from fastapi import Request
 import datetime
 import random
+import uuid
 from .facility_adapter import FacilityAdapter
 from .routers.status import models as status_models
 from .routers.account import models as account_models
@@ -23,33 +24,34 @@ class DemoAdapter(FacilityAdapter):
     def _init_state(self):
 
         self.capabilities = [
-            account_models.Capability(id="cpu", name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id="gpu", name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id="tape_storage", name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-            account_models.Capability(id="gpfs_storage", name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            account_models.Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            account_models.Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
         ]
 
-        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer", capability_ids=["cpu", "gpu"], current_status=status_models.Status.degraded)
-        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"], current_status=status_models.Status.up)
-        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"], current_status=status_models.Status.up)
+        pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=["cpu", "gpu"], current_status=status_models.Status.degraded)
+        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"], current_status=status_models.Status.up)
+        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"], current_status=status_models.Status.up)
 
         self.resources = [
             pm,
             hpss,
             cfs,
-            status_models.Resource(id="iris", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down),
-            status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up),
+            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up),
         ]
 
         self.projects = [
             account_models.Project(
-                id="staff",
+                id=str(uuid.uuid4()),
                 name="Staff research project",
                 description="Compute and storage allocation for staff research use",
                 user_ids=[ "gtorok" ],
             ),
             account_models.Project(
-                id="test",
+                id=str(uuid.uuid4()),
                 name="Test project",
                 description="Compute and storage allocation for testing use",
                 user_ids=[ "gtorok" ],
@@ -64,7 +66,7 @@ class DemoAdapter(FacilityAdapter):
                     capability_id=c.id,
                     entries=[
                         account_models.AllocationEntry(
-                            id=f"{p.id}_{c.id}_{cu.name}",
+                            id=str(uuid.uuid4()),
                             allocation=500 + random.random() * 500,
                             usage=100 + random.random() * 100,
                             unit=cu,
@@ -75,7 +77,7 @@ class DemoAdapter(FacilityAdapter):
                 self.project_allocations.append(pa)
                 self.user_allocations.append(
                     account_models.UserAllocation(
-                        id=f"{pa.id}_gtorok",
+                        id=str(uuid.uuid4()),
                         project_allocation_id=pa.id,
                         user_id="gtorok",
                         entries=[
@@ -101,7 +103,7 @@ class DemoAdapter(FacilityAdapter):
             r = random.choice(self.resources)
             status = statuses[r.name]
             event = status_models.Event(
-                id=f"ev{i}",
+                id=str(uuid.uuid4()),
                 name=f"{r.name} is {status.value}",
                 description=f"{r.name} is {status.value}",
                 timestamp=d,
@@ -123,7 +125,7 @@ class DemoAdapter(FacilityAdapter):
                     statuses[r.name] = status_models.Status.down
                     dstr = d.strftime("%Y-%m-%d %H:%M:%S.%f%z")
                     incident = status_models.Incident(
-                        id=f"inc{len(self.incidents)}", 
+                        id=str(uuid.uuid4()), 
                         name=f"{r.name} incident at {dstr}", 
                         description=f"{r.name} incident at {dstr}", 
                         status=status_models.Status.down,
@@ -132,7 +134,8 @@ class DemoAdapter(FacilityAdapter):
                         start=d,
                         end=d,
                         type=random.choice(list(status_models.IncidentType)),
-                        resolution="PM was fixed by NERSC staff"
+                        resolution="PM was fixed by NERSC staff",
+                        last_updated=d
                     )
                     self.incidents.append(incident)
                     last_incidents[r.name] = incident
@@ -146,9 +149,10 @@ class DemoAdapter(FacilityAdapter):
         offset : int,
         limit : int,
         name : str | None = None,
-        description : str | None = None
+        description : str | None = None,
+        group : str | None = None,
         ) -> list[status_models.Resource]:
-        return status_models.Resource.find(self.resources, name, description)[offset:offset + limit]
+        return status_models.Resource.find(self.resources, name, description, group)[offset:offset + limit]
 
 
     async def get_resource(
@@ -166,10 +170,11 @@ class DemoAdapter(FacilityAdapter):
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None
         ) -> list[status_models.Event]:        
-        return status_models.Event.find(self.events, resource_id, name, description, status, start, end)[offset:offset + limit]
+        return status_models.Event.find(self.events, resource_id, name, description, status, from_, to, time_)[offset:offset + limit]
 
 
     async def get_event(
@@ -187,11 +192,13 @@ class DemoAdapter(FacilityAdapter):
         description : str | None = None,
         status : status_models.Status | None = None,
         type : status_models.IncidentType | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None,
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None,
+        updated_since : datetime.datetime | None = None,
         resource_id : str | None = None,
         ) -> list[status_models.Incident]:
-        return status_models.Incident.find(self.incidents, name, description, status, type, start, end, resource_id)[offset:offset + limit]
+        return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, updated_since, resource_id)[offset:offset + limit]
 
 
     async def get_incident(

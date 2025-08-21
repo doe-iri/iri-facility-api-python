@@ -20,6 +20,7 @@ class FacilityAdapter(ABC):
         limit : int,
         name : str | None = None,
         description : str | None = None,        
+        group : str | None = None,
         ) -> list[status_models.Resource]:
         pass
 
@@ -41,8 +42,9 @@ class FacilityAdapter(ABC):
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time : datetime.datetime | None = None
         ) -> list[status_models.Event]:
         pass
 
@@ -64,8 +66,10 @@ class FacilityAdapter(ABC):
         description : str | None = None,
         status : status_models.Status | None = None,
         type : status_models.IncidentType | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None,
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None,
+        updated_since : datetime.datetime | None = None,
         resource_id : str | None = None,
         ) -> list[status_models.Incident]:
         pass

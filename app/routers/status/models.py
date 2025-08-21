@@ -37,8 +37,17 @@ class NamedResource(BaseModel):
 
 class Resource(NamedResource):
     capability_ids: list[str]
+    group: str | None
     current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
 
+
+    @staticmethod
+    def find(resources, name, description, group):
+        a = NamedResource.find(resources, name, description)
+        if group:
+            a = [aa for aa in a if aa.group == group]
+        return a
+    
 
 class Event(NamedResource):
     timestamp : datetime.datetime
@@ -59,18 +68,21 @@ class Event(NamedResource):
         name : str | None = None,
         description : str | None = None,
         status : Status | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None
     ) -> list:
         events = NamedResource.find(events, name, description)
         if resource_id:
             events = [e for e in events if e.resource_id == resource_id]
         if status:
             events = [e for e in events if e.status == status]
-        if start:
-            events = [e for e in events if e.timestamp >= start]
-        if end:
-            events = [e for e in events if e.timestamp < end]
+        if from_:
+            events = [e for e in events if e.timestamp >= from_]
+        if to:
+            events = [e for e in events if e.timestamp < to]
+        if time_:
+            events = [e for e in events if e.timestamp == time_]
         return events
 
 
@@ -87,6 +99,7 @@ class Incident(NamedResource):
     end : datetime.datetime | None
     type : IncidentType
     resolution : str
+    last_updated : datetime.datetime
 
 
     @computed_field(description="The list of past events in this incident")
@@ -107,8 +120,10 @@ class Incident(NamedResource):
         description : str | None = None,
         status : Status | None = None,
         type : IncidentType | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None,
+        from_ : datetime.datetime | None = None,
+        to : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None,
+        updated_since : datetime.datetime | None = None,
         resource_id : str | None = None,
     ) -> list:
         incidents = NamedResource.find(incidents, name, description)
@@ -118,8 +133,12 @@ class Incident(NamedResource):
             incidents = [e for e in incidents if e.status == status]
         if type:
             incidents = [e for e in incidents if e.type == type]
-        if start:
-            incidents = [e for e in incidents if e.timestamp >= start]
-        if end:
-            incidents = [e for e in incidents if e.timestamp < end]
+        if from_:
+            incidents = [e for e in incidents if e.start >= from_]
+        if to:
+            incidents = [e for e in incidents if e.end < to]
+        if time_:
+            incidents = [e for e in incidents if e.start <= time_ and e.end > time_]
+        if updated_since:
+            incidents = [e for e in incidents if e.last_updated >= updated_since]
         return incidents
