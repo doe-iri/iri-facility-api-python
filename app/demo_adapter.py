@@ -29,16 +29,16 @@ class DemoAdapter(FacilityAdapter):
             account_models.Capability(id="gpfs_storage", name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
         ]
 
-        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer", capability_ids=["cpu", "gpu"])
-        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"])
-        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"])
+        pm = status_models.Resource(id="pm", name="perlmutter", description="the perlmutter computer", capability_ids=["cpu", "gpu"], current_status=status_models.Status.degraded)
+        hpss = status_models.Resource(id="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"], current_status=status_models.Status.up)
+        cfs = status_models.Resource(id="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"], current_status=status_models.Status.up)
 
         self.resources = [
             pm,
             hpss,
             cfs,
-            status_models.Resource(id="iris", name="Iris", description="Iris webapp", capability_ids=[]),
-            status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API", capability_ids=[]),
+            status_models.Resource(id="iris", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down),
+            status_models.Resource(id="sfapi", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up),
         ]
 
         self.projects = [

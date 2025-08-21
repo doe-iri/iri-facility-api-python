@@ -37,6 +37,7 @@ class NamedResource(BaseModel):
 
 class Resource(NamedResource):
     capability_ids: list[str]
+    current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
 
 
 class Event(NamedResource):
