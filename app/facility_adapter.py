@@ -16,8 +16,10 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_resources(
         self : "FacilityAdapter",
+        offset : int,
+        limit : int,
         name : str | None = None,
-        description : str | None = None
+        description : str | None = None,        
         ) -> list[status_models.Resource]:
         pass
 
@@ -31,21 +33,11 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_events_resource(
-        self : "FacilityAdapter",
-        resource_id : str,
-        name : str | None = None,
-        description : str | None = None,
-        status : status_models.Status | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
-        ) -> list[status_models.Event]:
-        pass
-
-
-    @abstractmethod
     def get_events(
         self : "FacilityAdapter",
+        offset : int,
+        limit : int,
+        resource_id : str | None = None,
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
@@ -66,12 +58,15 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_incidents(
         self : "FacilityAdapter",
+        offset : int,
+        limit : int,
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
         type : status_models.IncidentType | None = None,
         start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        end : datetime.datetime | None = None,
+        resource_id : str | None = None,
         ) -> list[status_models.Incident]:
         pass
 

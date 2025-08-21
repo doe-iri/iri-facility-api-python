@@ -16,9 +16,11 @@ router = APIRouter(
 async def get_resources(
     request : Request,
     name : str | None = None,
-    description : str | None = None
+    description : str | None = None,
+    offset : int | None = 0,
+    limit : int | None = 100,
     ) -> list[models.Resource]:
-    return await request.app.state.adapter.get_resources(name, description)
+    return await request.app.state.adapter.get_resources(offset, limit, name, description)
 
 
 @router.get(
@@ -37,36 +39,22 @@ async def get_resource(
 
 
 @router.get(
-    "/events/resource/{resource_id}",
-    summary="Get all events for a resource",
-    description="Get a list of all events for the given resource.  You can optionally filter the returned list by specifying attribtes."
-)
-async def get_events_resource(
-    request : Request,
-    resource_id : str,
-    name : str | None = None,
-    description : str | None = None,
-    status : models.Status | None = None,
-    start : datetime.datetime | None = None,
-    end : datetime.datetime | None = None
-    ) -> list[models.Event]:
-    return await request.app.state.adapter.get_events_resource(resource_id, name, description, status, start, end)
-
-
-@router.get(
     "/events",
     summary="Get all events",
     description="Get a list of all events.  You can optionally filter the returned list by specifying attribtes."
 )
 async def get_events(
     request : Request,
+    resource_id : str | None = None,
     name : str | None = None,
     description : str | None = None,
     status : models.Status | None = None,
     start : datetime.datetime | None = None,
-    end : datetime.datetime | None = None
+    end : datetime.datetime | None = None,
+    offset : int | None = 0,
+    limit : int | None = 100,
     ) -> list[models.Event]:
-    return await request.app.state.adapter.get_events(name, description, status, start, end)
+    return await request.app.state.adapter.get_events(offset, limit, resource_id, name, description, status, start, end)
 
 
 @router.get(
@@ -96,9 +84,12 @@ async def get_incidents(
     status : models.Status | None = None,
     type : models.IncidentType | None = None,
     start : datetime.datetime | None = None,
-    end : datetime.datetime | None = None
+    end : datetime.datetime | None = None,
+    resource_id : str | None = None,
+    offset : int | None = 0,
+    limit : int | None = 100,
     ) -> list[models.Incident]:
-    return await request.app.state.adapter.get_incidents(name, description, status, type, start, end)
+    return await request.app.state.adapter.get_incidents(offset, limit, name, description, status, type, start, end, resource_id)
 
 
 @router.get(

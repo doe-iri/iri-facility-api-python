@@ -55,6 +55,7 @@ class Event(NamedResource):
     @staticmethod
     def find(
         events : list,
+        resource_id : str | None = None,
         name : str | None = None,
         description : str | None = None,
         status : Status | None = None,
@@ -62,6 +63,8 @@ class Event(NamedResource):
         end : datetime.datetime | None = None
     ) -> list:
         events = NamedResource.find(events, name, description)
+        if resource_id:
+            events = [e for e in events if e.resource.id == resource_id]
         if status:
             events = [e for e in events if e.status == status]
         if start:
@@ -105,9 +108,12 @@ class Incident(NamedResource):
         status : Status | None = None,
         type : IncidentType | None = None,
         start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        end : datetime.datetime | None = None,
+        resource_id : str | None = None,
     ) -> list:
         incidents = NamedResource.find(incidents, name, description)
+        if resource_id:
+            incidents = [e for e in incidents if resource_id in [r.id for r in e.resources]]
         if status:
             incidents = [e for e in incidents if e.status == status]
         if type:

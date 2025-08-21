@@ -144,10 +144,12 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_resources(
         self : "DemoAdapter",
+        offset : int,
+        limit : int,
         name : str | None = None,
         description : str | None = None
         ) -> list[status_models.Resource]:
-        return status_models.Resource.find(self.resources, name, description)
+        return status_models.Resource.find(self.resources, name, description)[offset:offset + limit]
 
 
     async def get_resource(
@@ -157,29 +159,18 @@ class DemoAdapter(FacilityAdapter):
         return status_models.Resource.find_by_id(self.resources, id)
 
 
-    async def get_events_resource(
-        self : "DemoAdapter",
-        resource_id : str,
-        name : str | None = None,
-        description : str | None = None,
-        status : status_models.Status | None = None,
-        start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
-        ) -> list[status_models.Event]:
-        return status_models.Event.find(
-            [e for e in self.events if e.resource.id == resource_id], 
-            name, description, status, start, end)
-
-
     async def get_events(
         self : "DemoAdapter",
+        offset : int,
+        limit : int,
+        resource_id : str | None = None,
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
         start : datetime.datetime | None = None,
         end : datetime.datetime | None = None
-        ) -> list[status_models.Event]:
-        return status_models.Event.find(self.events, name, description, status, start, end)
+        ) -> list[status_models.Event]:        
+        return status_models.Event.find(self.events, resource_id, name, description, status, start, end)[offset:offset + limit]
 
 
     async def get_event(
@@ -191,27 +182,17 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_incidents(
         self : "DemoAdapter",
+        offset : int,
+        limit : int,
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
         type : status_models.IncidentType | None = None,
         start : datetime.datetime | None = None,
-        end : datetime.datetime | None = None
+        end : datetime.datetime | None = None,
+        resource_id : str | None = None,
         ) -> list[status_models.Incident]:
-        # exclude events
-        ii = [status_models.Incident(
-            id=i.id,
-            name=i.name,
-            description=i.description,
-            start=i.start,
-            end=i.end,
-            status=i.status,
-            resolution=i.resolution,
-            type=i.type,
-            events=i.events,
-            resources=i.resources,
-        ) for i in self.incidents]
-        return status_models.Incident.find(ii, name, description, status, type, start, end)
+        return status_models.Incident.find(self.incidents, name, description, status, type, start, end, resource_id)[offset:offset + limit]
 
 
     async def get_incident(
