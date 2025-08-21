@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field, Field
 import datetime
 import enum
+from ... import config
 
 class Link(BaseModel):
     rel : str
@@ -41,7 +42,14 @@ class Resource(NamedResource):
 class Event(NamedResource):
     timestamp : datetime.datetime
     status : Status
-    resource : Resource
+    resource : Resource = Field(exclude=True) 
+
+
+    @computed_field(description="The resource belonging to this event")
+    @property
+    def resource_uri(self) -> str:
+        return f"/{config.API_URL}/resources/{self.resource.id}"
+    
 
     @staticmethod
     def find(
@@ -69,11 +77,24 @@ class IncidentType(enum.Enum):
 
 class Incident(NamedResource):
     status : Status
-    events : list[Event] | None
+    resources : list[Resource] = Field(exclude=True)
+    events : list[Event] = Field(exclude=True)
     start : datetime.datetime
     end : datetime.datetime | None
     type : IncidentType
     resolution : str
+
+
+    @computed_field(description="The list of past events in this incident")
+    @property
+    def event_uris(self) -> list[str]:
+        return [f"/{config.API_URL}/events/{e.id}" for e in self.events]
+
+
+    @computed_field(description="The list of resources that may be impacted by this incident")
+    @property
+    def resource_uris(self) -> list[str]:
+        return [f"/{config.API_URL}/resources/{r.id}" for r in self.resources]
 
 
     def find(
