@@ -112,10 +112,11 @@ class DemoAdapter(FacilityAdapter):
             )
             self.events.append(event)
             if r.name in last_incidents:
-                last_incidents[r.name].event_ids.append(event.id)
+                inc = last_incidents[r.name]
+                event.incident_id = inc.id
+                inc.event_ids.append(event.id)
                 if status == status_models.Status.up:
-                    incident = last_incidents[r.name]
-                    incident.end = d
+                    inc.end = d
                     del last_incidents[r.name]
             
             if random.random() > 0.9:

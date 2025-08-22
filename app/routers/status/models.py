@@ -53,12 +53,19 @@ class Event(NamedResource):
     timestamp : datetime.datetime
     status : Status
     resource_id : str = Field(exclude=True) 
+    incident_id : str | None = Field(exclude=True, default=None) 
 
 
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
         return f"/{config.API_URL}/resources/{self.resource_id}"
+
+
+    @computed_field(description="The event's incident")
+    @property
+    def incident_uri(self) -> str|None:
+        return f"/{config.API_URL}/incidents/{self.incident_id}" if self.incident_id else None
     
 
     @staticmethod
