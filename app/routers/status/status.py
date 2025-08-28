@@ -25,15 +25,15 @@ async def get_resources(
 
 
 @router.get(
-    "/resources/{id}",
+    "/resources/{resource_id}",
     summary="Get a specific resource",
     description="Get a specific resource for a given id"
 )
 async def get_resource(
     request : Request, 
-    id : str
+    resource_id : str
     ) -> models.Resource:
-    item = await request.app.state.adapter.get_resource(id)
+    item = await request.app.state.adapter.get_resource(resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -62,15 +62,15 @@ async def get_incidents(
 
 
 @router.get(
-    "/incidents/{id}",
+    "/incidents/{incident_id}",
     summary="Get a specific incident and its events",
     description="Get a specific incident for a given id. The incident's events will also be included.  You can optionally filter the returned list by specifying attribtes."
 )
 async def get_incident(
     request : Request,
-    id : str
+    incident_id : str
     ) -> models.Incident:
-    item = await request.app.state.adapter.get_incident(id)
+    item = await request.app.state.adapter.get_incident(incident_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -98,16 +98,16 @@ async def get_events(
 
 
 @router.get(
-    "/incidents/{incident_id}/events/{id}",
+    "/incidents/{incident_id}/events/{event_id}",
     summary="Get a specific event",
     description="Get a specific event for a given id"
 )
 async def get_event(
     request : Request,
     incident_id : str,
-    id : str
+    event_id : str
     ) -> models.Event:
-    item = await request.app.state.adapter.get_event(incident_id, id)
+    item = await request.app.state.adapter.get_event(incident_id, event_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
