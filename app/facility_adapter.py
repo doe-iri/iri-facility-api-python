@@ -36,6 +36,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_events(
         self : "FacilityAdapter",
+        incident_id : str,
         offset : int,
         limit : int,
         resource_id : str | None = None,
@@ -52,6 +53,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_event(
         self : "FacilityAdapter",
+        incident_id : str,
         id : str
         ) -> status_models.Event:
         pass

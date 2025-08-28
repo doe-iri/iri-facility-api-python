@@ -165,6 +165,7 @@ class DemoAdapter(FacilityAdapter):
 
     async def get_events(
         self : "DemoAdapter",
+        incident_id : str,
         offset : int,
         limit : int,
         resource_id : str | None = None,
@@ -175,11 +176,12 @@ class DemoAdapter(FacilityAdapter):
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None
         ) -> list[status_models.Event]:        
-        return status_models.Event.find(self.events, resource_id, name, description, status, from_, to, time_)[offset:offset + limit]
+        return status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id, name, description, status, from_, to, time_)[offset:offset + limit]
 
 
     async def get_event(
         self : "DemoAdapter",
+        incident_id : str,
         id : str
         ) -> status_models.Event:
         return status_models.Event.find_by_id(self.events, id)
