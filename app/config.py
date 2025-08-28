@@ -37,4 +37,5 @@ except Exception as exc:
     logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
 
 
+API_URL_ROOT = os.environ.get("API_URL_ROOT", "https://api.iri.nersc.gov")
 API_URL = os.environ.get("API_URL", "api/current")
