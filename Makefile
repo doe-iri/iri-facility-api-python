@@ -1,5 +1,5 @@
 dev : .venv
-	@source ./.venv/bin/activate && fastapi dev
+	@source ./.venv/bin/activate && API_URL_ROOT='http://127.0.0.1:8000' fastapi dev
 
 
 .venv:
