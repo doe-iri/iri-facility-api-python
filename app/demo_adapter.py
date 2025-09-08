@@ -12,7 +12,7 @@ class DemoAdapter(FacilityAdapter):
         self.resources = []
         self.incidents = []
         self.events = []
-        self.capabilities = []
+        self.capabilities = {}
         self.user = account_models.User(id="gtorok", name="Gabor Torok")
         self.projects = []
         self.project_allocations = []
@@ -23,16 +23,19 @@ class DemoAdapter(FacilityAdapter):
     
     def _init_state(self):
 
-        self.capabilities = [
-            account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            account_models.Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-            account_models.Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-        ]
+        self.capabilities = {
+            "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            "gpu": account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
+            "hpss": account_models.Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            "gpfs": account_models.Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+        }
 
-        pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=["cpu", "gpu"], current_status=status_models.Status.degraded)
-        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=["tape_storage"], current_status=status_models.Status.up)
-        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=["gpfs_storage"], current_status=status_models.Status.up)
+        pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
+            self.capabilities["cpu"].id,
+            self.capabilities["gpu"].id,
+        ], current_status=status_models.Status.degraded)
+        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up)
+        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up)
 
         self.resources = [
             pm,
@@ -59,9 +62,9 @@ class DemoAdapter(FacilityAdapter):
         ]
 
         for p in self.projects:
-            for c in self.capabilities:
+            for c in self.capabilities.values():
                 pa = account_models.ProjectAllocation(
-                    id=f"{p.id}_{c.id}",
+                    id=str(uuid.uuid4()),
                     project_id=p.id,
                     capability_id=c.id,
                     entries=[
@@ -214,7 +217,7 @@ class DemoAdapter(FacilityAdapter):
     async def get_capabilities(
         self : "DemoAdapter",
         ) -> list[account_models.Capability]:
-        return self.capabilities
+        return self.capabilities.values()
     
 
     def get_current_user(

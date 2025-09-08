@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field, Field
 import enum
+from ... import config
 
 
 class AllocationUnit(enum.Enum):
@@ -52,9 +53,21 @@ class ProjectAllocation(BaseModel):
     """
     # how much this allocation can spend
     id: str
-    project_id: str
-    capability_id: str
+    project_id: str = Field(exclude=True)
+    capability_id: str = Field(exclude=True)
     entries: list[AllocationEntry]
+
+
+    @computed_field(description="The list of past events in this incident")
+    @property
+    def project_uri(self) -> str:
+        return f"{config.API_URL_ROOT}/{config.API_URL}/account/projects/{self.project_id}"
+
+
+    @computed_field(description="The list of past events in this incident")
+    @property
+    def capability_uri(self) -> str:
+        return f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{self.capability_id}"
 
 
 class UserAllocation(BaseModel):
@@ -63,6 +76,12 @@ class UserAllocation(BaseModel):
         This allocation is a piece of the project's allocation.
     """
     id: str
-    project_allocation_id: str
+    project_allocation_id: str = Field(exclude=True)
     user_id: str
     entries: list[AllocationEntry]
+
+
+    @computed_field(description="The list of past events in this incident")
+    @property
+    def project_allocation_uri(self) -> str:
+        return f"{config.API_URL_ROOT}/{config.API_URL}/account/project_allocations/{self.project_allocation_id}"

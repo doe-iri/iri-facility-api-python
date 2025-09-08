@@ -36,9 +36,15 @@ class NamedResource(BaseModel):
 
 
 class Resource(NamedResource):
-    capability_ids: list[str]
+    capability_ids: list[str] = Field(exclude=True)
     group: str | None
     current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
+
+
+    @computed_field(description="The list of past events in this incident")
+    @property
+    def capability_uris(self) -> list[str]:
+        return [f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
 
 
     @staticmethod
