@@ -20,8 +20,9 @@ async def get_resources(
     group : str | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
+    updated_since : datetime.datetime | None = None,
     ) -> list[models.Resource]:
-    return await request.app.state.adapter.get_resources(offset, limit, name, description, group)
+    return await request.app.state.adapter.get_resources(offset, limit, name, description, group, updated_since)
 
 
 @router.get(
@@ -93,8 +94,9 @@ async def get_events(
     to : datetime.datetime | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
+    updated_since : datetime.datetime | None = None,
     ) -> list[models.Event]:
-    return await request.app.state.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_)
+    return await request.app.state.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, updated_since)
 
 
 @router.get(
