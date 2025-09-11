@@ -110,7 +110,7 @@ class DemoAdapter(FacilityAdapter):
                 id=str(uuid.uuid4()),
                 name=f"{r.name} is {status.value}",
                 description=f"{r.name} is {status.value}",
-                timestamp=d,
+                occurred_at=d,
                 status=status,
                 resource_id=r.id,
                 last_updated=day_ago,

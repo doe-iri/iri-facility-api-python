@@ -59,7 +59,7 @@ class Resource(NamedResource):
     
 
 class Event(NamedResource):
-    timestamp : datetime.datetime
+    occurred_at : datetime.datetime
     status : Status
     resource_id : str = Field(exclude=True) 
     incident_id : str | None = Field(exclude=True, default=None) 
@@ -95,11 +95,11 @@ class Event(NamedResource):
         if status:
             events = [e for e in events if e.status == status]
         if from_:
-            events = [e for e in events if e.timestamp >= from_]
+            events = [e for e in events if e.occurred_at >= from_]
         if to:
-            events = [e for e in events if e.timestamp < to]
+            events = [e for e in events if e.occurred_at < to]
         if time_:
-            events = [e for e in events if e.timestamp == time_]
+            events = [e for e in events if e.occurred_at == time_]
         return events
 
 
