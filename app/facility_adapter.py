@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from .routers.status import models as status_models
 from .routers.account import models as account_models
 import datetime
+import psij
 
 
 class FacilityAdapter(ABC):
@@ -140,4 +141,34 @@ class FacilityAdapter(ABC):
         user: account_models.User,
         project_allocations: list[account_models.ProjectAllocation],
         ) -> list[account_models.UserAllocation]:
+        pass
+
+    
+    @abstractmethod
+    def submit_job(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job: psij.Job,
+    ) -> psij.Job:
+        pass
+
+    
+    @abstractmethod
+    def get_job(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_id: str,
+    ) -> psij.Job:
+        pass
+
+    
+    @abstractmethod
+    def cancel_job(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job: psij.Job,
+    ) -> bool:
         pass

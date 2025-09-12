@@ -2,6 +2,7 @@ from fastapi import Request
 import datetime
 import random
 import uuid
+import psij
 from .facility_adapter import FacilityAdapter
 from .routers.status import models as status_models
 from .routers.account import models as account_models
@@ -268,3 +269,35 @@ class DemoAdapter(FacilityAdapter):
         ) -> list[account_models.UserAllocation]:
         pa_ids = set([pa.id for pa in project_allocations])
         return [ua for ua in self.user_allocations if ua.project_allocation_id in pa_ids]
+
+
+    async def submit_job(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job: psij.Job,
+    ) -> psij.Job:
+        job._native_id="123"
+        return job
+    
+
+    async def get_job(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_id: str,
+    ) -> psij.Job:
+        # ideally this would come from slurm or similar
+        job = psij.Job()
+        job._native_id=job_id
+        return job
+
+    
+    async def cancel_job(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job: psij.Job,
+    ) -> bool:
+        # call slurm/etc. to cancel job
+        return True

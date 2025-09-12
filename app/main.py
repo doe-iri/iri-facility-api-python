@@ -9,11 +9,13 @@ from . import config
 # include other sub-components as needed
 from app.routers.status import status
 from app.routers.account import account
+from app.routers.compute import compute
 
 
 api_app = FastAPI(**config.API_CONFIG)
 api_app.include_router(status.router)
 api_app.include_router(account.router)
+api_app.include_router(compute.router)
 
 
 @asynccontextmanager
