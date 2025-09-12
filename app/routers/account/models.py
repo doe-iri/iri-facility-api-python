@@ -4,9 +4,9 @@ from ... import config
 
 
 class AllocationUnit(enum.Enum):
-    node_hours = "Node Hours"
-    bytes = "Bytes"
-    inodes = "Inodes"
+    node_hours = "node_hours"
+    bytes = "bytes"
+    inodes = "inodes"
 
 
 class Capability(BaseModel):
