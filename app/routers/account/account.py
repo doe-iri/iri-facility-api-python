@@ -72,7 +72,7 @@ async def get_project(
 
 
 @router.get(
-    "/project/{project_id}/projects_allocations",
+    "/projects/{project_id}/projects_allocations",
     dependencies=[Depends(auth.current_user)],
     summary="Get the allocations of the current user's projects",
     description="Get a list of allocations for the currently authenticated user's projects at this facility."
