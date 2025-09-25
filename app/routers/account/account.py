@@ -72,7 +72,7 @@ async def get_project(
 
 
 @router.get(
-    "/projects/{project_id}/projects_allocations",
+    "/projects/{project_id}/project_allocations",
     dependencies=[Depends(auth.current_user)],
     summary="Get the allocations of the current user's projects",
     description="Get a list of allocations for the currently authenticated user's projects at this facility."
@@ -92,7 +92,7 @@ async def get_project_allocations(
 
 
 @router.get(
-    "/projects/{project_id}/projects_allocations/{project_allocation_id}",
+    "/projects/{project_id}/project_allocations/{project_allocation_id}",
     dependencies=[Depends(auth.current_user)],
     summary="Get a single project allocation",
     description="Get a single project allocation at this facility for this user."
@@ -115,7 +115,7 @@ async def get_project_allocation(
 
 
 @router.get(
-    "/projects/{project_id}/projects_allocations/{project_allocation_id}/user_allocations",
+    "/projects/{project_id}/project_allocations/{project_allocation_id}/user_allocations",
     dependencies=[Depends(auth.current_user)],
     summary="Get the user allocations of the current user's projects",
     description="Get a list of user allocations for the currently authenticated user's projects at this facility."
@@ -140,7 +140,7 @@ async def get_user_allocations(
 
 
 @router.get(
-    "/projects/{project_id}/projects_allocations/{project_allocation_id}/user_allocations/{user_allocation_id}",
+    "/projects/{project_id}/project_allocations/{project_allocation_id}/user_allocations/{user_allocation_id}",
     dependencies=[Depends(auth.current_user)],
     summary="Get a user allocation of the current user's projects",
     description="Get a user allocation for the currently authenticated user's projects at this facility."
