@@ -22,6 +22,7 @@ class FacilityAdapter(ABC):
         name : str | None = None,
         description : str | None = None,        
         group : str | None = None,
+        resource_type : status_models.ResourceType | None = None,
         ) -> list[status_models.Resource]:
         pass
 

@@ -21,8 +21,9 @@ async def get_resources(
     offset : int | None = 0,
     limit : int | None = 100,
     updated_since : datetime.datetime | None = None,
+    resource_type : models.ResourceType | None = None,
     ) -> list[models.Resource]:
-    return await request.app.state.adapter.get_resources(offset, limit, name, description, group, updated_since)
+    return await request.app.state.adapter.get_resources(offset, limit, name, description, group, updated_since, resource_type)
 
 
 @router.get(

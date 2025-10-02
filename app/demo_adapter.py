@@ -35,17 +35,17 @@ class DemoAdapter(FacilityAdapter):
         pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
             self.capabilities["cpu"].id,
             self.capabilities["gpu"].id,
-        ], current_status=status_models.Status.degraded, last_updated=day_ago)
-        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_updated=day_ago)
-        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_updated=day_ago)
+        ], current_status=status_models.Status.degraded, last_updated=day_ago, resource_type=status_models.ResourceType.compute)
+        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.storage)
+        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.storage)
 
         self.resources = [
             pm,
             hpss,
             cfs,
-            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_updated=day_ago),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_updated=day_ago),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_updated=day_ago),
+            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_updated=day_ago, resource_type=status_models.ResourceType.system),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_updated=day_ago, resource_type=status_models.ResourceType.website),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.service),
         ]
 
         self.projects = [
@@ -159,8 +159,9 @@ class DemoAdapter(FacilityAdapter):
         description : str | None = None,
         group : str | None = None,
         updated_since : datetime.datetime | None = None,
+        resource_type : status_models.ResourceType | None = None,
         ) -> list[status_models.Resource]:
-        return status_models.Resource.find(self.resources, name, description, group, updated_since)[offset:offset + limit]
+        return status_models.Resource.find(self.resources, name, description, group, updated_since, resource_type)[offset:offset + limit]
 
 
     async def get_resource(

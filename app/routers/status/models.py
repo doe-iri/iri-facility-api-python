@@ -38,10 +38,21 @@ class NamedResource(BaseModel):
         return a
 
 
+class ResourceType(enum.Enum):
+    website = "website"
+    service = "service"
+    compute = "compute"
+    system = "system"
+    storage = "storage"
+    network = "network"
+    unknown = "unknown"
+
+
 class Resource(NamedResource):
     capability_ids: list[str] = Field(exclude=True)
     group: str | None
     current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
+    resource_type: ResourceType
 
 
     @computed_field(description="The list of past events in this incident")
@@ -51,10 +62,12 @@ class Resource(NamedResource):
 
 
     @staticmethod
-    def find(resources, name, description, group, updated_since):
+    def find(resources, name, description, group, updated_since, resource_type):
         a = NamedResource.find(resources, name, description, updated_since)
         if group:
             a = [aa for aa in a if aa.group == group]
+        if resource_type:
+            a = [aa for aa in a if aa.resource_type == resource_type]
         return a
     
 
