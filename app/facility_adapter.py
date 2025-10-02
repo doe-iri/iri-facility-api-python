@@ -22,6 +22,7 @@ class FacilityAdapter(ABC):
         name : str | None = None,
         description : str | None = None,        
         group : str | None = None,
+        updated_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
         ) -> list[status_models.Resource]:
         pass
@@ -47,7 +48,8 @@ class FacilityAdapter(ABC):
         status : status_models.Status | None = None,
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
-        time : datetime.datetime | None = None
+        time : datetime.datetime | None = None,
+        updated_since : datetime.datetime | None = None,
         ) -> list[status_models.Event]:
         pass
 
