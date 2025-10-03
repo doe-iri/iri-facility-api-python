@@ -266,10 +266,9 @@ class DemoAdapter(FacilityAdapter):
         self : "DemoAdapter",
         request: Request,
         user: account_models.User,
-        project_allocations: list[account_models.ProjectAllocation],
+        project_allocation: account_models.ProjectAllocation,
         ) -> list[account_models.UserAllocation]:
-        pa_ids = set([pa.id for pa in project_allocations])
-        return [ua for ua in self.user_allocations if ua.project_allocation_id in pa_ids]
+        return [ua for ua in self.user_allocations if ua.project_allocation_id == project_allocation.id]
 
 
     async def submit_job(

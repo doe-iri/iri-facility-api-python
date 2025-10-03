@@ -136,7 +136,7 @@ async def get_user_allocations(
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
-    return await request.app.state.adapter.get_user_allocations(request, user, pas)
+    return await request.app.state.adapter.get_user_allocations(request, user, pa)
 
 
 @router.get(
@@ -162,7 +162,7 @@ async def get_user_allocation(
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
-    uas = await request.app.state.adapter.get_user_allocations(request, user, pas)
+    uas = await request.app.state.adapter.get_user_allocations(request, user, pa)
     ua = next((ua for ua in uas if ua.id == user_allocation_id), None)
     if not ua:
         raise HTTPException(status_code=404, detail="User allocation not found")

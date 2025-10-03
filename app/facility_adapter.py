@@ -142,7 +142,7 @@ class FacilityAdapter(ABC):
         self : "FacilityAdapter",
         request: Request,
         user: account_models.User,
-        project_allocations: list[account_models.ProjectAllocation],
+        project_allocation: account_models.ProjectAllocation,
         ) -> list[account_models.UserAllocation]:
         pass
 
