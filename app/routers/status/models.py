@@ -58,7 +58,7 @@ class Resource(NamedResource):
     @computed_field(description="The list of past events in this incident")
     @property
     def capability_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
 
 
     @staticmethod
@@ -81,13 +81,13 @@ class Event(NamedResource):
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/status/resources/{self.resource_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.resource_id}"
 
 
     @computed_field(description="The event's incident")
     @property
     def incident_uri(self) -> str|None:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
     
 
     @staticmethod
@@ -134,13 +134,13 @@ class Incident(NamedResource):
     @computed_field(description="The list of past events in this incident")
     @property
     def event_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
 
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
 
 
     def find(

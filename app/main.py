@@ -39,6 +39,6 @@ app = FastAPI(lifespan=lifespan)
 
 # for non-backward compatible versions, we can mount specific versions, eg. /api/v1
 # but, /api/current is always the latest
-app.mount(config.API_CONFIG["docs_url"] + config.API_URL, api_app)
+app.mount(f"{config.API_PREFIX}{config.API_URL}", api_app)
 
-logging.getLogger().info("API path: %s" % config.API_CONFIG["docs_url"] + config.API_URL)
+logging.getLogger().info(f"API path: {config.API_PREFIX}{config.API_URL}")

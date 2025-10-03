@@ -61,13 +61,13 @@ class ProjectAllocation(BaseModel):
     @computed_field(description="The list of past events in this incident")
     @property
     def project_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/projects/{self.project_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}"
 
 
     @computed_field(description="The list of past events in this incident")
     @property
     def capability_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{self.capability_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{self.capability_id}"
 
 
 class UserAllocation(BaseModel):
@@ -84,4 +84,4 @@ class UserAllocation(BaseModel):
     @computed_field(description="The list of past events in this incident")
     @property
     def project_allocation_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/project_allocations/{self.project_allocation_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/project_allocations/{self.project_allocation_id}"
