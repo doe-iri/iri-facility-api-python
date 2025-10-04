@@ -1,12 +1,13 @@
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import HTTPException, Request, Query
 import datetime
-from . import models
+from . import models, facility_adapter
+from .. import iri_router
 
-router = APIRouter(
+router = iri_router.IriRouter(
+    facility_adapter.FacilityAdapter,
     prefix="/status",
     tags=["status"],
 )
-
 
 @router.get(
     "/resources",
@@ -23,7 +24,7 @@ async def get_resources(
     updated_since : datetime.datetime | None = None,
     resource_type : models.ResourceType | None = None,
     ) -> list[models.Resource]:
-    return await request.app.state.adapter.get_resources(offset, limit, name, description, group, updated_since, resource_type)
+    return await router.adapter.get_resources(offset, limit, name, description, group, updated_since, resource_type)
 
 
 @router.get(
@@ -35,7 +36,7 @@ async def get_resource(
     request : Request, 
     resource_id : str
     ) -> models.Resource:
-    item = await request.app.state.adapter.get_resource(resource_id)
+    item = await router.adapter.get_resource(resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -60,7 +61,7 @@ async def get_incidents(
     offset : int | None = 0,
     limit : int | None = 100,
     ) -> list[models.Incident]:
-    return await request.app.state.adapter.get_incidents(offset, limit, name, description, status, type, from_, to, time_, updated_since, resource_id)
+    return await router.adapter.get_incidents(offset, limit, name, description, status, type, from_, to, time_, updated_since, resource_id)
 
 
 @router.get(
@@ -72,7 +73,7 @@ async def get_incident(
     request : Request,
     incident_id : str
     ) -> models.Incident:
-    item = await request.app.state.adapter.get_incident(incident_id)
+    item = await router.adapter.get_incident(incident_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -97,7 +98,7 @@ async def get_events(
     limit : int | None = 100,
     updated_since : datetime.datetime | None = None,
     ) -> list[models.Event]:
-    return await request.app.state.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, updated_since)
+    return await router.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, updated_since)
 
 
 @router.get(
@@ -110,7 +111,7 @@ async def get_event(
     incident_id : str,
     event_id : str
     ) -> models.Event:
-    item = await request.app.state.adapter.get_event(incident_id, event_id)
+    item = await router.adapter.get_event(incident_id, event_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item

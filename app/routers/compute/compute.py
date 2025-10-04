@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
-from . import models
-from ... import auth
+from fastapi import HTTPException, Request, Depends
+from . import models, facility_adapter
+from .. import iri_router
 import psij
 
-router = APIRouter(
+router = iri_router.IriRouter(
+    facility_adapter.FacilityAdapter,
     prefix="/compute",
     tags=["compute"],
 )
@@ -11,7 +12,7 @@ router = APIRouter(
 
 @router.post(
     "/job/{resource_id:str}", 
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     response_model=models.Job, 
     response_model_exclude_unset=True,
 )
@@ -28,7 +29,7 @@ async def submit_job(
     
     This command will attempt to submit a job and return its id.
     """
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     
@@ -45,18 +46,18 @@ async def submit_job(
     job = psij.Job(spec=psij.JobSpec(**d))
     
     # look up the resource (todo: maybe ensure it's available)
-    resource = await request.app.state.adapter.get_resource(resource_id)
+    resource = await router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    await request.app.state.adapter.submit_job(resource, user, job)
+    await router.adapter.submit_job(resource, user, job)
     
     return models.Job(job_id=job.native_id)
 
 
 @router.get(
     "/command/{resource_id:str}/{job_id:str}",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     response_model=models.CommandResult,
     response_model_exclude_unset=True,
 )
@@ -66,22 +67,22 @@ async def get_job_status(
     request : Request,
     ):
     """Get a job's status"""
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await request.app.state.adapter.get_resource(resource_id)
+    resource = await router.adapter.get_resource(resource_id)
 
-    job = await request.app.state.adapter.get_job(resource, user, job_id)
+    job = await router.adapter.get_job(resource, user, job_id)
 
     return models.CommandResult(status=job.status.state.name)
 
 
 @router.delete(
     "/command/{resource_id:str}/{job_id:str}",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     response_model=models.CommandResult,
     response_model_exclude_unset=True,
 )
@@ -91,18 +92,18 @@ async def cancel_job(
     request : Request,
     ):
     """Cancel a job"""
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     
     # look up the resource (todo: maybe ensure it's available)
-    resource = await request.app.state.adapter.get_resource(resource_id)
+    resource = await router.adapter.get_resource(resource_id)
 
-    job = await request.app.state.adapter.get_job(resource, user, job_id)
+    job = await router.adapter.get_job(resource, user, job_id)
 
     cr = models.CommandResult(status="OK")
     try:
-        await request.app.state.adapter.cancel_job(resource, user, job)
+        await router.adapter.cancel_job(resource, user, job)
     except Exception as exc:
         cr.status = "ERROR"
         cr.result = str(exc)

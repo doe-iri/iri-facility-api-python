@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
-from . import models
-from ... import auth
+from fastapi import HTTPException, Request, Depends
+from . import models, facility_adapter
+from .. import iri_router
 
 
-router = APIRouter(
+router = iri_router.IriRouter(
+    facility_adapter.FacilityAdapter,
     prefix="/account",
     tags=["account"],
 )
@@ -17,7 +18,7 @@ router = APIRouter(
 async def get_capabilities(
     request : Request,
     ) -> list[models.Capability]:
-    return await request.app.state.adapter.get_capabilities()
+    return await router.adapter.get_capabilities()
 
 
 @router.get(
@@ -29,7 +30,7 @@ async def get_capability(
     capability_id : str,
     request : Request,
     ) -> models.Capability:
-    caps = await request.app.state.adapter.get_capabilities()
+    caps = await router.adapter.get_capabilities()
     cc = next((c for c in caps if c.id == capability_id), None)
     if not cc:
         raise HTTPException(status_code=404, detail="Capability not found")
@@ -38,22 +39,22 @@ async def get_capability(
 
 @router.get(
     "/projects",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get the projects of the current user",
     description="Get a list of projects for the currently authenticated user at this facility."
 )
 async def get_projects(
     request : Request,
     ) -> list[models.Project]:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    return await request.app.state.adapter.get_projects(request, user)
+    return await router.adapter.get_projects(request, user)
 
 
 @router.get(
     "/projects/{project_id}",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get a single project",
     description="Get a single project at this facility."
 )
@@ -61,10 +62,10 @@ async def get_project(
     project_id : str,
     request : Request,
     ) -> models.Project:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(request, user)
+    projects = await router.adapter.get_projects(request, user)
     pp = next((p for p in projects if p.id == project_id), None)
     if not pp:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -73,7 +74,7 @@ async def get_project(
 
 @router.get(
     "/projects/{project_id}/project_allocations",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get the allocations of the current user's projects",
     description="Get a list of allocations for the currently authenticated user's projects at this facility."
 )
@@ -81,19 +82,19 @@ async def get_project_allocations(
     project_id: str,
     request : Request,
     ) -> list[models.ProjectAllocation]:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(request, user)
+    projects = await router.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return await request.app.state.adapter.get_project_allocations(request, project)
+    return await router.adapter.get_project_allocations(request, project)
 
 
 @router.get(
     "/projects/{project_id}/project_allocations/{project_allocation_id}",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get a single project allocation",
     description="Get a single project allocation at this facility for this user."
 )
@@ -102,12 +103,12 @@ async def get_project_allocation(
     project_allocation_id : str,
     request : Request,
     ) -> models.ProjectAllocation:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(request, user)
+    projects = await router.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id), None)
-    pas = await request.app.state.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
@@ -116,7 +117,7 @@ async def get_project_allocation(
 
 @router.get(
     "/projects/{project_id}/project_allocations/{project_allocation_id}/user_allocations",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get the user allocations of the current user's projects",
     description="Get a list of user allocations for the currently authenticated user's projects at this facility."
 )
@@ -125,23 +126,23 @@ async def get_user_allocations(
     project_allocation_id : str,
     request : Request,
     ) -> list[models.UserAllocation]:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(request, user)
+    projects = await router.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    pas = await request.app.state.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
-    return await request.app.state.adapter.get_user_allocations(request, user, pa)
+    return await router.adapter.get_user_allocations(request, user, pa)
 
 
 @router.get(
     "/projects/{project_id}/project_allocations/{project_allocation_id}/user_allocations/{user_allocation_id}",
-    dependencies=[Depends(auth.current_user)],
+    dependencies=[Depends(router.current_user)],
     summary="Get a user allocation of the current user's projects",
     description="Get a user allocation for the currently authenticated user's projects at this facility."
 )
@@ -151,18 +152,18 @@ async def get_user_allocation(
     user_allocation_id : str,
     request : Request,
     ) -> models.UserAllocation:
-    user = await request.app.state.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    projects = await request.app.state.adapter.get_projects(request, user)
+    projects = await router.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    pas = await request.app.state.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
-    uas = await request.app.state.adapter.get_user_allocations(request, user, pa)
+    uas = await router.adapter.get_user_allocations(request, user, pa)
     ua = next((ua for ua in uas if ua.id == user_allocation_id), None)
     if not ua:
         raise HTTPException(status_code=404, detail="User allocation not found")
