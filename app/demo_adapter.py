@@ -83,6 +83,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 self.user_allocations.append(
                     account_models.UserAllocation(
                         id=str(uuid.uuid4()),
+                        project_id=pa.project_id,
                         project_allocation_id=pa.id,
                         user_id="gtorok",
                         entries=[
