@@ -1,5 +1,5 @@
 # <img src="https://iri.science/images/doe-icon-old.png" height=30 /> IRI API reference implementation in Python 3
-A proof-of-concept implementation of the IRI status api
+Python reference implementation of the IRI status api
 
 See it live: https://api.iri.nersc.gov/api/current/
 
@@ -24,17 +24,63 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 
 ## Customizing the API for your facility
 
-At start the API will load the [facility adapter](app/facility_adapter.py) specified in the `IRI_API_ADAPTER` environment variable. If not set
-the value will default to the [demo adapter](app/demo_adapter.py). Implement your facility's business logic by subclassing the [facility adapter](app/facility_adapter.py).
+Various parts of the reference implementation can be customized by adding code or configuration.
 
-You can also optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
+### Customizing the business logic for your facility
+The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance. 
+
+The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
+
+As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data. 
+
+### Customizing the API meta-data
+You can optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
 
 If using docker (see next section), your dockerfile could extend this reference implementation via a `FROM` line and add your custom facility adapter code and init parameters in `ENV` lines.
+
+### Environment variables
+
+- `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
+- `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
+- `API_URL`: the path to the api itself. Defaults to `api/current`.
+
+Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
+
+- `IRI_API_PARAMS`: as described above, this is a way to customize the API meta-data
+- `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
+- `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
 
 ## Docker support
 
 You can build and run the included dockerfile, for example:
 `docker build -t iri . && docker run -p 8000:8000 iri`
+
+Docker is also recommended for running your facility implementation. For example, supposing you have built an image for the reference implementation and stored it in your docker registry, you could use the following Dockerfile for your IRI api:
+
+```Dockerfile
+FROM registry.myfacility.gov/isg/iri/iri:main
+
+COPY ./your_businesslogic /app/your_businesslogic/
+
+RUN pip install -U pip
+RUN pip install -U wheel
+RUN pip install -U setuptools
+RUN pip install additional_libraries
+
+ENV IRI_API_ADAPTER_status="myfacility.status_adapter.StatusAdapter"
+ENV IRI_API_ADAPTER_account="myfacility.account_adapter.AccountAdapter"
+ENV IRI_API_ADAPTER_compute="myfacility.compute_adapter.ComputeAdapter"
+ENV API_PREFIX="/myfacility/"
+ENV IRI_API_PARAMS='{ \
+    "title": "Facility XYZ implementation of the IRI api", \
+    "terms_of_service": "https://myfacility.gov/aup", \
+    "docs_url": "/", \
+    "contact": { \
+        "name": "My Facility Contact", \
+        "url": "https://myfacility.gov/about/contact-us/" \
+    } \
+}'
+```
 
 ## Next steps
 
