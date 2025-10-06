@@ -24,7 +24,7 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 
 ## Customizing the API for your facility
 
-Various parts of the reference implementation can be customized by adding code or configuration.
+The reference implementation is meant to be customized for your facility's IRI implementation. Running the IRI api unmodified will show only fake, test data. The paragraphs below describe how to customize the business logic and appearance of the API for your facility.
 
 ### Customizing the business logic for your facility
 The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance. 
