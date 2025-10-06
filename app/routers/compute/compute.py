@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request, Depends
 from . import models, facility_adapter
 from .. import iri_router
+from ..status.status import router as status_router
 import psij
 
 router = iri_router.IriRouter(
@@ -46,7 +47,7 @@ async def submit_job(
     job = psij.Job(spec=psij.JobSpec(**d))
     
     # look up the resource (todo: maybe ensure it's available)
-    resource = await router.adapter.get_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -73,7 +74,7 @@ async def get_job_status(
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await router.adapter.get_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     job = await router.adapter.get_job(resource, user, job_id)
 
@@ -97,7 +98,7 @@ async def cancel_job(
         raise HTTPException(status_code=404, detail="Uer not found")
     
     # look up the resource (todo: maybe ensure it's available)
-    resource = await router.adapter.get_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     job = await router.adapter.get_job(resource, user, job_id)
 
