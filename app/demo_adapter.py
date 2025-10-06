@@ -3,12 +3,12 @@ import datetime
 import random
 import uuid
 import psij
-from .facility_adapter import FacilityAdapter
-from .routers.status import models as status_models
-from .routers.account import models as account_models
+from .routers.status import models as status_models, facility_adapter as status_adapter
+from .routers.account import models as account_models, facility_adapter as account_adapter
+from .routers.compute import facility_adapter as compute_adapter
 
 
-class DemoAdapter(FacilityAdapter):
+class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
