@@ -21,10 +21,10 @@ async def get_resources(
     group : str | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
-    updated_since : datetime.datetime | None = None,
+    modified_since : datetime.datetime | None = None,
     resource_type : models.ResourceType | None = None,
     ) -> list[models.Resource]:
-    return await router.adapter.get_resources(offset, limit, name, description, group, updated_since, resource_type)
+    return await router.adapter.get_resources(offset, limit, name, description, group, modified_since, resource_type)
 
 
 @router.get(
@@ -56,12 +56,12 @@ async def get_incidents(
     from_ : datetime.datetime | None = Query(alias="from", default=None),
     time_ : datetime.datetime | None = Query(alias="time", default=None),
     to : datetime.datetime | None = None,
-    updated_since : datetime.datetime | None = None,
+    modified_since : datetime.datetime | None = None,
     resource_id : str | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
     ) -> list[models.Incident]:
-    return await router.adapter.get_incidents(offset, limit, name, description, status, type, from_, to, time_, updated_since, resource_id)
+    return await router.adapter.get_incidents(offset, limit, name, description, status, type, from_, to, time_, modified_since, resource_id)
 
 
 @router.get(
@@ -96,9 +96,9 @@ async def get_events(
     to : datetime.datetime | None = None,
     offset : int | None = 0,
     limit : int | None = 100,
-    updated_since : datetime.datetime | None = None,
+    modified_since : datetime.datetime | None = None,
     ) -> list[models.Event]:
-    return await router.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, updated_since)
+    return await router.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, modified_since)
 
 
 @router.get(

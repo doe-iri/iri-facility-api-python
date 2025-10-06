@@ -35,17 +35,17 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
             self.capabilities["cpu"].id,
             self.capabilities["gpu"].id,
-        ], current_status=status_models.Status.degraded, last_updated=day_ago, resource_type=status_models.ResourceType.compute)
-        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.storage)
-        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.storage)
+        ], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.compute)
+        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
+        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
 
         self.resources = [
             pm,
             hpss,
             cfs,
-            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_updated=day_ago, resource_type=status_models.ResourceType.system),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_updated=day_ago, resource_type=status_models.ResourceType.website),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_updated=day_ago, resource_type=status_models.ResourceType.service),
+            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.system),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_modified=day_ago, resource_type=status_models.ResourceType.website),
+            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.service),
         ]
 
         self.projects = [
@@ -115,7 +115,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 occurred_at=d,
                 status=status,
                 resource_id=r.id,
-                last_updated=day_ago,
+                last_modified=day_ago,
             )
             self.events.append(event)
             if r.name in last_incidents:
@@ -143,7 +143,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                         end=d,
                         type=random.choice(list(status_models.IncidentType)),
                         resolution="PM was fixed by NERSC staff",
-                        last_updated=d
+                        last_modified=d
                     )
                     self.incidents.append(incident)
                     last_incidents[r.name] = incident
@@ -159,10 +159,10 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         name : str | None = None,
         description : str | None = None,
         group : str | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
         ) -> list[status_models.Resource]:
-        return status_models.Resource.find(self.resources, name, description, group, updated_since, resource_type)[offset:offset + limit]
+        return status_models.Resource.find(self.resources, name, description, group, modified_since, resource_type)[offset:offset + limit]
 
 
     async def get_resource(
@@ -184,9 +184,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
         ) -> list[status_models.Event]:        
-        return status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id, name, description, status, from_, to, time_, updated_since)[offset:offset + limit]
+        return status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id, name, description, status, from_, to, time_, modified_since)[offset:offset + limit]
 
 
     async def get_event(
@@ -208,10 +208,10 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
         ) -> list[status_models.Incident]:
-        return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, updated_since, resource_id)[offset:offset + limit]
+        return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, modified_since, resource_id)[offset:offset + limit]
 
 
     async def get_incident(

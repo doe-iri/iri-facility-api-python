@@ -19,7 +19,7 @@ class NamedResource(BaseModel):
     id : str
     name : str
     description : str
-    last_updated : datetime.datetime
+    last_modified : datetime.datetime
 
 
     @staticmethod
@@ -28,13 +28,13 @@ class NamedResource(BaseModel):
 
 
     @staticmethod
-    def find(a, name, description, updated_since):
+    def find(a, name, description, modified_since):
         if name:
             a = [aa for aa in a if aa.name == name]
         if description:
             a = [aa for aa in a if description in aa.description]
-        if updated_since:
-            a = [aa for aa in a if aa.last_updated >= updated_since]
+        if modified_since:
+            a = [aa for aa in a if aa.last_modified >= modified_since]
         return a
 
 
@@ -62,8 +62,8 @@ class Resource(NamedResource):
 
 
     @staticmethod
-    def find(resources, name, description, group, updated_since, resource_type):
-        a = NamedResource.find(resources, name, description, updated_since)
+    def find(resources, name, description, group, modified_since, resource_type):
+        a = NamedResource.find(resources, name, description, modified_since)
         if group:
             a = [aa for aa in a if aa.group == group]
         if resource_type:
@@ -100,9 +100,9 @@ class Event(NamedResource):
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
     ) -> list:
-        events = NamedResource.find(events, name, description, updated_since)
+        events = NamedResource.find(events, name, description, modified_since)
         if resource_id:
             events = [e for e in events if e.resource_id == resource_id]
         if status:
@@ -152,10 +152,10 @@ class Incident(NamedResource):
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
     ) -> list:
-        incidents = NamedResource.find(incidents, name, description, updated_since)
+        incidents = NamedResource.find(incidents, name, description, modified_since)
         if resource_id:
             incidents = [e for e in incidents if resource_id in e.resource_ids]
         if status:
