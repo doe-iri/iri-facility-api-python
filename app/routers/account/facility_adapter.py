@@ -53,7 +53,8 @@ class FacilityAdapter(ABC):
     def get_project_allocations(
         self : "FacilityAdapter",
         request: Request,
-        project: account_models.Project
+        project: account_models.Project,
+        user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
         pass
 

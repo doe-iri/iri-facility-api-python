@@ -258,7 +258,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_project_allocations(
         self : "DemoAdapter",
         request: Request,
-        project: account_models.Project
+        project: account_models.Project,
+        user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
         return [pa for pa in self.project_allocations if pa.project_id == project.id]
     

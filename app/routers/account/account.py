@@ -89,7 +89,7 @@ async def get_project_allocations(
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return await router.adapter.get_project_allocations(request, project)
+    return await router.adapter.get_project_allocations(request, project, user)
 
 
 @router.get(
@@ -108,7 +108,7 @@ async def get_project_allocation(
         raise HTTPException(status_code=404, detail="Uer not found")
     projects = await router.adapter.get_projects(request, user)
     project = next((p for p in projects if p.id == project_id), None)
-    pas = await router.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project, user)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
@@ -133,7 +133,7 @@ async def get_user_allocations(
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    pas = await router.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project, user)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
@@ -159,7 +159,7 @@ async def get_user_allocation(
     project = next((p for p in projects if p.id == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    pas = await router.adapter.get_project_allocations(request, project)
+    pas = await router.adapter.get_project_allocations(request, project, user)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
         raise HTTPException(status_code=404, detail="Project allocation not found")
