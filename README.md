@@ -56,8 +56,10 @@ You can either use the docker images created on github.com or build the image yo
 
 ### Use the github docker image
 
-Github is set up to [automatically build](.github/workflows/docker-build.yml) the latest image and push it to its registry on each commit to the `main` branch. To use this image:
-- For now (until this repo is made public), you will have to authenticate to the github container registry with your github username and Personal Access Token (PAT) as your password:
+Github is set up to [automatically build](.github/workflows/docker-build.yml) the latest image and push it to its registry on each commit to the `main` branch.
+
+For now (until this repo is made public), you will have to authenticate to the github container registry with your github username and Personal Access Token (PAT) as your password:
+
 `docker login ghcr.io -u <your username>`
 (For the password, enter your PAT)
 
