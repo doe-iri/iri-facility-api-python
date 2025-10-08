@@ -71,7 +71,6 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                     capability_id=c.id,
                     entries=[
                         account_models.AllocationEntry(
-                            id=str(uuid.uuid4()),
                             allocation=500 + random.random() * 500,
                             usage=100 + random.random() * 100,
                             unit=cu,
@@ -88,7 +87,6 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                         user_id="gtorok",
                         entries=[
                             account_models.AllocationEntry(
-                                id=f"{a.id}_gtorok",
                                 allocation=a.allocation/10,
                                 usage=a.usage/10,
                                 unit=a.unit
