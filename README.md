@@ -80,19 +80,22 @@ You can build and run the included dockerfile, for example:
 
 ### Using the base docker image
 
-Docker is also recommended for running your facility implementation. For example, supposing you have built an image for the reference implementation and stored it in your docker registry, you could use the following Dockerfile for your IRI api:
+Rather than forking this repo, docker is recommended for running your facility implementation. For example, you could use the following example Dockerfile for your IRI api:
 
 ```Dockerfile
 FROM ghcr.io/doe-iri/iri-facility-api-python:main
 # or: FROM registry.myfacility.gov/isg/iri/iri:main
 
-COPY ./your_businesslogic /app/your_businesslogic/
+# The "myfacility" directory contains the adapters with business logic
+# specific to your IRI implementaion. 
+# Here we copy them into the docker image to a location that will be 
+# visible to the running app.
+COPY ./myfacility /app/myfacility/
 
-RUN pip install -U pip
-RUN pip install -U wheel
-RUN pip install -U setuptools
+# Install additional libraries your implementation needs
 RUN pip install additional_libraries
 
+# Customize your image via environment variables
 ENV IRI_API_ADAPTER_status="myfacility.status_adapter.StatusAdapter"
 ENV IRI_API_ADAPTER_account="myfacility.account_adapter.AccountAdapter"
 ENV IRI_API_ADAPTER_compute="myfacility.compute_adapter.ComputeAdapter"
