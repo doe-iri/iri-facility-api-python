@@ -63,7 +63,15 @@ For now (until this repo is made public), you will have to authenticate to the g
 `docker login ghcr.io -u <your username>`
 (For the password, enter your PAT)
 
-Once authenticated, you can now `docker pull ghcr.io/doe-iri/iri-facility-api-python:main`.
+Once authenticated, you can now pull:
+
+`docker pull ghcr.io/doe-iri/iri-facility-api-python:main`
+
+And also run the code with the demo adapter:
+
+`docker run -p8000:8000 -e IRI_SHOW_MISSING_ROUTES=true ghcr.io/doe-iri/iri-facility-api-python:main`
+
+Visit: http://127.0.0.1:8000/api/current/
 
 ### Build the image yourself
 
