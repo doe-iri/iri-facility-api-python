@@ -39,7 +39,6 @@ class Project(BaseModel):
 
 class AllocationEntry(BaseModel):
     """Base class for allocations."""
-    id: str
     allocation: float  # how much this allocation can spend
     usage: float # how much this allocation has spent
     unit: AllocationUnit
@@ -61,13 +60,13 @@ class ProjectAllocation(BaseModel):
     @computed_field(description="The list of past events in this incident")
     @property
     def project_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/projects/{self.project_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}"
 
 
     @computed_field(description="The list of past events in this incident")
     @property
     def capability_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{self.capability_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{self.capability_id}"
 
 
 class UserAllocation(BaseModel):
@@ -76,6 +75,7 @@ class UserAllocation(BaseModel):
         This allocation is a piece of the project's allocation.
     """
     id: str
+    project_id: str = Field(exclude=True)
     project_allocation_id: str = Field(exclude=True)
     user_id: str
     entries: list[AllocationEntry]
@@ -84,4 +84,4 @@ class UserAllocation(BaseModel):
     @computed_field(description="The list of past events in this incident")
     @property
     def project_allocation_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/account/project_allocations/{self.project_allocation_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"

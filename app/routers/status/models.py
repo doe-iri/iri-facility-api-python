@@ -19,7 +19,7 @@ class NamedResource(BaseModel):
     id : str
     name : str
     description : str
-    last_updated : datetime.datetime
+    last_modified : datetime.datetime
 
 
     @staticmethod
@@ -28,13 +28,13 @@ class NamedResource(BaseModel):
 
 
     @staticmethod
-    def find(a, name, description, updated_since):
+    def find(a, name, description, modified_since):
         if name:
             a = [aa for aa in a if aa.name == name]
         if description:
             a = [aa for aa in a if description in aa.description]
-        if updated_since:
-            a = [aa for aa in a if aa.last_updated >= updated_since]
+        if modified_since:
+            a = [aa for aa in a if aa.last_modified >= modified_since]
         return a
 
 
@@ -58,12 +58,12 @@ class Resource(NamedResource):
     @computed_field(description="The list of past events in this incident")
     @property
     def capability_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
 
 
     @staticmethod
-    def find(resources, name, description, group, updated_since, resource_type):
-        a = NamedResource.find(resources, name, description, updated_since)
+    def find(resources, name, description, group, modified_since, resource_type):
+        a = NamedResource.find(resources, name, description, modified_since)
         if group:
             a = [aa for aa in a if aa.group == group]
         if resource_type:
@@ -81,13 +81,13 @@ class Event(NamedResource):
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/status/resources/{self.resource_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.resource_id}"
 
 
     @computed_field(description="The event's incident")
     @property
     def incident_uri(self) -> str|None:
-        return f"{config.API_URL_ROOT}/{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
     
 
     @staticmethod
@@ -100,9 +100,9 @@ class Event(NamedResource):
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
     ) -> list:
-        events = NamedResource.find(events, name, description, updated_since)
+        events = NamedResource.find(events, name, description, modified_since)
         if resource_id:
             events = [e for e in events if e.resource_id == resource_id]
         if status:
@@ -134,13 +134,13 @@ class Incident(NamedResource):
     @computed_field(description="The list of past events in this incident")
     @property
     def event_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
 
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}/{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
 
 
     def find(
@@ -152,10 +152,10 @@ class Incident(NamedResource):
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        updated_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
     ) -> list:
-        incidents = NamedResource.find(incidents, name, description, updated_since)
+        incidents = NamedResource.find(incidents, name, description, modified_since)
         if resource_id:
             incidents = [e for e in incidents if resource_id in e.resource_ids]
         if status:
