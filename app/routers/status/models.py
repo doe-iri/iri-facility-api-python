@@ -55,6 +55,12 @@ class Resource(NamedResource):
     resource_type: ResourceType
 
 
+    @computed_field(description="The url of this object")
+    @property
+    def self_uri(self) -> str:
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.id}"
+
+
     @computed_field(description="The list of past events in this incident")
     @property
     def capability_uris(self) -> list[str]:
@@ -76,6 +82,12 @@ class Event(NamedResource):
     status : Status
     resource_id : str = Field(exclude=True) 
     incident_id : str | None = Field(exclude=True, default=None) 
+
+
+    @computed_field(description="The url of this object")
+    @property
+    def self_uri(self) -> str:
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}/events/{self.id}"
 
 
     @computed_field(description="The resource belonging to this event")
@@ -129,6 +141,12 @@ class Incident(NamedResource):
     end : datetime.datetime | None
     type : IncidentType
     resolution : str    
+
+
+    @computed_field(description="The url of this object")
+    @property
+    def self_uri(self) -> str:
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}"
 
 
     @computed_field(description="The list of past events in this incident")
