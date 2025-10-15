@@ -2,6 +2,7 @@ from fastapi import Request
 from abc import ABC, abstractmethod
 from ..status import models as status_models
 from ..account import models as account_models
+from . import models as compute_models
 import psij
 
 
@@ -42,7 +43,7 @@ class FacilityAdapter(ABC):
         resource: status_models.Resource, 
         user: account_models.User, 
         job: psij.Job,
-    ) -> psij.Job:
+    ) -> compute_models.Job:
         pass
 
     
@@ -52,7 +53,19 @@ class FacilityAdapter(ABC):
         resource: status_models.Resource, 
         user: account_models.User, 
         job_id: str,
-    ) -> psij.Job:
+    ) -> compute_models.Job:
+        pass
+
+    
+    @abstractmethod
+    def get_jobs(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        offset : int,
+        limit : int,
+        filters: dict[str, object] | None = None,
+    ) -> list[compute_models.Job]:
         pass
 
     
@@ -61,6 +74,6 @@ class FacilityAdapter(ABC):
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
-        job: psij.Job,
+        job_id: str,
     ) -> bool:
         pass

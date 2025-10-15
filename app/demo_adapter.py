@@ -3,9 +3,10 @@ import datetime
 import random
 import uuid
 import psij
+import time
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
-from .routers.compute import facility_adapter as compute_adapter
+from .routers.compute import models as compute_models, facility_adapter as compute_adapter
 
 
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter):
@@ -276,9 +277,17 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource, 
         user: account_models.User, 
         job: psij.Job,
-    ) -> psij.Job:
-        job._native_id="123"
-        return job
+    ) -> compute_models.Job:
+        return compute_models.Job(
+            id="job_123",
+            status=compute_models.JobStatus(
+                state=psij.JobState.NEW,
+                time=time.time(),
+                message="job submitted",
+                exit_code=None,
+                meta_data={ "account": "account1" },
+            )
+        )
     
 
     async def get_job(
@@ -286,18 +295,44 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource, 
         user: account_models.User, 
         job_id: str,
-    ) -> psij.Job:
-        # ideally this would come from slurm or similar
-        job = psij.Job()
-        job._native_id=job_id
-        return job
+    ) -> compute_models.Job:
+        return compute_models.Job(
+            id=job_id,
+            status=compute_models.JobStatus(
+                state=psij.JobState.COMPLETED,
+                time=time.time(),
+                message="job completed successfully",
+                exit_code=0,
+                meta_data={ "account": "account1" },
+            )
+        )
 
+
+    async def get_jobs(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        offset : int,
+        limit : int,
+        filters: dict[str, object] | None = None,
+    ) -> list[compute_models.Job]:
+        return [compute_models.Job(
+            id=f"job_{i}",
+            status=compute_models.JobStatus(
+                state=random.choice([s for s in psij.JobState]),
+                time=time.time() - (random.random() * 100),
+                message="",
+                exit_code=random.choice([0, 0, 0, 0, 0, 1, 1, 128, 127]),
+                meta_data={ "account": "account1" },
+            )
+        ) for i in range(random.randint(3, 10))]
     
+
     async def cancel_job(
         self: "DemoAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
-        job: psij.Job,
+        job_id: str,
     ) -> bool:
         # call slurm/etc. to cancel job
         return True

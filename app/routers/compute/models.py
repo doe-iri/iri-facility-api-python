@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 import datetime
+import psij
+
 
 class ResourceSpec(BaseModel):
     node_count: int | None = None
@@ -36,10 +38,24 @@ class JobRequest(BaseModel):
     launcher: str | None = None
 
 
-class Job(BaseModel):
-    job_id : str
-
-
 class CommandResult(BaseModel):
     status : str
     result : str | None = None
+
+
+class JobStatus(BaseModel):
+    state : psij.JobState
+    time : float | None = None
+    message : str | None = None
+    exit_code : int | None = None
+    meta_data : dict[str, object] | None = None
+
+
+    @field_serializer('state')
+    def serialize_state(self, state: psij.JobState):
+        return state.name
+
+
+class Job(BaseModel):
+    id : str
+    status : JobStatus | None = None

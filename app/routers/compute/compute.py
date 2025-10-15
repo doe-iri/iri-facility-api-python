@@ -51,15 +51,15 @@ async def submit_job(
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    await router.adapter.submit_job(resource, user, job)
+    job = await router.adapter.submit_job(resource, user, job)
     
-    return models.Job(job_id=job.native_id)
+    return job
 
 
 @router.get(
-    "/command/{resource_id:str}/{job_id:str}",
+    "/status/{resource_id:str}/{job_id:str}",
     dependencies=[Depends(router.current_user)],
-    response_model=models.CommandResult,
+    response_model=models.Job,
     response_model_exclude_unset=True,
 )
 async def get_job_status(
@@ -78,11 +78,38 @@ async def get_job_status(
 
     job = await router.adapter.get_job(resource, user, job_id)
 
-    return models.CommandResult(status=job.status.state.name)
+    return job
+
+
+@router.post(
+    "/status/{resource_id:str}",
+    dependencies=[Depends(router.current_user)],
+    response_model=list[models.Job],
+    response_model_exclude_unset=True,
+)
+async def get_job_statuses(
+    resource_id : str,
+    request : Request,
+    offset : int | None = 0,
+    limit : int | None = 100,
+    filters : dict[str, object] | None = None,
+    ):
+    """Get multiple jobs' statuses"""
+    user = await router.adapter.get_user(request, request.state.current_user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Uer not found")
+
+    # look up the resource (todo: maybe ensure it's available)
+    # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
+    resource = await status_router.adapter.get_resource(resource_id)
+
+    jobs = await router.adapter.get_jobs(resource, user, offset, limit, filters)
+
+    return jobs
 
 
 @router.delete(
-    "/command/{resource_id:str}/{job_id:str}",
+    "/cancel/{resource_id:str}/{job_id:str}",
     dependencies=[Depends(router.current_user)],
     response_model=models.CommandResult,
     response_model_exclude_unset=True,
@@ -100,11 +127,9 @@ async def cancel_job(
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    job = await router.adapter.get_job(resource, user, job_id)
-
     cr = models.CommandResult(status="OK")
     try:
-        await router.adapter.cancel_job(resource, user, job)
+        await router.adapter.cancel_job(resource, user, job_id)
     except Exception as exc:
         cr.status = "ERROR"
         cr.result = str(exc)
