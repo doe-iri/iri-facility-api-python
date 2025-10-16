@@ -2,4 +2,4 @@
 __pycache__
 iri_api_python.egg-info
 docker-build.sh
-my_app_sandbox
+iri_sandbox

@@ -10,6 +10,8 @@ import pwd
 import grp
 import glob
 import subprocess
+import os
+import pathlib
 from typing import Any
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
@@ -17,15 +19,7 @@ from .routers.compute import models as compute_models, facility_adapter as compu
 from .routers.filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 
 
-
-import tempfile
-import atexit
-import shutil
-import signal
-import os
-
 class PathSandbox:
-    # Use a fixed temp directory that persists across reloads
     _base_temp_dir = None
     
     @classmethod
@@ -34,7 +28,7 @@ class PathSandbox:
             # Create in system temp with a fixed name
             cls._base_temp_dir = os.path.join(
                 os.getcwd(), 
-                "my_app_sandbox"
+                "iri_sandbox"
             )
             os.makedirs(cls._base_temp_dir, exist_ok=True)
 
@@ -43,10 +37,6 @@ class PathSandbox:
                 f.write("hello world")
         return cls._base_temp_dir
     
-    def __init__(self):
-        # Create subdirectory in the base temp dir
-        self.sandbox_dir = tempfile.mkdtemp(dir=self.get_base_temp_dir())
-
 
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter):
     def __init__(self):
@@ -397,7 +387,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     def _file(self, path: str) -> filesystem_models.File:
         # Get file stats (follows symlinks by default)
         rp = self.validate_path(path)
-        file_stat = os.lstat(rp)  # Use lstat to not follow symlinks
+        file_stat = os.stat(rp)  # Use lstat to not follow symlinks
         
         # Get file type
         if stat.S_ISDIR(file_stat.st_mode):
@@ -622,7 +612,10 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User, 
         path: str, 
     ):
-        # don't actually remove anything
+        rp = self.validate_path(path)
+        if rp == PathSandbox.get_base_temp_dir():
+            raise HTTPException(status_code=400, detail="Cannot delete sandbox")
+        subprocess.run(["rm", "-rf", rp], check=True)
         return None
 
 
@@ -632,7 +625,15 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User, 
         request_model: filesystem_models.PostMakeDirRequest,
     ) -> filesystem_models.PostMkdirResponse:
-        pass
+        rp = self.validate_path(request_model.path)
+        args = ["mkdir"]
+        if request_model.parent:
+            args.append("-p")
+        args.append(rp)
+        subprocess.run(args, check=True)
+        return filesystem_models.PostMkdirResponse(
+            output=self._file(rp)
+        )
 
 
     async def symlink(
@@ -641,7 +642,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User, 
         request_model: filesystem_models.PostFileSymlinkRequest,
     ) -> filesystem_models.PostFileSymlinkResponse:
-        pass
+        rp_src = self.validate_path(request_model.path)
+        rp_dst = self.validate_path(request_model.link_path)
+        subprocess.run(["ln", "-s", rp_src, rp_dst], check=True)
+        return filesystem_models.PostFileSymlinkResponse(
+            output=self._file(rp_dst)
+        )
 
 
     async def download(
@@ -650,7 +656,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User, 
         path: str,
     ) -> Any:
-        pass
+        rp = self.validate_path(path)        
+        return pathlib.Path(rp).read_bytes()
 
 
     async def upload(
@@ -660,7 +667,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str,
         content: str,
     ) -> None:
-        pass
+        rp = self.validate_path(path)
+        pathlib.Path(rp).write_bytes(content)
 
 
     async def compress(
@@ -668,8 +676,32 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource, 
         user: account_models.User, 
         request_model: filesystem_models.PostCompressRequest,
-    ) -> None:
-        pass
+    ) -> filesystem_models.PostCompressResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+
+        args = [ "tar" ]
+        if request_model.compression == filesystem_models.CompressionType.gzip:
+            args.append("-czf")
+        elif request_model.compression == filesystem_models.CompressionType.bzip2:
+            args.append("-cjf")
+        elif request_model.compression == filesystem_models.CompressionType.xz:
+            args.append("-cJf")
+        args.append(dst_rp)
+        if request_model.dereference:
+            args.append("--dereference")
+        if request_model.match_pattern:
+            args.append(f"--include={request_model.match_pattern}")
+
+        args.append("-C")
+        args.append(PathSandbox.get_base_temp_dir())
+        p = pathlib.Path(src_rp)
+        args.append(p.relative_to(PathSandbox.get_base_temp_dir()))
+        subprocess.run(args, check=True)
+
+        return filesystem_models.PostCompressResponse(
+            output=self._file(dst_rp)
+        )
 
 
     async def extract(
@@ -677,5 +709,24 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource, 
         user: account_models.User, 
         request_model: filesystem_models.PostExtractRequest,
-    ) -> None:
-        pass
+    ) -> filesystem_models.PostExtractRequest:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+
+        args = [ "tar" ]
+        if request_model.compression == filesystem_models.CompressionType.gzip:
+            args.append("-xzf")
+        elif request_model.compression == filesystem_models.CompressionType.bzip2:
+            args.append("-xjf")
+        elif request_model.compression == filesystem_models.CompressionType.xz:
+            args.append("-xJf")
+        else:
+            args.append("-xf")
+        args.append(src_rp)
+        args.append("-C")
+        args.append(dst_rp)
+        subprocess.run(args, check=True)
+
+        return filesystem_models.PostCompressResponse(
+            output=self._file(dst_rp)
+        )

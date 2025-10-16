@@ -187,6 +187,10 @@ class PostMkdirResponse(CamelModel):
     output: Optional[File]
 
 
+class PostCompressResponse(CamelModel):
+    output: Optional[File]
+
+
 class PostCompressRequest(FilesystemRequestBase):
     target_path: str = Field(..., description="Path to the compressed file")
     match_pattern: Optional[str] = Field(
@@ -213,6 +217,10 @@ class PostCompressRequest(FilesystemRequestBase):
             ]
         }
     }
+
+
+class PostExtractResponse(CamelModel):
+    output: Optional[File]
 
 
 class PostExtractRequest(FilesystemRequestBase):

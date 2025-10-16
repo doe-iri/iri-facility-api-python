@@ -17,7 +17,6 @@ from fastapi import (
 )
 import os
 from typing import Any, Annotated
-from base64 import b64decode, b64encode
 from .. import iri_router
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
@@ -50,8 +49,7 @@ async def _user_resource(
         raise HTTPException(status_code=404, detail="Uer not found")
     
     # look up the resource (todo: maybe ensure it's available)
-    # resource = await status_router.adapter.get_resource(resource_id)
-    resource = None
+    resource = await status_router.adapter.get_resource(resource_id)
     return (user, resource)
 
 
@@ -394,18 +392,16 @@ async def get_download(
     path: Annotated[str, Query(description="A file to download")],
 ) -> Any:
     user, resource = await _user_resource(resource_id, request)
-
     output = await router.adapter.download(resource, user, path)
-    file_content = b64decode(output)
 
-    if len(file_content) > OPS_SIZE_LIMIT:
+    if len(output) > OPS_SIZE_LIMIT:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="File to download is too large.",
         )
 
     return Response(
-        content=file_content, media_type="application/octet-stream"
+        content=output, media_type="application/octet-stream"
     )
 
 
@@ -433,15 +429,7 @@ async def post_upload(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="File to upload is too large.",
         )
-
-    # Note about overwrite
-    # Providing a setting to control the overwrite behavior is non trivial.
-    # To be reliable this setting should be implemented via an atomic operation (no multiple commands)
-    # This could be accived by changing the default bash behavior with "set -o noclobber;"
-    # The idea is to append "set -o noclobber;" to the bas64 command and relax the ssh wrapper to allow it.
-
-    content = b64encode(raw_content).decode("utf-8")
-    await router.adapter.upload(resource, user, path, content)
+    await router.adapter.upload(resource, user, path, raw_content)
     return None
 
 
@@ -449,8 +437,8 @@ async def post_upload(
     "/compress/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
     description="Compress files and directories using `tar` command",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
+    status_code=status.HTTP_201_CREATED,
+    response_model=models.PostCompressResponse,
     response_description="File and/or directories compressed successfully",
 )
 async def post_compress(
@@ -459,16 +447,15 @@ async def post_compress(
     request_model: models.PostCompressRequest,
 ) -> Any:
     user, resource = await _user_resource(resource_id, request)
-    await router.adapter.compress(resource, user, request_model)
-    return None
+    return await router.adapter.compress(resource, user, request_model)
 
 
 @router.post(
     "/extract/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
     description="Extract `tar` `gzip` archives",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
+    status_code=status.HTTP_201_CREATED,
+    response_model=models.PostExtractResponse,
     response_description="File extracted successfully",
 )
 async def post_extract(
@@ -477,5 +464,4 @@ async def post_extract(
     request_model: models.PostExtractRequest,
 ) -> Any:
     user, resource = await _user_resource(resource_id, request)
-    await router.adapter.extract(resource, user, request_model)
-    return None
+    return await router.adapter.extract(resource, user, request_model)
