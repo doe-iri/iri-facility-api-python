@@ -6,4 +6,5 @@ dependencies = [
     "fastapi[standard]>=0.100.0",
     "uvicorn[standard]>=0.22.0",
     "psij-python==0.9.11",
+    "humps>=0.2.2"
 ]
