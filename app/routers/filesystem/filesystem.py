@@ -20,8 +20,6 @@ from typing import Any, Annotated
 from .. import iri_router
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
-
-# models
 from .import models, facility_adapter
 
 def to_int(name, default_value):
