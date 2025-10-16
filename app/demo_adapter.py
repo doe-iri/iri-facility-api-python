@@ -1,15 +1,44 @@
-from fastapi import Request
+from fastapi import Request, HTTPException
 import datetime
 import random
 import uuid
 import psij
 import time
+import os
+import stat
+import pwd
+import grp
+import glob
+import subprocess
+import os
+import pathlib
+from typing import Any
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
+from .routers.filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 
 
-class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter):
+class PathSandbox:
+    _base_temp_dir = None
+    
+    @classmethod
+    def get_base_temp_dir(cls):
+        if cls._base_temp_dir is None:
+            # Create in system temp with a fixed name
+            cls._base_temp_dir = os.path.join(
+                os.getcwd(), 
+                "iri_sandbox"
+            )
+            os.makedirs(cls._base_temp_dir, exist_ok=True)
+
+            # create a test file
+            with open(f"{cls._base_temp_dir}/test.txt", "w") as f:
+                f.write("hello world")
+        return cls._base_temp_dir
+    
+
+class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -336,3 +365,401 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     ) -> bool:
         # call slurm/etc. to cancel job
         return True
+    
+
+    def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
+        basedir = PathSandbox.get_base_temp_dir()
+        real_path = os.path.realpath(os.path.join(basedir, path))
+        
+        # Check within sandbox
+        if not real_path.startswith(basedir + os.sep) and real_path != basedir:
+            raise HTTPException(status_code=400, detail=f"Path outside sandbox: {path}")
+        
+        # Optionally block symlinks that point outside sandbox
+        if not allow_symlinks and os.path.islink(os.path.join(basedir, path)):
+            link_target = os.readlink(os.path.join(basedir, path))
+            if os.path.isabs(link_target):
+                raise HTTPException(status_code=400, detail=f"Absolute symlink not allowed: {path}")
+        
+        return real_path
+
+
+    def _file(self, path: str) -> filesystem_models.File:
+        # Get file stats (follows symlinks by default)
+        rp = self.validate_path(path)
+        file_stat = os.stat(rp)  # Use lstat to not follow symlinks
+        
+        # Get file type
+        if stat.S_ISDIR(file_stat.st_mode):
+            file_type = "directory"
+        elif stat.S_ISLNK(file_stat.st_mode):
+            file_type = "symlink"
+        elif stat.S_ISREG(file_stat.st_mode):
+            file_type = "file"
+        else:
+            file_type = "other"
+        
+        # Get link target if it's a symlink
+        link_target = None
+        if stat.S_ISLNK(file_stat.st_mode):
+            link_target = os.readlink(rp)
+        
+        # Get user and group names
+        user = pwd.getpwuid(file_stat.st_uid).pw_name
+        group = grp.getgrgid(file_stat.st_gid).gr_name
+        
+        # Get permissions in rwxrwxrwx format
+        permissions = stat.filemode(file_stat.st_mode)
+        
+        # Get last modified time
+        last_modified = datetime.datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Get size
+        size = str(file_stat.st_size)
+        
+        return filesystem_models.File(
+            name=os.path.basename(rp),
+            type=file_type,
+            link_target=link_target,
+            user=user,
+            group=group,
+            permissions=permissions,
+            last_modified=last_modified,
+            size=size
+        )
+
+    async def chmod(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PutFileChmodRequest
+    ) -> filesystem_models.PutFileChmodResponse:
+        rp = self.validate_path(request_model.path)
+        os.chmod(rp, int(request_model.mode, 8))
+        return filesystem_models.PutFileChmodResponse(
+            output=self._file(rp)
+        )
+
+
+    async def chown(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PutFileChownRequest
+    ) -> filesystem_models.PutFileChownResponse:
+        rp = self.validate_path(request_model.path)
+        os.chown(rp, request_model.owner, request_model.group)
+        return filesystem_models.PutFileChmodResponse(
+            output=self._file(rp)
+        )
+
+
+    async def ls(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        show_hidden: bool, 
+        numeric_uid: bool, 
+        recursive: bool, 
+        dereference: bool,
+    ) -> filesystem_models.GetDirectoryLsResponse:
+        rp = self.validate_path(path)
+        files = glob.glob(rp, recursive=recursive)
+        return filesystem_models.GetDirectoryLsResponse(
+            output=[self._file(f) for f in files]
+        )
+
+
+    def _headtail(
+        self : "DemoAdapter",
+        cmd: str,
+        path: str, 
+        file_bytes: int | None, 
+        lines: int | None,             
+    ) -> Any:
+        args = [cmd]
+        if file_bytes:
+            args.append("-c")
+            args.append(str(file_bytes))
+        elif lines:
+            args.append("-n")
+            args.append(str(lines))
+        rp = self.validate_path(path)
+        args.append(rp)
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            text=True
+        )
+        content = result.stdout
+        return content, -len(content)
+
+
+    async def head(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        file_bytes: int | None, 
+        lines: int | None, 
+        skip_trailing: bool,
+    ) -> Any:
+        return self._headtail("head", path, file_bytes, lines)
+
+
+    async def tail(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        file_bytes: int | None, 
+        lines: int | None, 
+        skip_trailing: bool,
+    ) -> Any:
+        return self._headtail("tail", path, file_bytes, lines)
+
+
+    async def view(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        size: int,
+        offset: int,
+    ) -> filesystem_models.GetViewFileResponse:
+        rp = self.validate_path(path)
+        result = subprocess.run(
+            f"tail -n +{offset+1} {rp} | head -n {size}",
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        content = result.stdout
+        return filesystem_models.GetViewFileResponse(
+            output=content,
+        )
+
+
+    async def checksum(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+    ) -> filesystem_models.GetFileChecksumResponse:
+        rp = self.validate_path(path)
+        result = subprocess.run(
+            ["sha256sum", rp],
+            capture_output=True,
+            text=True
+        )
+        checksum = result.stdout.split()[0]
+        return filesystem_models.GetFileChecksumResponse(
+            output=filesystem_models.FileChecksum(
+                checksum=checksum,
+            )
+        )
+
+
+    async def file(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+    ) -> filesystem_models.GetFileTypeResponse:
+        rp = self.validate_path(path)
+        result = subprocess.run(
+            ["file", "-b", rp],
+            capture_output=True,
+            text=True
+        )
+        return filesystem_models.GetFileTypeResponse(
+            output=result.stdout.strip(),
+        )
+
+
+    async def stat(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        dereference: bool,
+    ) -> filesystem_models.GetFileStatResponse:
+        rp = self.validate_path(path)
+        if dereference:
+            stat_info = os.stat(rp)
+        else:
+            stat_info = os.lstat(rp)
+        return filesystem_models.GetFileStatResponse(
+                output=filesystem_models.FileStat(
+                mode=stat_info.st_mode,
+                ino=stat_info.st_ino,
+                dev=stat_info.st_dev,
+                nlink=stat_info.st_nlink,
+                uid=stat_info.st_uid,
+                gid=stat_info.st_gid,
+                size=stat_info.st_size,
+                atime=int(stat_info.st_atime),
+                ctime=int(stat_info.st_ctime),
+                mtime=int(stat_info.st_mtime)
+            )
+        )
+
+
+    async def rm(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+    ):
+        rp = self.validate_path(path)
+        if rp == PathSandbox.get_base_temp_dir():
+            raise HTTPException(status_code=400, detail="Cannot delete sandbox")
+        subprocess.run(["rm", "-rf", rp], check=True)
+        return None
+
+
+    async def mkdir(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostMakeDirRequest,
+    ) -> filesystem_models.PostMkdirResponse:
+        rp = self.validate_path(request_model.path)
+        args = ["mkdir"]
+        if request_model.parent:
+            args.append("-p")
+        args.append(rp)
+        subprocess.run(args, check=True)
+        return filesystem_models.PostMkdirResponse(
+            output=self._file(rp)
+        )
+
+
+    async def symlink(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostFileSymlinkRequest,
+    ) -> filesystem_models.PostFileSymlinkResponse:
+        rp_src = self.validate_path(request_model.path)
+        rp_dst = self.validate_path(request_model.link_path)
+        subprocess.run(["ln", "-s", rp_src, rp_dst], check=True)
+        return filesystem_models.PostFileSymlinkResponse(
+            output=self._file(rp_dst)
+        )
+
+
+    async def download(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str,
+    ) -> Any:
+        rp = self.validate_path(path)        
+        return pathlib.Path(rp).read_bytes()
+
+
+    async def upload(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str,
+        content: str,
+    ) -> None:
+        rp = self.validate_path(path)
+        pathlib.Path(rp).write_bytes(content)
+
+
+    async def compress(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostCompressRequest,
+    ) -> filesystem_models.PostCompressResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+
+        args = [ "tar" ]
+        if request_model.compression == filesystem_models.CompressionType.gzip:
+            args.append("-czf")
+        elif request_model.compression == filesystem_models.CompressionType.bzip2:
+            args.append("-cjf")
+        elif request_model.compression == filesystem_models.CompressionType.xz:
+            args.append("-cJf")
+        args.append(dst_rp)
+        if request_model.dereference:
+            args.append("--dereference")
+        if request_model.match_pattern:
+            args.append(f"--include={request_model.match_pattern}")
+
+        args.append("-C")
+        args.append(PathSandbox.get_base_temp_dir())
+        p = pathlib.Path(src_rp)
+        args.append(p.relative_to(PathSandbox.get_base_temp_dir()))
+        subprocess.run(args, check=True)
+
+        return filesystem_models.PostCompressResponse(
+            output=self._file(dst_rp)
+        )
+
+
+    async def extract(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostExtractRequest,
+    ) -> filesystem_models.PostExtractResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+
+        args = [ "tar" ]
+        if request_model.compression == filesystem_models.CompressionType.gzip:
+            args.append("-xzf")
+        elif request_model.compression == filesystem_models.CompressionType.bzip2:
+            args.append("-xjf")
+        elif request_model.compression == filesystem_models.CompressionType.xz:
+            args.append("-xJf")
+        else:
+            args.append("-xf")
+        args.append(src_rp)
+        args.append("-C")
+        args.append(dst_rp)
+        subprocess.run(args, check=True)
+
+        return filesystem_models.PostExtractResponse(
+            output=self._file(dst_rp)
+        )
+
+
+    async def mv(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostMoveRequest,
+    ) -> filesystem_models.PostMoveResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+        subprocess.run(["mv", src_rp, dst_rp], check=True)
+        return filesystem_models.PostMoveResponse(
+            output=self._file(dst_rp)
+        )
+
+
+    async def cp(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostCopyRequest,
+    ) -> filesystem_models.PostCopyResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+        args = ["cp"]
+        if request_model.dereference:
+            args.append("-L")
+        args.append(src_rp)
+        args.append(dst_rp)
+        subprocess.run(args, check=True)
+        return filesystem_models.PostCopyResponse(
+            output=self._file(dst_rp)
+        )
