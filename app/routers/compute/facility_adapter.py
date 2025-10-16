@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from ..status import models as status_models
 from ..account import models as account_models
 from . import models as compute_models
-import psij
 
 
 class FacilityAdapter(ABC):
@@ -42,11 +41,22 @@ class FacilityAdapter(ABC):
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
-        job: psij.Job,
+        job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
         pass
 
-    
+
+    @abstractmethod
+    def update_job(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_spec: compute_models.JobSpec,
+        job_id: str,
+    ) -> compute_models.Job:
+        pass
+
+
     @abstractmethod
     def get_job(
         self: "FacilityAdapter",

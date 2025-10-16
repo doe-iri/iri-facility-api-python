@@ -1,8 +1,7 @@
-from fastapi import HTTPException, Request, Depends
+from fastapi import HTTPException, Request, Depends, status
 from . import models, facility_adapter
 from .. import iri_router
 from ..status.status import router as status_router
-import psij
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -19,7 +18,7 @@ router = iri_router.IriRouter(
 )
 async def submit_job(
     resource_id: str,
-    job_request : models.JobRequest,
+    job_spec : models.JobSpec,
     request : Request,
     ):
     """
@@ -33,27 +32,45 @@ async def submit_job(
     user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
-    
-    # convert BaseModel to psij.JobSpec
-    # it would be ideal to just specify psij.JobSpec as the model for job_request, 
-    # but fastapi wants a pydantic object so we duplicate it ¯\_(ツ)_/¯
-    d = job_request.model_dump()
-    # expand the sub-models (these are converted to dict-s)
-    for k,v in { 
-        "resources": psij.ResourceSpecV1, 
-        "attributes": psij.JobAttributes }.items():
-        if k in d:
-            d[k] = v(**d[k])    
-    job = psij.Job(spec=psij.JobSpec(**d))
-    
+        
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    job = await router.adapter.submit_job(resource, user, job)
+    return await router.adapter.submit_job(resource, user, job_spec)
+
+
+@router.put(
+    "/job/{resource_id:str}/{job_id:str}", 
+    dependencies=[Depends(router.current_user)],
+    response_model=models.Job, 
+    response_model_exclude_unset=True,
+)
+async def submit_job(
+    resource_id: str,
+    job_id: str,
+    job_spec : models.JobSpec,
+    request : Request,
+    ):
+    """
+    Submit a job on a compute resource
+
+    - **resource**: the name of the compute resource to use
+    - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
     
-    return job
+    This command will attempt to submit a job and return its id.
+    """
+    user = await router.adapter.get_user(request, request.state.current_user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Uer not found")
+        
+    # look up the resource (todo: maybe ensure it's available)
+    resource = await status_router.adapter.get_resource(resource_id)
+
+    # the handler can use whatever means it wants to submit the job and then fill in its id
+    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+    return await router.adapter.update_job(resource, user, job_spec, job_id)
 
 
 @router.get(
@@ -111,7 +128,8 @@ async def get_job_statuses(
 @router.delete(
     "/cancel/{resource_id:str}/{job_id:str}",
     dependencies=[Depends(router.current_user)],
-    response_model=models.CommandResult,
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     response_model_exclude_unset=True,
 )
 async def cancel_job(
@@ -127,10 +145,8 @@ async def cancel_job(
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    cr = models.CommandResult(status="OK")
     try:
         await router.adapter.cancel_job(resource, user, job_id)
     except Exception as exc:
-        cr.status = "ERROR"
-        cr.result = str(exc)
-    return cr
+        raise HTTPException(status_code=400, detail=f"Unable to cancel job: {str(exc)}")
+    return None

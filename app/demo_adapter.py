@@ -2,7 +2,6 @@ from fastapi import Request, HTTPException
 import datetime
 import random
 import uuid
-import psij
 import time
 import os
 import stat
@@ -305,14 +304,33 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self: "DemoAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
-        job: psij.Job,
+        job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
-                state=psij.JobState.NEW,
+                state=compute_models.JobState.NEW,
                 time=time.time(),
                 message="job submitted",
+                exit_code=None,
+                meta_data={ "account": "account1" },
+            )
+        )
+    
+
+    async def update_job(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_spec: compute_models.JobSpec,
+        job_id: str,
+    ) -> compute_models.Job:
+        return compute_models.Job(
+            id=job_id,
+            status=compute_models.JobStatus(
+                state=compute_models.JobState.ACTIVE,
+                time=time.time(),
+                message="job updated",
                 exit_code=None,
                 meta_data={ "account": "account1" },
             )
@@ -328,7 +346,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
-                state=psij.JobState.COMPLETED,
+                state=compute_models.JobState.COMPLETED,
                 time=time.time(),
                 message="job completed successfully",
                 exit_code=0,
@@ -348,7 +366,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         return [compute_models.Job(
             id=f"job_{i}",
             status=compute_models.JobStatus(
-                state=random.choice([s for s in psij.JobState]),
+                state=random.choice([s for s in compute_models.JobState]),
                 time=time.time() - (random.random() * 100),
                 message="",
                 exit_code=random.choice([0, 0, 0, 0, 0, 1, 1, 128, 127]),

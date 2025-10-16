@@ -9,4 +9,5 @@ dev : .venv
 
 .PHONY: clean
 clean:
+	@rm -rf iri_sandbox
 	@rm -rf .venv
