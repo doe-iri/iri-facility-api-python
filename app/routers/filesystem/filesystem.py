@@ -46,10 +46,12 @@ async def _user_resource(
     ) -> tuple[account_models.User, status_models.Resource]:
     user = await router.adapter.get_user(request, request.state.current_user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
     return (user, resource)
 
 
@@ -465,3 +467,37 @@ async def post_extract(
 ) -> Any:
     user, resource = await _user_resource(resource_id, request)
     return await router.adapter.extract(resource, user, request_model)
+
+
+@router.post(
+    "/mv/{resource_id:str}",
+    dependencies=[Depends(router.current_user)],
+    description=f"Create move file or directory operation (`mv`) (for files larger than {OPS_SIZE_LIMIT} Bytes)",
+    status_code=status.HTTP_201_CREATED,
+    response_model=models.PostMoveResponse,
+    response_description="Move file or directory operation created successfully",
+)
+async def move_mv(
+    resource_id: str,
+    request : Request,
+    request_model: models.PostMoveRequest,
+) -> Any:
+    user, resource = await _user_resource(resource_id, request)
+    return await router.adapter.mv(resource, user, request_model)
+
+
+@router.post(
+    "/cp/{resource_id:str}",
+    dependencies=[Depends(router.current_user)],
+    description=f"Create copy file or directory operation (`cp`) (for files larger than {OPS_SIZE_LIMIT} Bytes)",
+    status_code=status.HTTP_201_CREATED,
+    response_model=models.PostCopyResponse,
+    response_description="Copy file or directory operation created successfully",
+)
+async def post_cp(
+    resource_id: str,
+    request : Request,
+    request_model: models.PostCopyRequest,
+) -> Any:
+    user, resource = await _user_resource(resource_id, request)
+    return await router.adapter.cp(resource, user, request_model)

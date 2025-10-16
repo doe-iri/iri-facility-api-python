@@ -242,3 +242,48 @@ class PostExtractRequest(FilesystemRequestBase):
             ]
         }
     }
+
+
+class PostCopyRequest(FilesystemRequestBase):
+    target_path: str = Field(..., description="Target path of the copy operation")
+    dereference: Optional[bool] = Field(
+        default=False,
+        description=(
+            "If set to `true`, it follows symbolic links and copies the "
+            "files they point to instead of the links themselves."
+        ),
+    )
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "sourcePath": "/home/user/dir/file.orig",
+                    "targetPath": "/home/user/dir/file.new",
+                    "dereference": "true",
+                }
+            ]
+        }
+    }
+
+
+class PostCopyResponse(CamelModel):
+    output: Optional[File]
+
+
+class PostMoveRequest(FilesystemRequestBase):
+    target_path: str = Field(..., description="Target path of the move operation")
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "sourcePath": "/home/user/dir/file.orig",
+                    "targetPath": "/home/user/dir/file.new",
+                }
+            ]
+        }
+    }
+
+
+class PostMoveResponse(CamelModel):
+    output: Optional[File]
+

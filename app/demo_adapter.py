@@ -709,7 +709,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource, 
         user: account_models.User, 
         request_model: filesystem_models.PostExtractRequest,
-    ) -> filesystem_models.PostExtractRequest:
+    ) -> filesystem_models.PostExtractResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
 
@@ -727,6 +727,39 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         args.append(dst_rp)
         subprocess.run(args, check=True)
 
-        return filesystem_models.PostCompressResponse(
+        return filesystem_models.PostExtractResponse(
+            output=self._file(dst_rp)
+        )
+
+
+    async def mv(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostMoveRequest,
+    ) -> filesystem_models.PostMoveResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+        subprocess.run(["mv", src_rp, dst_rp], check=True)
+        return filesystem_models.PostMoveResponse(
+            output=self._file(dst_rp)
+        )
+
+
+    async def cp(
+        self : "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostCopyRequest,
+    ) -> filesystem_models.PostCopyResponse:
+        src_rp = self.validate_path(request_model.path)
+        dst_rp = self.validate_path(request_model.target_path)
+        args = ["cp"]
+        if request_model.dereference:
+            args.append("-L")
+        args.append(src_rp)
+        args.append(dst_rp)
+        subprocess.run(args, check=True)
+        return filesystem_models.PostCopyResponse(
             output=self._file(dst_rp)
         )

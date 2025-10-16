@@ -184,7 +184,7 @@ class FacilityAdapter(ABC):
         resource: status_models.Resource, 
         user: account_models.User, 
         request_model: filesystem_models.PostCompressRequest,
-    ) -> None:
+    ) -> filesystem_models.PostCompressResponse:
         pass
 
 
@@ -194,5 +194,25 @@ class FacilityAdapter(ABC):
         resource: status_models.Resource, 
         user: account_models.User, 
         request_model: filesystem_models.PostExtractRequest,
-    ) -> None:
+    ) -> filesystem_models.PostExtractResponse:
+        pass
+
+
+    @abstractmethod
+    def mv(
+        self : "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostMoveRequest,
+    ) -> filesystem_models.PostMoveResponse:
+        pass
+
+
+    @abstractmethod
+    def cp(
+        self : "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        request_model: filesystem_models.PostCopyRequest,
+    ) -> filesystem_models.PostCopyResponse:
         pass
