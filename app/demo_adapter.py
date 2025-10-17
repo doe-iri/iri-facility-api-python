@@ -315,6 +315,25 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         )
     
 
+    async def submit_job_script(
+        self: "DemoAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_script_path: str,
+        args: list[str] = [],
+    ) -> compute_models.Job:
+        return compute_models.Job(
+            id="job_123",
+            status=compute_models.JobStatus(
+                state=compute_models.JobState.NEW,
+                time=time.time(),
+                message="job submitted",
+                exit_code=None,
+                meta_data={ "account": "account1" },
+            )
+        )
+    
+
     async def update_job(
         self: "DemoAdapter",
         resource: status_models.Resource, 

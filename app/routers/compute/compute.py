@@ -1,4 +1,5 @@
-from fastapi import HTTPException, Request, Depends, status
+from fastapi import HTTPException, Request, Depends, status, Form
+from typing import List, Annotated
 from . import models, facility_adapter
 from .. import iri_router
 from ..status.status import router as status_router
@@ -39,6 +40,39 @@ async def submit_job(
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
     return await router.adapter.submit_job(resource, user, job_spec)
+
+
+@router.post(
+    "/job/script/{resource_id:str}", 
+    dependencies=[Depends(router.current_user)],
+    response_model=models.Job, 
+    response_model_exclude_unset=True,
+)
+async def submit_job_path(
+    resource_id: str,
+    job_script_path : str,
+    request : Request,
+    args : Annotated[List[str], Form()] = [],
+    ):
+    """
+    Submit a job on a compute resource
+
+    - **resource**: the name of the compute resource to use
+    - **job_script_path**: path to the job script on the compute resource
+    - **args**: optional arguments to the job script
+    
+    This command will attempt to submit a job and return its id.
+    """
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    if not user:
+        raise HTTPException(status_code=404, detail="Uer not found")
+        
+    # look up the resource (todo: maybe ensure it's available)
+    resource = await status_router.adapter.get_resource(resource_id)
+
+    # the handler can use whatever means it wants to submit the job and then fill in its id
+    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+    return await router.adapter.submit_job_script(resource, user, job_script_path, args)
 
 
 @router.put(

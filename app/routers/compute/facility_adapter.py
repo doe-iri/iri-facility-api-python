@@ -24,6 +24,17 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
+    def submit_job_script(
+        self: "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        job_script_path: str,
+        args: list[str] = [],
+    ) -> compute_models.Job:
+        pass
+
+
+    @abstractmethod
     def update_job(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
