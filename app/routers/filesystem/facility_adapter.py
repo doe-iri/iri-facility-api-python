@@ -12,12 +12,11 @@ class FacilityAdapter(ABC):
     to install your facility adapter before the API starts.
     """
 
-
     @abstractmethod
     def get_current_user(
         self : "FacilityAdapter",
         api_key: str,
-        ip_address: str,
+        ip_address: str|None,
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
