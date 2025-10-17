@@ -83,6 +83,7 @@ async def get_job_status(
     resource_id : str,
     job_id : str,
     request : Request,
+    historical : bool = False,
     ):
     """Get a job's status"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
@@ -93,7 +94,7 @@ async def get_job_status(
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    job = await router.adapter.get_job(resource, user, job_id)
+    job = await router.adapter.get_job(resource, user, job_id, historical)
 
     return job
 
@@ -110,6 +111,7 @@ async def get_job_statuses(
     offset : int | None = 0,
     limit : int | None = 100,
     filters : dict[str, object] | None = None,
+    historical : bool = False,
     ):
     """Get multiple jobs' statuses"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
@@ -120,7 +122,7 @@ async def get_job_statuses(
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    jobs = await router.adapter.get_jobs(resource, user, offset, limit, filters)
+    jobs = await router.adapter.get_jobs(resource, user, offset, limit, filters, historical)
 
     return jobs
 

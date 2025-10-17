@@ -40,6 +40,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource, 
         user: account_models.User, 
         job_id: str,
+        historical: bool = False,
     ) -> compute_models.Job:
         pass
 
@@ -52,6 +53,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         offset : int,
         limit : int,
         filters: dict[str, object] | None = None,
+        historical: bool = False,
     ) -> list[compute_models.Job]:
         pass
 
