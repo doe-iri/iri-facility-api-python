@@ -1,9 +1,9 @@
-from fastapi import Request
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from . import models as account_models
+from ..iri_router import AuthenticatedAdapter
 
 
-class FacilityAdapter(ABC):
+class FacilityAdapter(AuthenticatedAdapter):
     """
     Facility-specific code is handled by the implementation of this interface.
     Use the `IRI_API_ADAPTER` environment variable (defaults to `app.demo_adapter.FacilityAdapter`) 
@@ -18,32 +18,8 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_current_user(
-        self : "FacilityAdapter",
-        request: Request,
-        api_key: str
-        ) -> str:
-        """
-            Decode the api_key and return the authenticated user's id.
-            This method is not called directly, rather authorized endpoints "depend" on it.
-            (https://fastapi.tiangolo.com/tutorial/dependencies/)
-        """
-        pass
-
-
-    @abstractmethod
-    def get_user(
-        self : "FacilityAdapter",
-        request: Request,
-        user_id: str
-        ) -> account_models.User:
-        pass
-
-
-    @abstractmethod
     def get_projects(
         self : "FacilityAdapter",
-        request: Request,
         user: account_models.User
         ) -> list[account_models.Project]:
         pass
@@ -52,7 +28,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_project_allocations(
         self : "FacilityAdapter",
-        request: Request,
         project: account_models.Project,
         user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
@@ -62,7 +37,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user_allocations(
         self : "FacilityAdapter",
-        request: Request,
         user: account_models.User,
         project_allocation: account_models.ProjectAllocation,
         ) -> list[account_models.UserAllocation]:

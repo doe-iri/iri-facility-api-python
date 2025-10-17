@@ -26,6 +26,7 @@ class User(BaseModel):
     """A user of the facility"""
     id: str
     name: str
+    api_key: str
     # we could expose more fields here (eg. email) but it might be against policy
     
 
