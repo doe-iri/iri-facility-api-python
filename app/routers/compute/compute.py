@@ -29,7 +29,7 @@ async def submit_job(
     
     This command will attempt to submit a job and return its id.
     """
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
         
@@ -61,7 +61,7 @@ async def submit_job(
     
     This command will attempt to submit a job and return its id.
     """
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
         
@@ -85,7 +85,7 @@ async def get_job_status(
     request : Request,
     ):
     """Get a job's status"""
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
 
@@ -112,7 +112,7 @@ async def get_job_statuses(
     filters : dict[str, object] | None = None,
     ):
     """Get multiple jobs' statuses"""
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
 
@@ -138,7 +138,7 @@ async def cancel_job(
     request : Request,
     ):
     """Cancel a job"""
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     

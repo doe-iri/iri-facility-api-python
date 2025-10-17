@@ -42,7 +42,7 @@ async def _user_resource(
         resource_id: str, 
         request: Request,
     ) -> tuple[account_models.User, status_models.Resource]:
-    user = await router.adapter.get_user(request, request.state.current_user_id)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     

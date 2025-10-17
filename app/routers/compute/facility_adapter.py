@@ -1,4 +1,3 @@
-from fastapi import Request
 from abc import ABC, abstractmethod
 from ..status import models as status_models
 from ..account import models as account_models
@@ -16,8 +15,8 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_current_user(
         self : "FacilityAdapter",
-        request: Request,
-        api_key: str
+        api_key: str,
+        ip_address: str|None,
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
@@ -30,8 +29,8 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user(
         self : "FacilityAdapter",
-        request: Request,
-        user_id: str
+        user_id: str,
+        api_key: str,
         ) -> account_models.User:
         pass
 

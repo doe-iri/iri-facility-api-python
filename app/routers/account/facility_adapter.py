@@ -1,4 +1,3 @@
-from fastapi import Request
 from abc import ABC, abstractmethod
 from . import models as account_models
 
@@ -20,8 +19,8 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_current_user(
         self : "FacilityAdapter",
-        request: Request,
-        api_key: str
+        api_key: str,
+        ip_address: str|None,
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
@@ -34,8 +33,8 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user(
         self : "FacilityAdapter",
-        request: Request,
-        user_id: str
+        user_id: str,
+        api_key: str,
         ) -> account_models.User:
         pass
 
@@ -43,7 +42,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_projects(
         self : "FacilityAdapter",
-        request: Request,
         user: account_models.User
         ) -> list[account_models.Project]:
         pass
@@ -52,7 +50,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_project_allocations(
         self : "FacilityAdapter",
-        request: Request,
         project: account_models.Project,
         user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
@@ -62,7 +59,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     def get_user_allocations(
         self : "FacilityAdapter",
-        request: Request,
         user: account_models.User,
         project_allocation: account_models.ProjectAllocation,
         ) -> list[account_models.UserAllocation]:

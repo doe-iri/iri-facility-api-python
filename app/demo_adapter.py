@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException
+from fastapi import HTTPException
 import datetime
 import random
 import uuid
@@ -43,7 +43,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.incidents = []
         self.events = []
         self.capabilities = {}
-        self.user = account_models.User(id="gtorok", name="Gabor Torok")
+        self.user = account_models.User(id="gtorok", name="Gabor Torok", api_key="12345")
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
@@ -256,8 +256,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     def get_current_user(
             self : "DemoAdapter",
-            request: Request,
-            api_key: str
+            api_key: str,
+            ip_address: str,
         ) -> str:
         """
             In a real deployment, this would decode the api_key jwt and return the current user's id.
@@ -268,15 +268,14 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_user(
             self : "DemoAdapter",
-            request: Request,
-            user_id: str
+            user_id: str,
+            api_key: str,
             ) -> account_models.User:
         return self.user
 
 
     async def get_projects(
             self : "DemoAdapter",
-            request: Request,
             user: account_models.User
             ) -> list[account_models.Project]:
         return self.projects
@@ -284,7 +283,6 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_project_allocations(
         self : "DemoAdapter",
-        request: Request,
         project: account_models.Project,
         user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
@@ -293,7 +291,6 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_user_allocations(
         self : "DemoAdapter",
-        request: Request,
         user: account_models.User,
         project_allocation: account_models.ProjectAllocation,
         ) -> list[account_models.UserAllocation]:
