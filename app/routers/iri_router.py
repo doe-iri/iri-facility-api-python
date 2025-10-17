@@ -1,8 +1,10 @@
+from abc import ABC, abstractmethod
 import os
 import logging
 import importlib
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import APIKeyHeader
+from .account.models import User
 
 bearer_token = APIKeyHeader(name="Authorization")
 
@@ -66,3 +68,32 @@ class IriRouter(APIRouter):
             raise HTTPException(status_code=403, detail="Unauthorized access")
         request.state.current_user_id = user_id
         request.state.api_key = api_key
+
+
+class AuthenticatedAdapter(ABC):
+
+
+    @abstractmethod
+    def get_current_user(
+        self : "AuthenticatedAdapter",
+        api_key: str,
+        ip_address: str|None,
+        ) -> str:
+        """
+            Decode the api_key and return the authenticated user's id.
+            This method is not called directly, rather authorized endpoints "depend" on it.
+            (https://fastapi.tiangolo.com/tutorial/dependencies/)
+        """
+        pass
+
+
+    @abstractmethod
+    def get_user(
+        self : "AuthenticatedAdapter",
+        user_id: str,
+        api_key: str,
+        ) -> User:
+        """
+            Retrieve additional user information (name, email, etc.) for the given user_id.
+        """
+        pass

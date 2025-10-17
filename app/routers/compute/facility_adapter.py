@@ -1,38 +1,16 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from ..status import models as status_models
 from ..account import models as account_models
 from . import models as compute_models
+from ..iri_router import AuthenticatedAdapter
 
 
-class FacilityAdapter(ABC):
+class FacilityAdapter(AuthenticatedAdapter):
     """
     Facility-specific code is handled by the implementation of this interface.
     Use the `IRI_API_ADAPTER` environment variable (defaults to `app.demo_adapter.FacilityAdapter`) 
     to install your facility adapter before the API starts.
     """
-
-
-    @abstractmethod
-    def get_current_user(
-        self : "FacilityAdapter",
-        api_key: str,
-        ip_address: str|None,
-        ) -> str:
-        """
-            Decode the api_key and return the authenticated user's id.
-            This method is not called directly, rather authorized endpoints "depend" on it.
-            (https://fastapi.tiangolo.com/tutorial/dependencies/)
-        """
-        pass
-
-
-    @abstractmethod
-    def get_user(
-        self : "FacilityAdapter",
-        user_id: str,
-        api_key: str,
-        ) -> account_models.User:
-        pass
 
 
     @abstractmethod
