@@ -254,7 +254,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         return self.capabilities.values()
     
 
-    def get_current_user(
+    async def get_current_user(
             self : "DemoAdapter",
             api_key: str,
             ip_address: str,

@@ -54,14 +54,14 @@ class IriRouter(APIRouter):
         self.adapter = AdapterClass()
 
 
-    def current_user(
+    async def current_user(
         self,
         request : Request, 
         api_key: str = Depends(bearer_token),
     ):
         user_id = None
         try:
-            user_id = self.adapter.get_current_user(api_key, get_real_ip(request))
+            user_id = await self.adapter.get_current_user(api_key, get_real_ip(request))
         except Exception as exc:
             logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
         if not user_id:
