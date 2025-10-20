@@ -12,7 +12,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_resources(
+    async def get_resources(
         self : "FacilityAdapter",
         offset : int,
         limit : int,
@@ -26,7 +26,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_resource(
+    async def get_resource(
         self : "FacilityAdapter",
         id : str
         ) -> status_models.Resource:
@@ -34,7 +34,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_events(
+    async def get_events(
         self : "FacilityAdapter",
         incident_id : str,
         offset : int,
@@ -52,7 +52,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_event(
+    async def get_event(
         self : "FacilityAdapter",
         incident_id : str,
         id : str
@@ -61,7 +61,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_incidents(
+    async def get_incidents(
         self : "FacilityAdapter",
         offset : int,
         limit : int,
@@ -79,7 +79,7 @@ class FacilityAdapter(ABC):
 
 
     @abstractmethod
-    def get_incident(
+    async def get_incident(
         self : "FacilityAdapter",
         id : str
         ) -> status_models.Incident:

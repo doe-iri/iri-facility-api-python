@@ -14,7 +14,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def submit_job(
+    async def submit_job(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -24,7 +24,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def submit_job_script(
+    async def submit_job_script(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -35,7 +35,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def update_job(
+    async def update_job(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -46,7 +46,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def get_job(
+    async def get_job(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -57,7 +57,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
     
     @abstractmethod
-    def get_jobs(
+    async def get_jobs(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -70,7 +70,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
     
     @abstractmethod
-    def cancel_job(
+    async def cancel_job(
         self: "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 

@@ -11,14 +11,14 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    def get_capabilities(
+    async def get_capabilities(
         self : "FacilityAdapter",
         ) -> list[account_models.Capability]:
         pass
 
 
     @abstractmethod
-    def get_projects(
+    async def get_projects(
         self : "FacilityAdapter",
         user: account_models.User
         ) -> list[account_models.Project]:
@@ -26,7 +26,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def get_project_allocations(
+    async def get_project_allocations(
         self : "FacilityAdapter",
         project: account_models.Project,
         user: account_models.User
@@ -35,7 +35,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def get_user_allocations(
+    async def get_user_allocations(
         self : "FacilityAdapter",
         user: account_models.User,
         project_allocation: account_models.ProjectAllocation,

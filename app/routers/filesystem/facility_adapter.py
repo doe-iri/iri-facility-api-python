@@ -14,7 +14,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    def chmod(
+    async def chmod(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -24,7 +24,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def chown(
+    async def chown(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -34,7 +34,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def ls(
+    async def ls(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -48,7 +48,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def head(
+    async def head(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -61,7 +61,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def view(
+    async def view(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -73,7 +73,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def checksum(
+    async def checksum(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -83,7 +83,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def file(
+    async def file(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -93,7 +93,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def stat(
+    async def stat(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -104,7 +104,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def rm(
+    async def rm(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -114,7 +114,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def mkdir(
+    async def mkdir(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -124,7 +124,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def symlink(
+    async def symlink(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -134,7 +134,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def download(
+    async def download(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -144,7 +144,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def upload(
+    async def upload(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -155,7 +155,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def compress(
+    async def compress(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -165,7 +165,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def extract(
+    async def extract(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -175,7 +175,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def mv(
+    async def mv(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 
@@ -185,7 +185,7 @@ class FacilityAdapter(AuthenticatedAdapter):
 
 
     @abstractmethod
-    def cp(
+    async def cp(
         self : "FacilityAdapter",
         resource: status_models.Resource, 
         user: account_models.User, 

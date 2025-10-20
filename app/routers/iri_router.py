@@ -74,7 +74,7 @@ class AuthenticatedAdapter(ABC):
 
 
     @abstractmethod
-    def get_current_user(
+    async def get_current_user(
         self : "AuthenticatedAdapter",
         api_key: str,
         ip_address: str|None,
@@ -88,7 +88,7 @@ class AuthenticatedAdapter(ABC):
 
 
     @abstractmethod
-    def get_user(
+    async def get_user(
         self : "AuthenticatedAdapter",
         user_id: str,
         api_key: str,
