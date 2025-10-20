@@ -32,7 +32,7 @@ async def submit_job(
     """
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
         
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -65,7 +65,7 @@ async def submit_job_path(
     """
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
         
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -97,7 +97,7 @@ async def update_job(
     """
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
         
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -122,7 +122,7 @@ async def get_job_status(
     """Get a job's status"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
@@ -150,7 +150,7 @@ async def get_job_statuses(
     """Get multiple jobs' statuses"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
@@ -176,7 +176,7 @@ async def cancel_job(
     """Cancel a job"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
