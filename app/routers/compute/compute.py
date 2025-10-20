@@ -81,19 +81,19 @@ async def submit_job_path(
     response_model=models.Job, 
     response_model_exclude_unset=True,
 )
-async def submit_job(
+async def update_job(
     resource_id: str,
     job_id: str,
     job_spec : models.JobSpec,
     request : Request,
     ):
     """
-    Submit a job on a compute resource
+    Update a previously submitted job for a resource.
+    Note that only some attributes of a scheduled job can be updated. Check the facility documentation for details.
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
     
-    This command will attempt to submit a job and return its id.
     """
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
     if not user:
