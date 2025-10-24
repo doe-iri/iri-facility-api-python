@@ -401,7 +401,11 @@ async def get_download(
         )
 
     return Response(
-        content=output, media_type="application/octet-stream"
+        content=output, 
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": "attachment; filename=download.dat"
+        },
     )
 
 

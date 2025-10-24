@@ -3,7 +3,7 @@ from ..status import models as status_models
 from ..account import models as account_models
 from . import models as filesystem_models
 from ..iri_router import AuthenticatedAdapter
-from typing import Any
+from typing import Any, Tuple
 
 
 class FacilityAdapter(AuthenticatedAdapter):
@@ -43,7 +43,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         numeric_uid: bool, 
         recursive: bool, 
         dereference: bool,
-    ) -> Any:
+    ) -> filesystem_models.GetDirectoryLsResponse:
         pass
 
 
@@ -56,7 +56,20 @@ class FacilityAdapter(AuthenticatedAdapter):
         file_bytes: int, 
         lines: int, 
         skip_trailing: bool,
-    ) -> Any:
+    ) -> Tuple[Any, int]:
+        pass
+
+
+    @abstractmethod
+    async def tail(
+        self : "FacilityAdapter",
+        resource: status_models.Resource, 
+        user: account_models.User, 
+        path: str, 
+        file_bytes: int | None, 
+        lines: int | None, 
+        skip_trailing: bool,
+    ) -> Tuple[Any, int]:
         pass
 
 
@@ -68,7 +81,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         path: str, 
         size: int,
         offset: int,
-    ) -> Any:
+    ) -> filesystem_models.GetViewFileResponse:
         pass
 
 
@@ -78,7 +91,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource, 
         user: account_models.User, 
         path: str, 
-    ) -> Any:
+    ) -> filesystem_models.GetFileChecksumResponse:
         pass
 
 
@@ -88,7 +101,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource, 
         user: account_models.User, 
         path: str, 
-    ) -> Any:
+    ) -> filesystem_models.GetFileTypeResponse:
         pass
 
 
@@ -99,7 +112,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: account_models.User, 
         path: str, 
         dereference: bool,
-    ) -> Any:
+    ) -> filesystem_models.GetFileStatResponse:
         pass
 
 

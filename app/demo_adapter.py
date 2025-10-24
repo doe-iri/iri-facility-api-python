@@ -11,7 +11,7 @@ import glob
 import subprocess
 import os
 import pathlib
-from typing import Any
+from typing import Any, Tuple
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
@@ -513,7 +513,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str, 
         file_bytes: int | None, 
         lines: int | None,             
-    ) -> Any:
+    ) -> Tuple[Any, int]:
         args = [cmd]
         if file_bytes:
             args.append("-c")
@@ -540,7 +540,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         file_bytes: int | None, 
         lines: int | None, 
         skip_trailing: bool,
-    ) -> Any:
+    ) -> Tuple[Any, int]:
         return self._headtail("head", path, file_bytes, lines)
 
 
@@ -552,7 +552,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         file_bytes: int | None, 
         lines: int | None, 
         skip_trailing: bool,
-    ) -> Any:
+    ) -> Tuple[Any, int]:
         return self._headtail("tail", path, file_bytes, lines)
 
 
@@ -566,7 +566,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     ) -> filesystem_models.GetViewFileResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
-            f"tail -n +{offset+1} {rp} | head -n {size}",
+            f"tail -c +{offset+1} {rp} | head -c {size}",
             shell=True,
             capture_output=True,
             text=True
