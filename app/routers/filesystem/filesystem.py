@@ -474,7 +474,7 @@ async def post_extract(
 @router.post(
     "/mv/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    description=f"Create move file or directory operation (`mv`) (for files larger than {OPS_SIZE_LIMIT} Bytes)",
+    description=f"Create move file or directory operation (`mv`)",
     status_code=status.HTTP_201_CREATED,
     response_model=models.PostMoveResponse,
     response_description="Move file or directory operation created successfully",
@@ -491,7 +491,7 @@ async def move_mv(
 @router.post(
     "/cp/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    description=f"Create copy file or directory operation (`cp`) (for files larger than {OPS_SIZE_LIMIT} Bytes)",
+    description=f"Create copy file or directory operation (`cp`)",
     status_code=status.HTTP_201_CREATED,
     response_model=models.PostCopyResponse,
     response_description="Copy file or directory operation created successfully",
