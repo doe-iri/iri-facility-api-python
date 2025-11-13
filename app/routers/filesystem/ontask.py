@@ -7,10 +7,7 @@
 
 from fastapi import (
     Depends,
-    File,
     HTTPException,
-    Response,
-    UploadFile,
     status,
     Query,
     Request
@@ -18,8 +15,6 @@ from fastapi import (
 import os
 from typing import Any, Annotated
 from .. import iri_router
-from ..status.status import router as status_router, models as status_models
-from ..account.account import models as account_models
 from .import models, facility_adapter
 from ..task import facility_adapter as task_facility_adapter, models as task_models
 from .filesystem import _user_resource

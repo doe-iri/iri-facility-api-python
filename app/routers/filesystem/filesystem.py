@@ -7,10 +7,7 @@
 
 from fastapi import (
     Depends,
-    File,
     HTTPException,
-    Response,
-    UploadFile,
     status,
     Query,
     Request
@@ -21,7 +18,6 @@ from .. import iri_router
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
 from .import models, facility_adapter
-from ..task import facility_adapter as task_facility_adapter, models as task_models
 
 def to_int(name, default_value):
     try:
