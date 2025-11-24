@@ -1,7 +1,9 @@
 # <img src="https://iri.science/images/doe-icon-old.png" height=30 /> IRI API reference implementation in Python 3
 Python reference implementation of the IRI facility API, standardizing endpoints, parameters, and return values across DOE computational facilities.
 
-See it live (NERSC instance): https://api.iri.nersc.gov/nersc/api/current/
+See it live:
+- NERSC instance: https://api.iri.nersc.gov/nersc/api/current/
+- ALCF instance: https://api.alcf.anl.gov/api/current/
 
 ## Prerequisites
 
