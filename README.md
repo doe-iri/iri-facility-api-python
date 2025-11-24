@@ -5,7 +5,7 @@ See it live (NERSC instance): https://api.iri.nersc.gov/nersc/api/current/
 
 ## Prerequisites
 
-- [install python3](https://www.python.org/downloads/) (version 3.8 or higher)
+- [install python3](https://www.python.org/downloads/) (version 3.12 or higher)
 - [install uv](https://docs.astral.sh/uv/getting-started/installation/)
 - make
 
