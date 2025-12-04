@@ -1,41 +1,72 @@
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, Field
 import datetime
 from enum import IntEnum
 
 
 class ResourceSpec(BaseModel):
-    node_count: int | None = None
-    process_count: int | None = None
-    processes_per_node: int | None = None
-    cpu_cores_per_process: int | None = None
-    gpu_cores_per_process: int | None = None
-    exclusive_node_use: bool = True
-    memory: int | None = None
+    """
+    Specification of computational resources required for a job.
+    """
+    node_count: int | None = Field(default=None, description="Number of compute nodes to allocate")
+    process_count: int | None = Field(default=None, description="Total number of processes to launch")
+    processes_per_node: int | None = Field(default=None, description="Number of processes to launch per node")
+    cpu_cores_per_process: int | None = Field(default=None, description="Number of CPU cores to allocate per process")
+    gpu_cores_per_process: int | None = Field(default=None, description="Number of GPU cores to allocate per process")
+    exclusive_node_use: bool = Field(default=True, description="Whether to request exclusive use of allocated nodes")
+    memory: int | None = Field(default=None, description="Amount of memory to allocate in bytes")
 
 
 class JobAttributes(BaseModel):
-    duration: datetime.timedelta = datetime.timedelta(minutes=10)
-    queue_name: str | None = None
-    account: str | None = None
-    reservation_id: str | None = None
-    custom_attributes: dict[str, str] = {}
+    """
+    Additional attributes and scheduling parameters for a job.
+    """
+    duration: datetime.timedelta = Field(default=datetime.timedelta(minutes=10), description="Maximum wall time duration for the job")
+    queue_name: str | None = Field(default=None, description="Name of the queue or partition to submit the job to")
+    account: str | None = Field(default=None, description="Account or project to charge for resource usage")
+    reservation_id: str | None = Field(default=None, description="ID of a reservation to use for the job")
+    custom_attributes: dict[str, str] = Field(default={}, description="Custom scheduler-specific attributes as key-value pairs")
+
+
+class VolumeMount(BaseModel):
+    """
+    Represents a volume mount for a container.
+    """
+    source: str = Field(description="The source path on the host system to mount")
+    target: str = Field(description="The target path inside the container where the volume will be mounted")
+    read_only: bool = Field(default=True, description="Whether the mount should be read-only")
+
+class Container(BaseModel):
+    """
+    Represents a container specification for job execution.
+
+    Implementation notes: The value of gpu_cores_per_process in ResourceSpec should be used to determine
+    if the container should be run with GPU support. Likewise, the value of launcher in JobSpec should be used
+    to determine if the container should be run with MPI support. The container should by default. be run with
+    host networking.
+    """
+    image: str = Field(description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")
+    volume_mounts: list[VolumeMount] = Field(default=[], description="List of volume mounts for the container")
 
 
 class JobSpec(BaseModel):
-    executable : str | None = None
-    arguments: list[str] = []
-    directory: str | None = None
-    name: str | None = None
-    inherit_environment: bool = True
-    environment: dict[str, str] = {}
-    stdin_path: str | None = None
-    stdout_path: str | None = None
-    stderr_path: str | None = None
-    resources: ResourceSpec | None = None
-    attributes: JobAttributes | None = None
-    pre_launch: str | None = None
-    post_launch: str | None = None
-    launcher: str | None = None
+    """
+    Specification for job.
+    """
+    executable: str | None = Field(default=None, description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.")
+    container: Container | None = Field(default=None, description="Container specification for containerized execution")
+    arguments: list[str] = Field(default=[], description="Command-line arguments to pass to the executable or container")
+    directory: str | None = Field(default=None, description="Working directory for the job")
+    name: str | None = Field(default=None, description="Name of the job")
+    inherit_environment: bool = Field(default=True, description="Whether to inherit the environment variables from the submission environment")
+    environment: dict[str, str] = Field(default={}, description="Environment variables to set for the job. If container is specified, these will be set inside the container.")
+    stdin_path: str | None = Field(default=None, description="Path to file to use as standard input")
+    stdout_path: str | None = Field(default=None, description="Path to file to write standard output")
+    stderr_path: str | None = Field(default=None, description="Path to file to write standard error")
+    resources: ResourceSpec | None = Field(default=None, description="Resource requirements for the job")
+    attributes: JobAttributes | None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
+    pre_launch: str | None = Field(default=None, description="Script or commands to run before launching the job")
+    post_launch: str | None = Field(default=None, description="Script or commands to run after the job completes")
+    launcher: str | None = Field(default=None, description="Job launcher to use (e.g., 'mpirun', 'srun')")
 
 
 class CommandResult(BaseModel):
