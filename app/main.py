@@ -17,8 +17,6 @@ api_app.include_router(filesystem.router)
 
 app = FastAPI()
 
-# for non-backward compatible versions, we can mount specific versions, eg. /api/v1
-# but, /api/current is always the latest
 app.mount(f"{config.API_PREFIX}{config.API_URL}", api_app)
 
 logging.getLogger().info(f"API path: {config.API_PREFIX}{config.API_URL}")

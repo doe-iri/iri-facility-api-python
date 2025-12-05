@@ -17,7 +17,7 @@ For more information, see: [https://iri.science/](https://iri.science/)
 """
 
 # version is the openapi.json spec version
-# /api/current mount point means it's the latest backward-compatible url
+# /api/v1 mount point means it's the latest backward-compatible url
 API_CONFIG = {
     "title": "IRI Facility API reference implementation",
     "description": description,
@@ -39,4 +39,4 @@ except Exception as exc:
 
 API_URL_ROOT = os.environ.get("API_URL_ROOT", "https://api.iri.nersc.gov")
 API_PREFIX = os.environ.get("API_PREFIX", "/")
-API_URL = os.environ.get("API_URL", "api/current")
+API_URL = os.environ.get("API_URL", "api/v1")

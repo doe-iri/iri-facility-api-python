@@ -20,13 +20,13 @@ from .routers.filesystem import models as filesystem_models, facility_adapter as
 
 class PathSandbox:
     _base_temp_dir = None
-    
+
     @classmethod
     def get_base_temp_dir(cls):
         if cls._base_temp_dir is None:
             # Create in system temp with a fixed name
             cls._base_temp_dir = os.path.join(
-                os.getcwd(), 
+                os.getcwd(),
                 "iri_sandbox"
             )
             os.makedirs(cls._base_temp_dir, exist_ok=True)
@@ -35,7 +35,7 @@ class PathSandbox:
             with open(f"{cls._base_temp_dir}/test.txt", "w") as f:
                 f.write("hello world")
         return cls._base_temp_dir
-    
+
 
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter):
     def __init__(self):
@@ -50,7 +50,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
         self._init_state()
 
-    
+
     def _init_state(self):
 
         day_ago = datetime.datetime.now() - datetime.timedelta(days=1)
@@ -119,18 +119,18 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                                 allocation=a.allocation/10,
                                 usage=a.usage/10,
                                 unit=a.unit
-                            ) 
+                            )
                             for a in pa.entries
                         ]
                     )
                 )
 
-        statuses = { r.name: status_models.Status.up for r in self.resources }        
+        statuses = { r.name: status_models.Status.up for r in self.resources }
         last_incidents = {}
         d = datetime.datetime(2025, 3, 1, 10, 0, 0)
 
         # generate some events and incidents
-        # here every incident only has events from a single resource, 
+        # here every incident only has events from a single resource,
         # but in reality it is possible for an incident to have events from multiple resources
         for i in range(0, 1000):
             r = random.choice(self.resources)
@@ -152,7 +152,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 if status == status_models.Status.up:
                     inc.end = d
                     del last_incidents[r.name]
-            
+
             if random.random() > 0.9:
                 if status == status_models.Status.down:
                     statuses[r.name] = status_models.Status.up
@@ -160,21 +160,21 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                     statuses[r.name] = status_models.Status.down
                     dstr = d.strftime("%Y-%m-%d %H:%M:%S.%f%z")
                     incident = status_models.Incident(
-                        id=str(uuid.uuid4()), 
-                        name=f"{r.name} incident at {dstr}", 
-                        description=f"{r.name} incident at {dstr}", 
+                        id=str(uuid.uuid4()),
+                        name=f"{r.name} incident at {dstr}",
+                        description=f"{r.name} incident at {dstr}",
                         status=status_models.Status.down,
                         event_ids=[],
                         resource_ids=random.choices([r.id for r in self.resources], k=3),
                         start=d,
                         end=d,
                         type=random.choice(list(status_models.IncidentType)),
-                        resolution="PM was fixed by NERSC staff",
+                        resolution=random.choice(list(status_models.Resolution)),
                         last_modified=d
                     )
                     self.incidents.append(incident)
                     last_incidents[r.name] = incident
-                    
+
 
             d += datetime.timedelta(minutes=int(random.random() * 15 + 1))
 
@@ -212,7 +212,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
-        ) -> list[status_models.Event]:        
+        ) -> list[status_models.Event]:
         return status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id, name, description, status, from_, to, time_, modified_since)[offset:offset + limit]
 
 
@@ -252,7 +252,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         ) -> list[account_models.Capability]:
         return self.capabilities.values()
-    
+
 
     async def get_current_user(
             self : "DemoAdapter",
@@ -279,7 +279,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             user: account_models.User
             ) -> list[account_models.Project]:
         return self.projects
-    
+
 
     async def get_project_allocations(
         self : "DemoAdapter",
@@ -287,7 +287,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
         return [pa for pa in self.project_allocations if pa.project_id == project.id]
-    
+
 
     async def get_user_allocations(
         self : "DemoAdapter",
@@ -299,8 +299,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def submit_job(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
         return compute_models.Job(
@@ -313,12 +313,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 meta_data={ "account": "account1" },
             )
         )
-    
+
 
     async def submit_job_script(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         job_script_path: str,
         args: list[str] = [],
     ) -> compute_models.Job:
@@ -332,12 +332,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 meta_data={ "account": "account1" },
             )
         )
-    
+
 
     async def update_job(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         job_spec: compute_models.JobSpec,
         job_id: str,
     ) -> compute_models.Job:
@@ -351,12 +351,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 meta_data={ "account": "account1" },
             )
         )
-    
+
 
     async def get_job(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         job_id: str,
         historical: bool = False,
     ) -> compute_models.Job:
@@ -374,8 +374,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_jobs(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         offset : int,
         limit : int,
         filters: dict[str, object] | None = None,
@@ -391,32 +391,32 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
                 meta_data={ "account": "account1" },
             )
         ) for i in range(random.randint(3, 10))]
-    
+
 
     async def cancel_job(
         self: "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         job_id: str,
     ) -> bool:
         # call slurm/etc. to cancel job
         return True
-    
+
 
     def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
         basedir = PathSandbox.get_base_temp_dir()
         real_path = os.path.realpath(os.path.join(basedir, path))
-        
+
         # Check within sandbox
         if not real_path.startswith(basedir + os.sep) and real_path != basedir:
             raise HTTPException(status_code=400, detail=f"Path outside sandbox: {path}")
-        
+
         # Optionally block symlinks that point outside sandbox
         if not allow_symlinks and os.path.islink(os.path.join(basedir, path)):
             link_target = os.readlink(os.path.join(basedir, path))
             if os.path.isabs(link_target):
                 raise HTTPException(status_code=400, detail=f"Absolute symlink not allowed: {path}")
-        
+
         return real_path
 
 
@@ -424,7 +424,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         # Get file stats (follows symlinks by default)
         rp = self.validate_path(path)
         file_stat = os.stat(rp)  # Use lstat to not follow symlinks
-        
+
         # Get file type
         if stat.S_ISDIR(file_stat.st_mode):
             file_type = "directory"
@@ -434,25 +434,25 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             file_type = "file"
         else:
             file_type = "other"
-        
+
         # Get link target if it's a symlink
         link_target = None
         if stat.S_ISLNK(file_stat.st_mode):
             link_target = os.readlink(rp)
-        
+
         # Get user and group names
         user = pwd.getpwuid(file_stat.st_uid).pw_name
         group = grp.getgrgid(file_stat.st_gid).gr_name
-        
+
         # Get permissions in rwxrwxrwx format
         permissions = stat.filemode(file_stat.st_mode)
-        
+
         # Get last modified time
         last_modified = datetime.datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-        
+
         # Get size
         size = str(file_stat.st_size)
-        
+
         return filesystem_models.File(
             name=os.path.basename(rp),
             type=file_type,
@@ -466,8 +466,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def chmod(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PutFileChmodRequest
     ) -> filesystem_models.PutFileChmodResponse:
         rp = self.validate_path(request_model.path)
@@ -479,8 +479,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def chown(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PutFileChownRequest
     ) -> filesystem_models.PutFileChownResponse:
         rp = self.validate_path(request_model.path)
@@ -492,12 +492,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def ls(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
-        show_hidden: bool, 
-        numeric_uid: bool, 
-        recursive: bool, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
+        show_hidden: bool,
+        numeric_uid: bool,
+        recursive: bool,
         dereference: bool,
     ) -> filesystem_models.GetDirectoryLsResponse:
         rp = self.validate_path(path)
@@ -510,9 +510,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     def _headtail(
         self : "DemoAdapter",
         cmd: str,
-        path: str, 
-        file_bytes: int | None, 
-        lines: int | None,             
+        path: str,
+        file_bytes: int | None,
+        lines: int | None,
     ) -> Tuple[Any, int]:
         args = [cmd]
         if file_bytes:
@@ -534,11 +534,11 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def head(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
-        file_bytes: int | None, 
-        lines: int | None, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
+        file_bytes: int | None,
+        lines: int | None,
         skip_trailing: bool,
     ) -> Tuple[Any, int]:
         return self._headtail("head", path, file_bytes, lines)
@@ -546,11 +546,11 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def tail(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
-        file_bytes: int | None, 
-        lines: int | None, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
+        file_bytes: int | None,
+        lines: int | None,
         skip_trailing: bool,
     ) -> Tuple[Any, int]:
         return self._headtail("tail", path, file_bytes, lines)
@@ -558,9 +558,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def view(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
         size: int,
         offset: int,
     ) -> filesystem_models.GetViewFileResponse:
@@ -579,9 +579,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def checksum(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
     ) -> filesystem_models.GetFileChecksumResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
@@ -599,9 +599,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def file(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
     ) -> filesystem_models.GetFileTypeResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
@@ -616,9 +616,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def stat(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
         dereference: bool,
     ) -> filesystem_models.GetFileStatResponse:
         rp = self.validate_path(path)
@@ -644,9 +644,9 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def rm(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
-        path: str, 
+        resource: status_models.Resource,
+        user: account_models.User,
+        path: str,
     ):
         rp = self.validate_path(path)
         if rp == PathSandbox.get_base_temp_dir():
@@ -657,8 +657,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def mkdir(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostMakeDirRequest,
     ) -> filesystem_models.PostMkdirResponse:
         rp = self.validate_path(request_model.path)
@@ -674,8 +674,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def symlink(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostFileSymlinkRequest,
     ) -> filesystem_models.PostFileSymlinkResponse:
         rp_src = self.validate_path(request_model.path)
@@ -688,18 +688,18 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def download(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         path: str,
     ) -> Any:
-        rp = self.validate_path(path)        
+        rp = self.validate_path(path)
         return pathlib.Path(rp).read_bytes()
 
 
     async def upload(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         path: str,
         content: str,
     ) -> None:
@@ -709,8 +709,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def compress(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostCompressRequest,
     ) -> filesystem_models.PostCompressResponse:
         src_rp = self.validate_path(request_model.path)
@@ -742,8 +742,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def extract(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostExtractRequest,
     ) -> filesystem_models.PostExtractResponse:
         src_rp = self.validate_path(request_model.path)
@@ -770,8 +770,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def mv(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostMoveRequest,
     ) -> filesystem_models.PostMoveResponse:
         src_rp = self.validate_path(request_model.path)
@@ -784,8 +784,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def cp(
         self : "DemoAdapter",
-        resource: status_models.Resource, 
-        user: account_models.User, 
+        resource: status_models.Resource,
+        user: account_models.User,
         request_model: filesystem_models.PostCopyRequest,
     ) -> filesystem_models.PostCopyResponse:
         src_rp = self.validate_path(request_model.path)

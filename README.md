@@ -3,8 +3,8 @@ Python reference implementation of the IRI facility API, standardizing endpoints
 
 See it live:
 
-- NERSC instance: https://api.iri.nersc.gov/nersc/api/current/
-- ALCF instance: https://api.alcf.anl.gov/api/current/
+- NERSC instance: https://api.iri.nersc.gov/nersc/api/v1/
+- ALCF instance: https://api.alcf.anl.gov/api/v1/
 
 ## Prerequisites
 
@@ -23,18 +23,18 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 
 ## Visit the dev server
 
-[http://127.0.0.1:8000/api/current/](http://127.0.0.1:8000/api/current/)
+[http://127.0.0.1:8000/api/v1/](http://127.0.0.1:8000/api/v1/)
 
 ## Customizing the API for your facility
 
 The reference implementation is meant to be customized for your facility's IRI implementation. Running the IRI api unmodified will show only fake, test data. The paragraphs below describe how to customize the business logic and appearance of the API for your facility.
 
 ### Customizing the business logic for your facility
-The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance. 
+The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance.
 
 The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
 
-As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data. 
+As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data.
 
 ### Customizing the API meta-data
 You can optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
@@ -45,7 +45,7 @@ If using docker (see next section), your dockerfile could extend this reference 
 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
-- `API_URL`: the path to the api itself. Defaults to `api/current`.
+- `API_URL`: the path to the api itself. Defaults to `api/v1`.
 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 
@@ -74,7 +74,7 @@ And also run the code with the demo adapter:
 
 `docker run -p8000:8000 -e IRI_SHOW_MISSING_ROUTES=true ghcr.io/doe-iri/iri-facility-api-python:main`
 
-Visit: http://127.0.0.1:8000/api/current/
+Visit: http://127.0.0.1:8000/api/v1/
 
 ### Build the image yourself
 
@@ -90,8 +90,8 @@ FROM ghcr.io/doe-iri/iri-facility-api-python:main
 # or: FROM registry.myfacility.gov/isg/iri/iri:main
 
 # The "myfacility" directory contains the adapters with business logic
-# specific to your IRI implementaion. 
-# Here we copy them into the docker image to a location that will be 
+# specific to your IRI implementaion.
+# Here we copy them into the docker image to a location that will be
 # visible to the running app.
 COPY ./myfacility /app/myfacility/
 

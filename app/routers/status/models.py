@@ -75,13 +75,13 @@ class Resource(NamedResource):
         if resource_type:
             a = [aa for aa in a if aa.resource_type == resource_type]
         return a
-    
+
 
 class Event(NamedResource):
     occurred_at : datetime.datetime
     status : Status
-    resource_id : str = Field(exclude=True) 
-    incident_id : str | None = Field(exclude=True, default=None) 
+    resource_id : str = Field(exclude=True)
+    incident_id : str | None = Field(exclude=True, default=None)
 
 
     @computed_field(description="The url of this object")
@@ -100,7 +100,7 @@ class Event(NamedResource):
     @property
     def incident_uri(self) -> str|None:
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
-    
+
 
     @staticmethod
     def find(
@@ -133,6 +133,14 @@ class IncidentType(enum.Enum):
     unplanned = "unplanned"
 
 
+class Resolution(enum.Enum):
+    unresolved = "unresolved"
+    cancelled = "cancelled"
+    completed = "completed"
+    extended = "extended"
+    pending = "pending"
+
+
 class Incident(NamedResource):
     status : Status
     resource_ids : list[str] = Field(exclude=True)
@@ -140,7 +148,7 @@ class Incident(NamedResource):
     start : datetime.datetime
     end : datetime.datetime | None
     type : IncidentType
-    resolution : str    
+    resolution : Resolution
 
 
     @computed_field(description="The url of this object")
