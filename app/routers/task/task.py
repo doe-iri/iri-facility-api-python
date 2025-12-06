@@ -1,0 +1,44 @@
+from fastapi import Request, HTTPException, Depends
+from .. import iri_router
+from .import models, facility_adapter
+
+router = iri_router.IriRouter(
+    facility_adapter.FacilityAdapter,
+    prefix="/task",
+    tags=["task"],
+)
+
+
+@router.get(
+    "/{task_id:str}",
+    dependencies=[Depends(router.current_user)],
+    response_model_exclude_unset=True,
+)
+async def get_job_status(
+    request : Request,
+    task_id : str,
+    ) -> models.Task:
+    """Get a task"""
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    if not user:
+        raise HTTPException(status_code=404, detail="Uer not found")
+    task = await router.adapter.get_task(user, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    return task
+
+
+@router.get(
+    "",
+    dependencies=[Depends(router.current_user)],
+    response_model_exclude_unset=True,
+)
+async def get_job_status(
+    request : Request,
+    ) -> list[models.Task]:
+    """Get a task"""
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    if not user:
+        raise HTTPException(status_code=404, detail="Uer not found")
+    return await router.adapter.get_tasks(user)
+
