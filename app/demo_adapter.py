@@ -20,49 +20,6 @@ from .routers.filesystem import models as filesystem_models, facility_adapter as
 from .routers.task import models as task_models, facility_adapter as task_adapter
 
 
-class DemoTask(BaseModel):
-    id: str
-    body: str
-    username: str
-    start: float
-    status: task_models.TaskStatus=task_models.TaskStatus.pending
-    result: str|None=None
-
-
-class DemoTaskQueue:
-    tasks = []
-
-    @staticmethod
-    def _process_tasks():
-        now = time.time()
-        _tasks = []
-        for t in DemoTaskQueue.tasks:
-            if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
-                # delete old tasks
-                continue
-            if t.status == task_models.TaskStatus.pending and now - t.start > 15:
-                t.status = task_models.TaskStatus.active
-                t.start = now
-            elif t.status == task_models.TaskStatus.active and now - t.start > 15:
-                t.status = random.choice([task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed])
-                if t.status == task_models.TaskStatus.completed:
-                    t.result = "Result for operation: dfsdf sdfsdf"
-                elif t.status == task_models.TaskStatus.failed:
-                    t.result = "Task failed with error: sdfas fas df asdf"
-                else:
-                    t.result = "Task was cancelled due to system maintenance"
-            _tasks.append(t)
-        DemoTaskQueue.tasks = _tasks
-
-
-    @staticmethod
-    def _create_task(user: account_models.User, command: task_models.TaskCommand) -> str:
-        task_id = f"task_{len(DemoTaskQueue.tasks)}"
-        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), username=user.name, start=time.time()))
-        return task_id
-
-
-
 class PathSandbox:
     _base_temp_dir = None
 
@@ -852,7 +809,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         task_id: str,
         ) -> task_models.Task|None:
-        DemoTaskQueue._process_tasks()
+        await DemoTaskQueue._process_tasks(self)
         return next((t for t in DemoTaskQueue.tasks if t.username == user.name and t.id == task_id), None)
 
 
@@ -860,7 +817,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         user: account_models.User,
         ) -> list[task_models.Task]:
-        DemoTaskQueue._process_tasks()
+        await DemoTaskQueue._process_tasks(self)
         return [t for t in DemoTaskQueue.tasks if t.username == user.name]
 
 
@@ -870,5 +827,110 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         body: str
     ) -> str:
-        DemoTaskQueue._process_tasks()
+        await DemoTaskQueue._process_tasks(self)
         return DemoTaskQueue._create_task(user, body)
+
+
+class DemoTask(BaseModel):
+    id: str
+    body: str
+    username: str
+    start: float
+    status: task_models.TaskStatus=task_models.TaskStatus.pending
+    result: str|None=None
+
+
+class DemoTaskQueue:
+    tasks = []
+
+    @staticmethod
+    async def _process_tasks(da: DemoAdapter):
+        now = time.time()
+        _tasks = []
+        for t in DemoTaskQueue.tasks:
+            if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
+                # delete old tasks
+                continue
+            if t.status == task_models.TaskStatus.pending and now - t.start > 15:
+                t.status = task_models.TaskStatus.active
+                t.start = now
+            elif t.status == task_models.TaskStatus.active and now - t.start > 15:
+                try:
+                    r = None
+                    cmd = task_models.TaskCommand.model_validate_json(t.body)
+                    print(f"router={cmd.router}")
+                    if cmd.router == "filesystem":
+                        if cmd.command == "chmod":
+                            request_model = filesystem_models.PutFileChmodRequest.model_validate(cmd.args["request_model"])
+                            o = await da.chmod(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "chown":
+                            request_model = filesystem_models.PutFileChownRequest.model_validate(cmd.args["request_model"])
+                            o = await da.chown(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "file":
+                            o = await da.file(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "stat":
+                            o = await da.stat(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "mkdir":
+                            request_model = filesystem_models.PostMakeDirRequest.model_validate(cmd.args["request_model"])
+                            o = await da.mkdir(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "symlink":
+                            request_model = filesystem_models.PostFileSymlinkRequest.model_validate(cmd.args["request_model"])
+                            o = await da.symlink(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "ls":
+                            o = await da.ls(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "head":
+                            o = await da.head(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "view":
+                            o = await da.view(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "tail":
+                            o = await da.tail(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "checksum":
+                            o = await da.checksum(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "rm":
+                            o = await da.rm(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "compress":
+                            request_model = filesystem_models.PostCompressRequest.model_validate(cmd.args["request_model"])
+                            o = await da.compress(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "extract":
+                            request_model = filesystem_models.PostExtractRequest.model_validate(cmd.args["request_model"])
+                            o = await da.extract(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "mv":
+                            request_model = filesystem_models.PostMoveRequest.model_validate(cmd.args["request_model"])
+                            o = await da.mv(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "cp":
+                            request_model = filesystem_models.PostCopyRequest.model_validate(cmd.args["request_model"])
+                            o = await da.cp(None, None, request_model)
+                            r = o.model_dump_json()
+                    if r:
+                        t.result = r
+                        t.status = task_models.TaskStatus.completed
+                    else:
+                        t.result = f"Task was cancelled due to unknown router/command: {cmd.router}:{cmd.command}"
+                        t.status = task_models.TaskStatus.canceled
+                except Exception as exc:
+                    t.result = f"Error: {exc}"
+                    t.status = task_models.TaskStatus.failed
+            _tasks.append(t)
+        DemoTaskQueue.tasks = _tasks
+
+
+    @staticmethod
+    def _create_task(user: account_models.User, command: task_models.TaskCommand) -> str:
+        task_id = f"task_{len(DemoTaskQueue.tasks)}"
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), username=user.name, start=time.time()))
+        return task_id
