@@ -58,7 +58,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
 
     def _init_state(self):
-        day_ago = datetime.datetime.now() - datetime.timedelta(days=1)
+        day_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
         self.capabilities = {
             "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
             "gpu": account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),

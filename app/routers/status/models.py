@@ -29,12 +29,19 @@ class NamedResource(BaseModel):
 
     @staticmethod
     def find(a, name, description, modified_since):
+        def normalize(dt: datetime) -> datetime:
+            # Convert naive datetimes into UTC-aware versions
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=datetime.timezone.utc)
+            return dt
         if name:
             a = [aa for aa in a if aa.name == name]
         if description:
             a = [aa for aa in a if description in aa.description]
         if modified_since:
-            a = [aa for aa in a if aa.last_modified >= modified_since]
+            if modified_since.tzinfo is None:
+                modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
+            a = [aa for aa in a if normalize(aa.last_modified) >= modified_since]
         return a
 
 
