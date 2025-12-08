@@ -10,24 +10,17 @@ from fastapi import (
     HTTPException,
     status,
     Query,
-    Request
+    Request,
+    File,
+    UploadFile
 )
-import os
+import base64
 from typing import Annotated
 from .. import iri_router
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
 from ..task import facility_adapter as task_facility_adapter, models as task_models
 from .import models, facility_adapter
-
-def to_int(name, default_value):
-    try:
-        return os.environ.get(name) or default_value
-    except:
-        return default_value
-
-
-OPS_SIZE_LIMIT = to_int("OPS_SIZE_LIMIT", 5 * 1024 * 1024)
 
 
 router = iri_router.IriRouter(
@@ -331,7 +324,7 @@ async def get_head(
 @router.get(
     "/view/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    description=f"View file content (up to max {OPS_SIZE_LIMIT} bytes)",
+    description=f"View file content (up to max {facility_adapter.OPS_SIZE_LIMIT} bytes)",
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="View operation finished successfully",
@@ -346,7 +339,7 @@ async def get_view(
             alias="size",
             description="Value, in bytes, of the size of data to be retrieved from the file.",
         ),
-    ] = OPS_SIZE_LIMIT,
+    ] = facility_adapter.OPS_SIZE_LIMIT,
     offset: Annotated[
         int | None,
         Query(
@@ -369,10 +362,10 @@ async def get_view(
             detail="`size` value must be an integer value greater than 0",
         )
 
-    if size > OPS_SIZE_LIMIT:
+    if size > facility_adapter.OPS_SIZE_LIMIT:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"`size` value must be less than {OPS_SIZE_LIMIT} bytes",
+            detail=f"`size` value must be less than {facility_adapter.OPS_SIZE_LIMIT} bytes",
         )
 
     return await router.task_adapter.put_task(
@@ -383,7 +376,7 @@ async def get_view(
             command="view",
             args={
                 "path": path,
-                "size": size or OPS_SIZE_LIMIT,
+                "size": size or facility_adapter.OPS_SIZE_LIMIT,
                 "offset": offset or 0,
 
             }
@@ -601,6 +594,71 @@ async def post_cp(
             command="cp",
             args={
                 "request_model": request_model,
+            }
+        )
+    )
+
+@router.get(
+    "/download/{resource_id:str}",
+    dependencies=[Depends(router.current_user)],
+    description=f"Download a small file (max {facility_adapter.OPS_SIZE_LIMIT} Bytes)",
+    status_code=status.HTTP_200_OK,
+    response_model=str,
+    response_description="File downloaded successfully",
+)
+async def get_download(
+    resource_id: str,
+    request : Request,
+    path: Annotated[str, Query(description="A file to download")],
+) -> str:
+    user, resource = await _user_resource(resource_id, request)
+    return await router.task_adapter.put_task(
+        user,
+        resource,
+        task_models.TaskCommand(
+            router=router.get_router_name(),
+            command="download",
+            args={
+                "path": path,
+            }
+        )
+    )
+
+
+@router.post(
+    "/upload/{resource_id:str}",
+    dependencies=[Depends(router.current_user)],
+    description=f"Upload a small file (max {facility_adapter.OPS_SIZE_LIMIT} Bytes)",
+    status_code=status.HTTP_200_OK,
+    response_model=str,
+    response_description="File uploaded successfully",
+)
+async def post_upload(
+    resource_id: str,
+    request : Request,
+    path: Annotated[
+        str, Query(description="Specify path where file should be uploaded.")
+    ],
+    file: UploadFile = File(description="File to be uploaded as `multipart/form-data`"),
+) -> str:
+    user, resource = await _user_resource(resource_id, request)
+    raw_content = file.file.read()
+
+    if len(raw_content) > facility_adapter.OPS_SIZE_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File to upload is too large.",
+        )
+
+    return await router.task_adapter.put_task(
+        user,
+        resource,
+        task_models.TaskCommand(
+            router=router.get_router_name(),
+            command="upload",
+            args={
+                "path": path,
+                "content": base64.b64encode(raw_content).decode('utf-8'),
             }
         )
     )

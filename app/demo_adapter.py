@@ -11,6 +11,7 @@ import glob
 import subprocess
 import os
 import pathlib
+import base64
 from pydantic import BaseModel
 from typing import Any, Tuple
 from .routers.status import models as status_models, facility_adapter as status_adapter
@@ -19,6 +20,7 @@ from .routers.compute import models as compute_models, facility_adapter as compu
 from .routers.filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 from .routers.task import models as task_models, facility_adapter as task_adapter
 
+DEMO_QUEUE_UPDATE_SECS = 5
 
 class PathSandbox:
     _base_temp_dir = None
@@ -696,7 +698,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str,
     ) -> Any:
         rp = self.validate_path(path)
-        return pathlib.Path(rp).read_bytes()
+        raw_content = pathlib.Path(rp).read_bytes()
+
+        if len(raw_content) > filesystem_adapter.OPS_SIZE_LIMIT:
+            raise Exception("File to download is too large.")
+
+        return base64.b64encode(raw_content).decode('utf-8')
 
 
     async def upload(
@@ -707,7 +714,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         content: str,
     ) -> None:
         rp = self.validate_path(path)
-        pathlib.Path(rp).write_bytes(content)
+        if isinstance(content, bytes):
+            pathlib.Path(rp).write_bytes(content)
+        elif isinstance(content, str):
+            pathlib.Path(rp).write_bytes(base64.b64decode(content))
+        else:
+            raise Exception(f"Don't know how to handle variable of type: {type(content)}")
 
 
     async def compress(
@@ -851,10 +863,10 @@ class DemoTaskQueue:
             if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
                 # delete old tasks
                 continue
-            if t.status == task_models.TaskStatus.pending and now - t.start > 15:
+            if t.status == task_models.TaskStatus.pending and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 t.status = task_models.TaskStatus.active
                 t.start = now
-            elif t.status == task_models.TaskStatus.active and now - t.start > 15:
+            elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 try:
                     r = None
                     cmd = task_models.TaskCommand.model_validate_json(t.body)
@@ -916,6 +928,11 @@ class DemoTaskQueue:
                             request_model = filesystem_models.PostCopyRequest.model_validate(cmd.args["request_model"])
                             o = await da.cp(None, None, request_model)
                             r = o.model_dump_json()
+                        elif cmd.command == "download":
+                            r = await da.download(None, None, **cmd.args)
+                        elif cmd.command == "upload":
+                            o = await da.upload(None, None, **cmd.args)
+                            r = "File uploaded successfully"
                     if r:
                         t.result = r
                         t.status = task_models.TaskStatus.completed
