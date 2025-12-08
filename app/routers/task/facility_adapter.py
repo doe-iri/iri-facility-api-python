@@ -122,4 +122,4 @@ class FacilityAdapter(AuthenticatedAdapter):
             else:
                 return (f"Task was cancelled due to unknown router/command: {router}:{command}", task_models.TaskStatus.failed)
         except Exception as exc:
-            return task_models.Task(f"Error: {exc}", task_models.TaskStatus.failed)
+            return (f"Error: {exc}", task_models.TaskStatus.failed)
