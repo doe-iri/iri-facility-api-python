@@ -42,8 +42,8 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
 
+    @staticmethod
     async def on_task(
-        self: "FacilityAdapter",
         router: str,
         command: str,
         args: dict[str:Any],
