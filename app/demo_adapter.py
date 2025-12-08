@@ -867,81 +867,10 @@ class DemoTaskQueue:
                 t.status = task_models.TaskStatus.active
                 t.start = now
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
-                try:
-                    r = None
-                    cmd = task_models.TaskCommand.model_validate_json(t.body)
-                    print(f"router={cmd.router}")
-                    if cmd.router == "filesystem":
-                        if cmd.command == "chmod":
-                            request_model = filesystem_models.PutFileChmodRequest.model_validate(cmd.args["request_model"])
-                            o = await da.chmod(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "chown":
-                            request_model = filesystem_models.PutFileChownRequest.model_validate(cmd.args["request_model"])
-                            o = await da.chown(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "file":
-                            o = await da.file(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "stat":
-                            o = await da.stat(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "mkdir":
-                            request_model = filesystem_models.PostMakeDirRequest.model_validate(cmd.args["request_model"])
-                            o = await da.mkdir(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "symlink":
-                            request_model = filesystem_models.PostFileSymlinkRequest.model_validate(cmd.args["request_model"])
-                            o = await da.symlink(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "ls":
-                            o = await da.ls(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "head":
-                            o = await da.head(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "view":
-                            o = await da.view(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "tail":
-                            o = await da.tail(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "checksum":
-                            o = await da.checksum(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "rm":
-                            o = await da.rm(None, None, **cmd.args)
-                            r = o.model_dump_json()
-                        elif cmd.command == "compress":
-                            request_model = filesystem_models.PostCompressRequest.model_validate(cmd.args["request_model"])
-                            o = await da.compress(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "extract":
-                            request_model = filesystem_models.PostExtractRequest.model_validate(cmd.args["request_model"])
-                            o = await da.extract(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "mv":
-                            request_model = filesystem_models.PostMoveRequest.model_validate(cmd.args["request_model"])
-                            o = await da.mv(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "cp":
-                            request_model = filesystem_models.PostCopyRequest.model_validate(cmd.args["request_model"])
-                            o = await da.cp(None, None, request_model)
-                            r = o.model_dump_json()
-                        elif cmd.command == "download":
-                            r = await da.download(None, None, **cmd.args)
-                        elif cmd.command == "upload":
-                            o = await da.upload(None, None, **cmd.args)
-                            r = "File uploaded successfully"
-                    if r:
-                        t.result = r
-                        t.status = task_models.TaskStatus.completed
-                    else:
-                        t.result = f"Task was cancelled due to unknown router/command: {cmd.router}:{cmd.command}"
-                        t.status = task_models.TaskStatus.canceled
-                except Exception as exc:
-                    t.result = f"Error: {exc}"
-                    t.status = task_models.TaskStatus.failed
+                cmd = task_models.TaskCommand.model_validate_json(t.body)
+                (result, status) = await da.on_task(cmd.router, cmd.command, cmd.args)
+                t.result = result
+                t.status = status
             _tasks.append(t)
         DemoTaskQueue.tasks = _tasks
 

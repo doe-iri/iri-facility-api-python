@@ -25,7 +25,7 @@ class IriRouter(APIRouter):
     def __init__(self, router_adapter=None, task_router_adapter=None, **kwargs):
         super().__init__(**kwargs)
         router_name = self.get_router_name()
-        self.adapter = self.create_adapter(router_name, router_adapter)
+        self.adapter = IriRouter.create_adapter(router_name, router_adapter)
         if self.adapter:
             logging.getLogger().info(f"Successfully loaded {router_name} adapter: {self.adapter.__class__.__name__}")
         else:
@@ -33,7 +33,7 @@ class IriRouter(APIRouter):
             self.include_in_schema = False
         self.task_adapter = None
         if task_router_adapter:
-            self.task_adapter = self.create_adapter("task", task_router_adapter)
+            self.task_adapter = IriRouter.create_adapter("task", task_router_adapter)
             if not self.task_adapter:
                 logging.getLogger().info(f"Hiding {router_name} because \"task\" adapter was not found")
                 self.include_in_schema = False
@@ -41,30 +41,32 @@ class IriRouter(APIRouter):
 
     def get_router_name(self):
         return self.prefix.replace("/", "").strip()
-    
 
-    def _get_adapter_name(self, router_name: str) -> str|None:
+
+    @staticmethod
+    def _get_adapter_name(router_name: str) -> str|None:
         """Return the adapter name, or None if it's not configured and IRI_SHOW_MISSING_ROUTES is true"""
-        # if there is no adapter specified for this router, 
+        # if there is no adapter specified for this router,
         # and IRI_SHOW_MISSING_ROUTES is not true,
         # hide the router
         env_var = f"IRI_API_ADAPTER_{router_name}"
         if env_var not in os.environ and os.environ.get("IRI_SHOW_MISSING_ROUTES") not in ["true", "1", "on", "yes"]:
             return None
-        
+
         # find and load the actual implementation
         return os.environ.get(env_var, "app.demo_adapter.DemoAdapter")
 
 
-    def create_adapter(self, router_name, router_adapter):
+    @staticmethod
+    def create_adapter(router_name, router_adapter):
         # Load the facility-specific adapter
-        adapter_name = self._get_adapter_name(router_name)
+        adapter_name = IriRouter._get_adapter_name(router_name)
         if not adapter_name:
             return None
-        
-        
+
+
         parts = adapter_name.rsplit(".", 1)
-        module = importlib.import_module(parts[0])    
+        module = importlib.import_module(parts[0])
         AdapterClass = getattr(module, parts[1])
         if not issubclass(AdapterClass, router_adapter):
             raise Exception(f"{adapter_name} should implement FacilityAdapter")
@@ -75,7 +77,7 @@ class IriRouter(APIRouter):
 
     async def current_user(
         self,
-        request : Request, 
+        request : Request,
         api_key: str = Depends(bearer_token),
     ):
         user_id = None
