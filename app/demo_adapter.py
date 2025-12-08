@@ -11,12 +11,16 @@ import glob
 import subprocess
 import os
 import pathlib
+import base64
+from pydantic import BaseModel
 from typing import Any, Tuple
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
 from .routers.filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
+from .routers.task import models as task_models, facility_adapter as task_adapter
 
+DEMO_QUEUE_UPDATE_SECS = 5
 
 class PathSandbox:
     _base_temp_dir = None
@@ -37,7 +41,9 @@ class PathSandbox:
         return cls._base_temp_dir
 
 
-class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter):
+class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter,
+                  compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter,
+                  task_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -52,7 +58,6 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
 
     def _init_state(self):
-
         day_ago = datetime.datetime.now() - datetime.timedelta(days=1)
         self.capabilities = {
             "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
@@ -693,7 +698,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str,
     ) -> Any:
         rp = self.validate_path(path)
-        return pathlib.Path(rp).read_bytes()
+        raw_content = pathlib.Path(rp).read_bytes()
+
+        if len(raw_content) > filesystem_adapter.OPS_SIZE_LIMIT:
+            raise Exception("File to download is too large.")
+
+        return base64.b64encode(raw_content).decode('utf-8')
 
 
     async def upload(
@@ -704,7 +714,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         content: str,
     ) -> None:
         rp = self.validate_path(path)
-        pathlib.Path(rp).write_bytes(content)
+        if isinstance(content, bytes):
+            pathlib.Path(rp).write_bytes(content)
+        elif isinstance(content, str):
+            pathlib.Path(rp).write_bytes(base64.b64decode(content))
+        else:
+            raise Exception(f"Don't know how to handle variable of type: {type(content)}")
 
 
     async def compress(
@@ -799,3 +814,140 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         return filesystem_models.PostCopyResponse(
             output=self._file(dst_rp)
         )
+
+
+    async def get_task(
+        self : "DemoAdapter",
+        user: account_models.User,
+        task_id: str,
+        ) -> task_models.Task|None:
+        await DemoTaskQueue._process_tasks(self)
+        return next((t for t in DemoTaskQueue.tasks if t.username == user.name and t.id == task_id), None)
+
+
+    async def get_tasks(
+        self : "DemoAdapter",
+        user: account_models.User,
+        ) -> list[task_models.Task]:
+        await DemoTaskQueue._process_tasks(self)
+        return [t for t in DemoTaskQueue.tasks if t.username == user.name]
+
+
+    async def put_task(
+        self: "DemoAdapter",
+        user: account_models.User,
+        resource: status_models.Resource,
+        body: str
+    ) -> str:
+        await DemoTaskQueue._process_tasks(self)
+        return DemoTaskQueue._create_task(user, body)
+
+
+class DemoTask(BaseModel):
+    id: str
+    body: str
+    username: str
+    start: float
+    status: task_models.TaskStatus=task_models.TaskStatus.pending
+    result: str|None=None
+
+
+class DemoTaskQueue:
+    tasks = []
+
+    @staticmethod
+    async def _process_tasks(da: DemoAdapter):
+        now = time.time()
+        _tasks = []
+        for t in DemoTaskQueue.tasks:
+            if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
+                # delete old tasks
+                continue
+            if t.status == task_models.TaskStatus.pending and now - t.start > DEMO_QUEUE_UPDATE_SECS:
+                t.status = task_models.TaskStatus.active
+                t.start = now
+            elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
+                try:
+                    r = None
+                    cmd = task_models.TaskCommand.model_validate_json(t.body)
+                    print(f"router={cmd.router}")
+                    if cmd.router == "filesystem":
+                        if cmd.command == "chmod":
+                            request_model = filesystem_models.PutFileChmodRequest.model_validate(cmd.args["request_model"])
+                            o = await da.chmod(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "chown":
+                            request_model = filesystem_models.PutFileChownRequest.model_validate(cmd.args["request_model"])
+                            o = await da.chown(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "file":
+                            o = await da.file(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "stat":
+                            o = await da.stat(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "mkdir":
+                            request_model = filesystem_models.PostMakeDirRequest.model_validate(cmd.args["request_model"])
+                            o = await da.mkdir(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "symlink":
+                            request_model = filesystem_models.PostFileSymlinkRequest.model_validate(cmd.args["request_model"])
+                            o = await da.symlink(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "ls":
+                            o = await da.ls(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "head":
+                            o = await da.head(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "view":
+                            o = await da.view(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "tail":
+                            o = await da.tail(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "checksum":
+                            o = await da.checksum(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "rm":
+                            o = await da.rm(None, None, **cmd.args)
+                            r = o.model_dump_json()
+                        elif cmd.command == "compress":
+                            request_model = filesystem_models.PostCompressRequest.model_validate(cmd.args["request_model"])
+                            o = await da.compress(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "extract":
+                            request_model = filesystem_models.PostExtractRequest.model_validate(cmd.args["request_model"])
+                            o = await da.extract(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "mv":
+                            request_model = filesystem_models.PostMoveRequest.model_validate(cmd.args["request_model"])
+                            o = await da.mv(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "cp":
+                            request_model = filesystem_models.PostCopyRequest.model_validate(cmd.args["request_model"])
+                            o = await da.cp(None, None, request_model)
+                            r = o.model_dump_json()
+                        elif cmd.command == "download":
+                            r = await da.download(None, None, **cmd.args)
+                        elif cmd.command == "upload":
+                            o = await da.upload(None, None, **cmd.args)
+                            r = "File uploaded successfully"
+                    if r:
+                        t.result = r
+                        t.status = task_models.TaskStatus.completed
+                    else:
+                        t.result = f"Task was cancelled due to unknown router/command: {cmd.router}:{cmd.command}"
+                        t.status = task_models.TaskStatus.canceled
+                except Exception as exc:
+                    t.result = f"Error: {exc}"
+                    t.status = task_models.TaskStatus.failed
+            _tasks.append(t)
+        DemoTaskQueue.tasks = _tasks
+
+
+    @staticmethod
+    def _create_task(user: account_models.User, command: task_models.TaskCommand) -> str:
+        task_id = f"task_{len(DemoTaskQueue.tasks)}"
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), username=user.name, start=time.time()))
+        return task_id
