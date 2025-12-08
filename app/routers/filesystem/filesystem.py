@@ -55,6 +55,7 @@ async def _user_resource(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File permissions changed successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def put_chmod(
     resource_id: str,
@@ -82,6 +83,7 @@ async def put_chmod(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File ownership changed successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def put_chown(
     resource_id: str,
@@ -221,7 +223,8 @@ async def post_symlink(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Directory listed successfully",
-    include_in_schema=router.task_adapter is not None
+    include_in_schema=router.task_adapter is not None,
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_ls_async(
     resource_id: str,
@@ -269,6 +272,7 @@ async def get_ls_async(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Head operation finished successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_head(
     resource_id: str,
@@ -328,6 +332,7 @@ async def get_head(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="View operation finished successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_view(
     resource_id: str,
@@ -391,6 +396,7 @@ async def get_view(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="`tail` operation finished successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_tail(
     resource_id: str,
@@ -446,6 +452,7 @@ async def get_tail(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Checksum returned successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_checksum(
     resource_id: str,
@@ -465,12 +472,12 @@ async def get_checksum(
         )
     )
 
-
 @router.delete(
     "/rm/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
     description="Delete file or directory operation (`rm`)",
     response_description="File or directory deleted successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def delete_rm(
     resource_id: str,
@@ -498,6 +505,7 @@ async def delete_rm(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File and/or directories compressed successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def post_compress(
     resource_id: str,
@@ -525,6 +533,7 @@ async def post_compress(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File extracted successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def post_extract(
     resource_id: str,
@@ -605,6 +614,7 @@ async def post_cp(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File downloaded successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def get_download(
     resource_id: str,
@@ -632,6 +642,7 @@ async def get_download(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File uploaded successfully",
+    responses=iri_router.DEFAULT_RESPONSES
 )
 async def post_upload(
     resource_id: str,
@@ -662,3 +673,4 @@ async def post_upload(
             }
         )
     )
+

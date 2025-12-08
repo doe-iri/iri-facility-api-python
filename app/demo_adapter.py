@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 import datetime
 import random
 import uuid
@@ -9,11 +8,11 @@ import pwd
 import grp
 import glob
 import subprocess
-import os
 import pathlib
 import base64
 from pydantic import BaseModel
 from typing import Any, Tuple
+from fastapi import HTTPException
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
@@ -132,12 +131,12 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
         statuses = { r.name: status_models.Status.up for r in self.resources }
         last_incidents = {}
-        d = datetime.datetime(2025, 3, 1, 10, 0, 0)
+        d = datetime.datetime(2025, 3, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
 
         # generate some events and incidents
         # here every incident only has events from a single resource,
         # but in reality it is possible for an incident to have events from multiple resources
-        for i in range(0, 1000):
+        for _i in range(0, 1000):
             r = random.choice(self.resources)
             status = statuses[r.name]
             event = status_models.Event(
@@ -277,6 +276,10 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             api_key: str,
             client_ip: str|None,
             ) -> account_models.User:
+        if user_id != self.user.id:
+            raise HTTPException(status_code=401, detail="User not found")
+        if api_key != self.user.api_key:
+            raise HTTPException(status_code=403, detail="Invalid API key")
         return self.user
 
 
