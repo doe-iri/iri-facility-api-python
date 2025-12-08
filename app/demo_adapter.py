@@ -822,7 +822,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         task_id: str,
         ) -> task_models.Task|None:
         await DemoTaskQueue._process_tasks(self)
-        return next((t for t in DemoTaskQueue.tasks if t.username == user.name and t.id == task_id), None)
+        return next((t for t in DemoTaskQueue.tasks if t.user.name == user.name and t.id == task_id), None)
 
 
     async def get_tasks(
@@ -830,7 +830,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         ) -> list[task_models.Task]:
         await DemoTaskQueue._process_tasks(self)
-        return [t for t in DemoTaskQueue.tasks if t.username == user.name]
+        return [t for t in DemoTaskQueue.tasks if t.user.name == user.name]
 
 
     async def put_task(
@@ -840,13 +840,14 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         body: str
     ) -> str:
         await DemoTaskQueue._process_tasks(self)
-        return DemoTaskQueue._create_task(user, body)
+        return DemoTaskQueue._create_task(user, resource, body)
 
 
 class DemoTask(BaseModel):
     id: str
     body: str
-    username: str
+    resource: status_models.Resource
+    user: account_models.User
     start: float
     status: task_models.TaskStatus=task_models.TaskStatus.pending
     result: str|None=None
@@ -868,7 +869,7 @@ class DemoTaskQueue:
                 t.start = now
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 cmd = task_models.TaskCommand.model_validate_json(t.body)
-                (result, status) = await DemoAdapter.on_task(cmd.router, cmd.command, cmd.args)
+                (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd.router, cmd.command, cmd.args)
                 t.result = result
                 t.status = status
             _tasks.append(t)
@@ -876,7 +877,7 @@ class DemoTaskQueue:
 
 
     @staticmethod
-    def _create_task(user: account_models.User, command: task_models.TaskCommand) -> str:
+    def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> str:
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
-        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), username=user.name, start=time.time()))
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=time.time()))
         return task_id
