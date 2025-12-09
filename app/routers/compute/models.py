@@ -36,6 +36,8 @@ class JobSpec(BaseModel):
     pre_launch: str | None = None
     post_launch: str | None = None
     launcher: str | None = None
+    class Config:
+        extra = "forbid"
 
 
 class CommandResult(BaseModel):

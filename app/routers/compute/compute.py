@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Request, Depends, status, Form
+from fastapi import HTTPException, Request, Depends, status, Form, Query
 from typing import List, Annotated
 from . import models, facility_adapter
 from .. import iri_router
@@ -147,8 +147,8 @@ async def get_job_status(
 async def get_job_statuses(
     resource_id : str,
     request : Request,
-    offset : int | None = 0,
-    limit : int | None = 100,
+    offset : int = Query(default=0, ge=0),
+    limit : int = Query(default=100, le=10000),
     filters : dict[str, object] | None = None,
     historical : bool = False,
     ):
