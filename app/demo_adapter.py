@@ -869,7 +869,7 @@ class DemoTaskQueue:
                 t.start = now
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 cmd = task_models.TaskCommand.model_validate_json(t.body)
-                (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd.router, cmd.command, cmd.args)
+                (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd)
                 t.result = result
                 t.status = status
             _tasks.append(t)

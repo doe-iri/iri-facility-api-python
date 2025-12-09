@@ -46,80 +46,78 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def on_task(
         resource: status_models.Resource,
         user: account_models.User,
-        router: str,
-        command: str,
-        args: dict[str:Any],
+        cmd: task_models.TaskCommand,
     ) -> tuple[str, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         try:
             r = None
-            if router == "filesystem":
-                fs_adapter = IriRouter.create_adapter(router, filesystem_adapter.FacilityAdapter)
-                if command == "chmod":
-                    request_model = filesystem_models.PutFileChmodRequest.model_validate(args["request_model"])
+            if cmd.router == "filesystem":
+                fs_adapter = IriRouter.create_adapter(cmd.router, filesystem_adapter.FacilityAdapter)
+                if cmd.command == "chmod":
+                    request_model = filesystem_models.PutFileChmodRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.chmod(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "chown":
-                    request_model = filesystem_models.PutFileChownRequest.model_validate(args["request_model"])
+                elif cmd.command == "chown":
+                    request_model = filesystem_models.PutFileChownRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.chown(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "file":
-                    o = await fs_adapter.file(resource, user, **args)
+                elif cmd.command == "file":
+                    o = await fs_adapter.file(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "stat":
-                    o = await fs_adapter.stat(resource, user, **args)
+                elif cmd.command == "stat":
+                    o = await fs_adapter.stat(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "mkdir":
-                    request_model = filesystem_models.PostMakeDirRequest.model_validate(args["request_model"])
+                elif cmd.command == "mkdir":
+                    request_model = filesystem_models.PostMakeDirRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.mkdir(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "symlink":
-                    request_model = filesystem_models.PostFileSymlinkRequest.model_validate(args["request_model"])
+                elif cmd.command == "symlink":
+                    request_model = filesystem_models.PostFileSymlinkRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.symlink(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "ls":
-                    o = await fs_adapter.ls(resource, user, **args)
+                elif cmd.command == "ls":
+                    o = await fs_adapter.ls(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "head":
-                    o = await fs_adapter.head(resource, user, **args)
+                elif cmd.command == "head":
+                    o = await fs_adapter.head(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "view":
-                    o = await fs_adapter.view(resource, user, **args)
+                elif cmd.command == "view":
+                    o = await fs_adapter.view(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "tail":
-                    o = await fs_adapter.tail(resource, user, **args)
+                elif cmd.command == "tail":
+                    o = await fs_adapter.tail(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "checksum":
-                    o = await fs_adapter.checksum(resource, user, **args)
+                elif cmd.command == "checksum":
+                    o = await fs_adapter.checksum(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "rm":
-                    o = await fs_adapter.rm(resource, user, **args)
+                elif cmd.command == "rm":
+                    o = await fs_adapter.rm(resource, user, **cmd.args)
                     r = o.model_dump_json()
-                elif command == "compress":
-                    request_model = filesystem_models.PostCompressRequest.model_validate(args["request_model"])
+                elif cmd.command == "compress":
+                    request_model = filesystem_models.PostCompressRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.compress(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "extract":
-                    request_model = filesystem_models.PostExtractRequest.model_validate(args["request_model"])
+                elif cmd.command == "extract":
+                    request_model = filesystem_models.PostExtractRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.extract(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "mv":
-                    request_model = filesystem_models.PostMoveRequest.model_validate(args["request_model"])
+                elif cmd.command == "mv":
+                    request_model = filesystem_models.PostMoveRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.mv(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "cp":
-                    request_model = filesystem_models.PostCopyRequest.model_validate(args["request_model"])
+                elif cmd.command == "cp":
+                    request_model = filesystem_models.PostCopyRequest.model_validate(cmd.args["request_model"])
                     o = await fs_adapter.cp(resource, user, request_model)
                     r = o.model_dump_json()
-                elif command == "download":
-                    r = await fs_adapter.download(resource, user, **args)
-                elif command == "upload":
-                    o = await fs_adapter.upload(resource, user, **args)
+                elif cmd.command == "download":
+                    r = await fs_adapter.download(resource, user, **cmd.args)
+                elif cmd.command == "upload":
+                    o = await fs_adapter.upload(resource, user, **cmd.args)
                     r = "File uploaded successfully"
             if r:
                 return (r, task_models.TaskStatus.completed)
             else:
-                return (f"Task was cancelled due to unknown router/command: {router}:{command}", task_models.TaskStatus.failed)
+                return (f"Task was cancelled due to unknown router/command: {cmd.router}:{cmd.command}", task_models.TaskStatus.failed)
         except Exception as exc:
             return (f"Error: {exc}", task_models.TaskStatus.failed)
