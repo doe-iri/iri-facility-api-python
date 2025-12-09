@@ -49,7 +49,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.incidents = []
         self.events = []
         self.capabilities = {}
-        self.user = account_models.User(id="gtorok", name="Gabor Torok", api_key="12345")
+        self.user = account_models.User(id="gtorok", name="Gabor Torok", api_key="12345", client_ip="1.2.3.4")
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
@@ -262,7 +262,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_current_user(
             self : "DemoAdapter",
             api_key: str,
-            ip_address: str,
+            client_ip: str,
         ) -> str:
         """
             In a real deployment, this would decode the api_key jwt and return the current user's id.
@@ -275,6 +275,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             self : "DemoAdapter",
             user_id: str,
             api_key: str,
+            client_ip: str|None,
             ) -> account_models.User:
         return self.user
 

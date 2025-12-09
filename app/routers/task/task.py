@@ -19,7 +19,7 @@ async def get_job_status(
     task_id : str,
     ) -> models.Task:
     """Get a task"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     task = await router.adapter.get_task(user, task_id)
@@ -37,7 +37,7 @@ async def get_job_status(
     request : Request,
     ) -> list[models.Task]:
     """Get a task"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     return await router.adapter.get_tasks(user)

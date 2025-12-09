@@ -12,9 +12,9 @@ router = iri_router.IriRouter(
 
 
 @router.post(
-    "/job/{resource_id:str}", 
+    "/job/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    response_model=models.Job, 
+    response_model=models.Job,
     response_model_exclude_unset=True,
 )
 async def submit_job(
@@ -27,13 +27,13 @@ async def submit_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
-    
+
     This command will attempt to submit a job and return its id.
     """
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -43,9 +43,9 @@ async def submit_job(
 
 
 @router.post(
-    "/job/script/{resource_id:str}", 
+    "/job/script/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    response_model=models.Job, 
+    response_model=models.Job,
     response_model_exclude_unset=True,
 )
 async def submit_job_path(
@@ -60,13 +60,13 @@ async def submit_job_path(
     - **resource**: the name of the compute resource to use
     - **job_script_path**: path to the job script on the compute resource
     - **args**: optional arguments to the job script
-    
+
     This command will attempt to submit a job and return its id.
     """
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -76,9 +76,9 @@ async def submit_job_path(
 
 
 @router.put(
-    "/job/{resource_id:str}/{job_id:str}", 
+    "/job/{resource_id:str}/{job_id:str}",
     dependencies=[Depends(router.current_user)],
-    response_model=models.Job, 
+    response_model=models.Job,
     response_model_exclude_unset=True,
 )
 async def update_job(
@@ -93,12 +93,12 @@ async def update_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
-    
+
     """
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -120,7 +120,7 @@ async def get_job_status(
     historical : bool = False,
     ):
     """Get a job's status"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -148,7 +148,7 @@ async def get_job_statuses(
     historical : bool = False,
     ):
     """Get multiple jobs' statuses"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -174,10 +174,10 @@ async def cancel_job(
     request : Request,
     ):
     """Cancel a job"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key)
+    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 

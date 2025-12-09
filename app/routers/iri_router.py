@@ -10,15 +10,20 @@ from .account.models import User
 bearer_token = APIKeyHeader(name="Authorization")
 
 
-def get_real_ip(request : Request) -> str|None:
+def get_client_ip(request : Request) -> str|None:
     # logging.debug("Request headers=%s" % request.headers)
     # logging.debug("client=%s" % request.client.host)
-    ip_addr = request.headers.get('HTTP_X_REAL_IP')
-    if not ip_addr:
-        ip_addr = request.headers.get('x-real-ip')
+
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    else:
+        ip_addr = request.headers.get('HTTP_X_REAL_IP')
         if not ip_addr:
-            ip_addr = request.client.host
-    return ip_addr
+            ip_addr = request.headers.get('x-real-ip')
+            if not ip_addr:
+                ip_addr = request.client.host
+        return ip_addr
 
 
 class IriRouter(APIRouter):
@@ -82,7 +87,7 @@ class IriRouter(APIRouter):
     ):
         user_id = None
         try:
-            user_id = await self.adapter.get_current_user(api_key, get_real_ip(request))
+            user_id = await self.adapter.get_current_user(api_key, get_client_ip(request))
         except Exception as exc:
             logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
         if not user_id:
@@ -98,7 +103,7 @@ class AuthenticatedAdapter(ABC):
     async def get_current_user(
         self : "AuthenticatedAdapter",
         api_key: str,
-        ip_address: str|None,
+        client_ip: str|None,
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
@@ -113,6 +118,7 @@ class AuthenticatedAdapter(ABC):
         self : "AuthenticatedAdapter",
         user_id: str,
         api_key: str,
+        client_ip: str|None,
         ) -> User:
         """
             Retrieve additional user information (name, email, etc.) for the given user_id.

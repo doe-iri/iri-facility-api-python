@@ -27,8 +27,9 @@ class User(BaseModel):
     id: str
     name: str
     api_key: str
+    client_ip: str|None
     # we could expose more fields here (eg. email) but it might be against policy
-    
+
 
 class Project(BaseModel):
     """A project and its users at a facility"""
@@ -72,7 +73,7 @@ class ProjectAllocation(BaseModel):
 
 class UserAllocation(BaseModel):
     """
-        A user's allcation in a project. 
+        A user's allcation in a project.
         This allocation is a piece of the project's allocation.
     """
     id: str
