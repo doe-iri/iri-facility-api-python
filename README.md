@@ -23,7 +23,7 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 
 ## Visit the dev server
 
-[http://127.0.0.1:8000/api/v1/](http://127.0.0.1:8000/api/v1/)
+[http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ## Customizing the API for your facility
 
@@ -74,7 +74,7 @@ And also run the code with the demo adapter:
 
 `docker run -p8000:8000 -e IRI_SHOW_MISSING_ROUTES=true ghcr.io/doe-iri/iri-facility-api-python:main`
 
-Visit: http://127.0.0.1:8000/api/v1/
+Visit: http://127.0.0.1:8000/
 
 ### Build the image yourself
 
