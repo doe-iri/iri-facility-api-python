@@ -10,14 +10,14 @@ class TaskStatus(str, enum.Enum):
         canceled = "canceled"
 
 
-class Task(BaseModel):
-    id: str
-    status: TaskStatus=TaskStatus.pending
-    result: str|None=None
-
-
 class TaskCommand(BaseModel):
       router: str
       command: str
       args: dict
-      
+
+
+class Task(BaseModel):
+    id: str
+    status: TaskStatus=TaskStatus.pending
+    result: str|None=None
+    command: TaskCommand|None=None
