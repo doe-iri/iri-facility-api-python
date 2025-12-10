@@ -3,7 +3,9 @@ Python reference implementation of the IRI facility API, standardizing endpoints
 
 See it live:
 
-- NERSC instance: https://api.iri.nersc.gov/nersc/api/v1/
+- NERSC instance:
+   - API docs: https://api.iri.nersc.gov
+   - API requests: https://api.iri.nersc.gov/nersc/api/v1/
 - ALCF instance: https://api.alcf.anl.gov/api/v1/
 
 ## Prerequisites
