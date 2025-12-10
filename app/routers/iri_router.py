@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 import os
 import logging
 import importlib
+import datetime
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import APIKeyHeader
+from pydantic_core import core_schema
 from .account.models import User
-
 
 bearer_token = APIKeyHeader(name="Authorization")
 
@@ -90,6 +91,7 @@ class IriRouter(APIRouter):
             user_id = await self.adapter.get_current_user(api_key, get_client_ip(request))
         except Exception as exc:
             logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
+            raise HTTPException(status_code=401, detail="Invalid or malformed Authorization parameters") from exc
         if not user_id:
             raise HTTPException(status_code=403, detail="Unauthorized access")
         request.state.current_user_id = user_id
@@ -97,7 +99,6 @@ class IriRouter(APIRouter):
 
 
 class AuthenticatedAdapter(ABC):
-
 
     @abstractmethod
     async def get_current_user(
@@ -124,3 +125,62 @@ class AuthenticatedAdapter(ABC):
             Retrieve additional user information (name, email, etc.) for the given user_id.
         """
         pass
+
+
+def forbidExtraQueryParams(*allowedParams: str):
+    """Dependency to forbid extra query parameters not in allowedParams."""
+
+    async def checker(_req: Request):
+        if "*" in allowedParams:
+            return  # Permit anything
+        incoming = set(_req.query_params.keys())
+        allowed = set(allowedParams)
+        unknown = incoming - allowed
+        if unknown:
+            raise HTTPException(status_code=422,
+                                detail=[{"type": "extra_forbidden", "loc": ["query", param], "msg": f"Unexpected query parameter: {param}"} for param in unknown])
+    return checker
+
+class StrictDateTime:
+    """
+    Strict ISO8601 datetime:
+      ✔ Accepts datetime objects
+      ✔ Accepts ISO8601 strings: 2025-12-06T10:00:00Z, 2025-12-06T10:00:00+00:00
+      ✔ Converts 'Z' → UTC
+      ✔ Converts naive datetimes → UTC
+      ✘ Rejects integers ("0"), null, garbage strings, etc.
+    """
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source, handler):
+        return core_schema.no_info_plain_validator_function(cls.validate)
+
+    @staticmethod
+    def validate(value):
+        if isinstance(value, datetime.datetime):
+            return StrictDateTime._normalize(value)
+        if not isinstance(value, str):
+            raise ValueError("Invalid datetime value. Expected ISO8601 datetime string.")
+        v = value.strip()
+        if v.endswith("Z"):
+            v = v[:-1] + "+00:00"
+        try:
+            dt = datetime.datetime.fromisoformat(v)
+        except Exception as ex:
+            raise ValueError("Invalid datetime format. Expected ISO8601 string.") from ex
+
+        return StrictDateTime._normalize(dt)
+
+    @staticmethod
+    def _normalize(dt: datetime.datetime) -> datetime.datetime:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, schema, handler):
+        return {
+            "type": "string",
+            "format": "date-time",
+            "description": "Strict ISO8601 datetime. Only valid ISO8601 datetime strings are accepted."
+        }

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, computed_field, Field
 import datetime
 import enum
+from pydantic import BaseModel, computed_field, Field
 from ... import config
 
 class Link(BaseModel):
@@ -29,12 +29,19 @@ class NamedResource(BaseModel):
 
     @staticmethod
     def find(a, name, description, modified_since):
+        def normalize(dt: datetime) -> datetime:
+            # Convert naive datetimes into UTC-aware versions
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=datetime.timezone.utc)
+            return dt
         if name:
             a = [aa for aa in a if aa.name == name]
         if description:
             a = [aa for aa in a if description in aa.description]
         if modified_since:
-            a = [aa for aa in a if aa.last_modified >= modified_since]
+            if modified_since.tzinfo is None:
+                modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
+            a = [aa for aa in a if normalize(aa.last_modified) >= modified_since]
         return a
 
 
@@ -168,13 +175,12 @@ class Incident(NamedResource):
     def resource_uris(self) -> list[str]:
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
 
-
     def find(
         incidents : list,
         name : str | None = None,
         description : str | None = None,
         status : Status | None = None,
-        type : IncidentType | None = None,
+        type_ : IncidentType | None = None,
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
@@ -186,8 +192,8 @@ class Incident(NamedResource):
             incidents = [e for e in incidents if resource_id in e.resource_ids]
         if status:
             incidents = [e for e in incidents if e.status == status]
-        if type:
-            incidents = [e for e in incidents if e.type == type]
+        if type_:
+            incidents = [e for e in incidents if e.type == type_]
         if from_:
             incidents = [e for e in incidents if e.start >= from_]
         if to:

@@ -4,7 +4,8 @@
 #
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
-
+import base64
+from typing import Annotated
 from fastapi import (
     Depends,
     HTTPException,
@@ -14,9 +15,8 @@ from fastapi import (
     File,
     UploadFile
 )
-import base64
-from typing import Annotated
 from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
 from ..task import facility_adapter as task_facility_adapter, models as task_models
@@ -55,6 +55,7 @@ async def _user_resource(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File permissions changed successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def put_chmod(
     resource_id: str,
@@ -82,6 +83,7 @@ async def put_chmod(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File ownership changed successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def put_chown(
     resource_id: str,
@@ -110,6 +112,7 @@ async def put_chown(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Type returned successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_file(
     resource_id: str,
@@ -137,6 +140,7 @@ async def get_file(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Stat returned successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_stat(
     resource_id: str,
@@ -166,6 +170,7 @@ async def get_stat(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Directory created successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_mkdir(
     resource_id: str,
@@ -194,6 +199,7 @@ async def post_mkdir(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Symlink created successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_symlink(
     resource_id: str,
@@ -221,7 +227,8 @@ async def post_symlink(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Directory listed successfully",
-    include_in_schema=router.task_adapter is not None
+    include_in_schema=router.task_adapter is not None,
+    responses=DEFAULT_RESPONSES
 )
 async def get_ls_async(
     resource_id: str,
@@ -269,6 +276,7 @@ async def get_ls_async(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Head operation finished successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_head(
     resource_id: str,
@@ -280,14 +288,14 @@ async def get_head(
     #    so on for T, P, E, Z, Y, R, Q.  Binary prefixes can be used, too:
     #    KiB=K, MiB=M, and so on.
     file_bytes: Annotated[
-        int | None,
+        int,
         Query(
             alias="bytes",
             description="The output will be the first NUM bytes of each file.",
         ),
     ] = None,
     lines: Annotated[
-        int | None,
+        int,
         Query(
             description="The output will be the first NUM lines of each file.",
         ),
@@ -305,6 +313,12 @@ async def get_head(
     ] = False,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
+    # Enforce that exactly one of `bytes` or `lines` is specified
+    if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly one of `bytes` or `lines` must be specified."
+        )
     return await router.task_adapter.put_task(
         user,
         resource,
@@ -328,20 +342,21 @@ async def get_head(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="View operation finished successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_view(
     resource_id: str,
     request : Request,
     path: Annotated[str, Query(description="File path")],
     size: Annotated[
-        int | None,
+        int,
         Query(
             alias="size",
             description="Value, in bytes, of the size of data to be retrieved from the file.",
         ),
     ] = facility_adapter.OPS_SIZE_LIMIT,
     offset: Annotated[
-        int | None,
+        int,
         Query(
             alias="offset",
             description="Value in bytes of the offset.",
@@ -391,22 +406,21 @@ async def get_view(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="`tail` operation finished successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_tail(
     resource_id: str,
     request : Request,
-    path: Annotated[str, Query(description="File path")],
-    file_bytes: Annotated[
-        int | None,
-        Query(
-            alias="bytes",
-            description="The output will be the last NUM bytes of each file.",
-        ),
+    path: Annotated[str, Query(description="File path", min_length=1)],
+    file_bytes: Annotated[int, Query(alias="bytes",
+                                     description="The output will be the last NUM bytes of each file.",
+                                     ge=1),
     ] = None,
     lines: Annotated[
-        int | None,
+        int,
         Query(
             description="The output will be the last NUM lines of each file.",
+            ge=1,
         ),
     ] = None,
     skip_heading: Annotated[
@@ -422,6 +436,12 @@ async def get_tail(
     ] = False,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
+    # Enforce that exactly one of `bytes` or `lines` is specified
+    if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly one of `bytes` or `lines` must be specified."
+        )
     return await router.task_adapter.put_task(
         user,
         resource,
@@ -446,6 +466,7 @@ async def get_tail(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Checksum returned successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_checksum(
     resource_id: str,
@@ -465,12 +486,12 @@ async def get_checksum(
         )
     )
 
-
 @router.delete(
     "/rm/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
     description="Delete file or directory operation (`rm`)",
     response_description="File or directory deleted successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def delete_rm(
     resource_id: str,
@@ -498,6 +519,7 @@ async def delete_rm(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File and/or directories compressed successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_compress(
     resource_id: str,
@@ -525,6 +547,7 @@ async def post_compress(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File extracted successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_extract(
     resource_id: str,
@@ -548,10 +571,11 @@ async def post_extract(
 @router.post(
     "/mv/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    description=f"Create move file or directory operation (`mv`)",
+    description="Create move file or directory operation (`mv`)",
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Move file or directory operation created successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def move_mv(
     resource_id: str,
@@ -575,10 +599,11 @@ async def move_mv(
 @router.post(
     "/cp/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
-    description=f"Create copy file or directory operation (`cp`)",
+    description="Create copy file or directory operation (`cp`)",
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Copy file or directory operation created successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_cp(
     resource_id: str,
@@ -605,6 +630,7 @@ async def post_cp(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File downloaded successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def get_download(
     resource_id: str,
@@ -632,6 +658,7 @@ async def get_download(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File uploaded successfully",
+    responses=DEFAULT_RESPONSES
 )
 async def post_upload(
     resource_id: str,
