@@ -16,14 +16,14 @@ router = iri_router.IriRouter(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES
 )
-async def get_job_status(
+async def get_task(
     request : Request,
     task_id : str,
     ) -> models.Task:
     """Get a task"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
     task = await router.adapter.get_task(user, task_id)
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
@@ -36,11 +36,11 @@ async def get_job_status(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES
 )
-async def get_job_status(
+async def get_tasks(
     request : Request,
     ) -> list[models.Task]:
-    """Get a task"""
+    """Get all tasks"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
-        raise HTTPException(status_code=404, detail="Uer not found")
+        raise HTTPException(status_code=404, detail="User not found")
     return await router.adapter.get_tasks(user)
