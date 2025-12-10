@@ -5,10 +5,8 @@ import importlib
 import datetime
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
 from pydantic_core import core_schema
 from .account.models import User
-
 
 bearer_token = APIKeyHeader(name="Authorization")
 
@@ -102,7 +100,6 @@ class IriRouter(APIRouter):
 
 class AuthenticatedAdapter(ABC):
 
-
     @abstractmethod
     async def get_current_user(
         self : "AuthenticatedAdapter",
@@ -143,27 +140,6 @@ def forbidExtraQueryParams(*allowedParams: str):
             raise HTTPException(status_code=422,
                                 detail=[{"type": "extra_forbidden", "loc": ["query", param], "msg": f"Unexpected query parameter: {param}"} for param in unknown])
     return checker
-
-class ErrorDetail(BaseModel):
-    type: str
-    loc: list[str | int]
-    msg: str
-
-class ErrorResponse(BaseModel):
-    status: str
-    message: list[ErrorDetail]
-
-DEFAULT_RESPONSES = {
-    400: {"model": ErrorResponse, "description": "Bad request"},
-    401: {"model": ErrorResponse, "description": "Unauthorized"},
-    403: {"model": ErrorResponse, "description": "Forbidden"},
-    404: {"model": ErrorResponse, "description": "Not found"},
-    405: {"model": ErrorResponse, "description": "Method not allowed"},
-    409: {"model": ErrorResponse, "description": "Conflict"},
-    422: {"model": ErrorResponse, "description": "Unprocessable entity"},
-    500: {"model": ErrorResponse, "description": "Internal server error"},
-}
-
 
 class StrictDateTime:
     """

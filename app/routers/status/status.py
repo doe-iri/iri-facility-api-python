@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request, Query, Depends
 from . import models, facility_adapter
 from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -12,7 +13,7 @@ router = iri_router.IriRouter(
     "/resources",
     summary="Get all resources",
     description="Get a list of all resources at this facility. You can optionally filter the returned list by specifying attribtes.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_resources(
     request : Request,
@@ -25,7 +26,6 @@ async def get_resources(
     resource_type: models.ResourceType = Query(default=None),
     _forbid = Depends(iri_router.forbidExtraQueryParams("name", "description", "group", "offset", "limit", "modified_since", "resource_type")),
     ) -> list[models.Resource]:
-    print("get_resources called with:", name, description, group, offset, limit, modified_since, resource_type)
     return await router.adapter.get_resources(offset, limit, name, description, group, modified_since, resource_type)
 
 
@@ -33,7 +33,7 @@ async def get_resources(
     "/resources/{resource_id}",
     summary="Get a specific resource",
     description="Get a specific resource for a given id",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_resource(
     request : Request,
@@ -49,7 +49,7 @@ async def get_resource(
     "/incidents",
     summary="Get all incidents without their events",
     description="Get a list of all incidents. Each incident will be returned without its events.  You can optionally filter the returned list by specifying attributes.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_incidents(
     request : Request,
@@ -73,7 +73,7 @@ async def get_incidents(
     "/incidents/{incident_id}",
     summary="Get a specific incident and its events",
     description="Get a specific incident for a given id. The incident's events will also be included.  You can optionally filter the returned list by specifying attributes.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 
 )
 async def get_incident(
@@ -90,7 +90,7 @@ async def get_incident(
     "/incidents/{incident_id}/events",
     summary="Get all events for an incident",
     description="Get a list of all events in this incident.  You can optionally filter the returned list by specifying attribtes.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_events(
     request : Request,
@@ -114,7 +114,7 @@ async def get_events(
     "/incidents/{incident_id}/events/{event_id}",
     summary="Get a specific event",
     description="Get a specific event for a given id",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_event(
     request : Request,

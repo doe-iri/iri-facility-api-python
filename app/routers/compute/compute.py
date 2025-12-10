@@ -1,7 +1,8 @@
-from fastapi import HTTPException, Request, Depends, status, Form, Query
 from typing import List, Annotated
+from fastapi import HTTPException, Request, Depends, status, Form, Query
 from . import models, facility_adapter
 from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router
 
 router = iri_router.IriRouter(
@@ -16,7 +17,7 @@ router = iri_router.IriRouter(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def submit_job(
     resource_id: str,
@@ -48,7 +49,7 @@ async def submit_job(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def submit_job_path(
     resource_id: str,
@@ -82,7 +83,7 @@ async def submit_job_path(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def update_job(
     resource_id: str,
@@ -115,7 +116,7 @@ async def update_job(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_job_status(
     resource_id : str,
@@ -142,7 +143,7 @@ async def get_job_status(
     dependencies=[Depends(router.current_user)],
     response_model=list[models.Job],
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_job_statuses(
     resource_id : str,
@@ -172,7 +173,7 @@ async def get_job_statuses(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     response_model_exclude_unset=True,
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def cancel_job(
     resource_id : str,
@@ -190,5 +191,5 @@ async def cancel_job(
     try:
         await router.adapter.cancel_job(resource, user, job_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Unable to cancel job: {str(exc)}")
+        raise HTTPException(status_code=400, detail=f"Unable to cancel job: {str(exc)}") from exc
     return None

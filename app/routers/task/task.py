@@ -1,5 +1,6 @@
 from fastapi import Request, HTTPException, Depends
 from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
 from .import models, facility_adapter
 
 router = iri_router.IriRouter(
@@ -13,6 +14,7 @@ router = iri_router.IriRouter(
     "/{task_id:str}",
     dependencies=[Depends(router.current_user)],
     response_model_exclude_unset=True,
+    responses=DEFAULT_RESPONSES
 )
 async def get_job_status(
     request : Request,
@@ -32,6 +34,7 @@ async def get_job_status(
     "",
     dependencies=[Depends(router.current_user)],
     response_model_exclude_unset=True,
+    responses=DEFAULT_RESPONSES
 )
 async def get_job_status(
     request : Request,
@@ -41,4 +44,3 @@ async def get_job_status(
     if not user:
         raise HTTPException(status_code=404, detail="Uer not found")
     return await router.adapter.get_tasks(user)
-

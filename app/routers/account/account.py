@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request, Depends
 from . import models, facility_adapter
 from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
 
 
 router = iri_router.IriRouter(
@@ -14,7 +15,7 @@ router = iri_router.IriRouter(
     "/capabilities",
     summary="Get the list of capabilities",
     description="Get a list of capabilities at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 
 )
 async def get_capabilities(
@@ -27,7 +28,7 @@ async def get_capabilities(
     "/capabilities/{capability_id}",
     summary="Get a single capability",
     description="Get a single capability at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_capability(
     capability_id : str,
@@ -45,7 +46,7 @@ async def get_capability(
     dependencies=[Depends(router.current_user)],
     summary="Get the projects of the current user",
     description="Get a list of projects for the currently authenticated user at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_projects(
     request : Request,
@@ -61,7 +62,7 @@ async def get_projects(
     dependencies=[Depends(router.current_user)],
     summary="Get a single project",
     description="Get a single project at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_project(
     project_id : str,
@@ -82,7 +83,7 @@ async def get_project(
     dependencies=[Depends(router.current_user)],
     summary="Get the allocations of the current user's projects",
     description="Get a list of allocations for the currently authenticated user's projects at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_project_allocations(
     project_id: str,
@@ -103,7 +104,7 @@ async def get_project_allocations(
     dependencies=[Depends(router.current_user)],
     summary="Get a single project allocation",
     description="Get a single project allocation at this facility for this user.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_project_allocation(
     project_id: str,
@@ -127,7 +128,7 @@ async def get_project_allocation(
     dependencies=[Depends(router.current_user)],
     summary="Get the user allocations of the current user's projects",
     description="Get a list of user allocations for the currently authenticated user's projects at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_user_allocations(
     project_id: str,
@@ -153,7 +154,7 @@ async def get_user_allocations(
     dependencies=[Depends(router.current_user)],
     summary="Get a user allocation of the current user's projects",
     description="Get a user allocation for the currently authenticated user's projects at this facility.",
-    responses=iri_router.DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES
 )
 async def get_user_allocation(
     project_id: str,
