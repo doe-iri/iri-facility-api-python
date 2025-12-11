@@ -23,8 +23,10 @@ class NamedResource(BaseModel):
 
 
     @staticmethod
-    def find_by_id(a, id):
-        return next((r for r in a if r.id == id), None)
+    def find_by_id(a, id, allow_name: bool|None=False):
+        # Find a resource by its id.
+        # If allow_name is True, the id parameter can also match the resource's name.
+        return next((r for r in a if r.id == id or (allow_name and r.name == id)), None)
 
 
     @staticmethod

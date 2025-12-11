@@ -41,10 +41,7 @@ async def _user_resource(
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
     if not resource:
-        r = await status_router.adapter.get_resources(0, 1, name=resource_id)
-        if not r:
-            raise HTTPException(status_code=404, detail="Resource not found")
-        resource = r[0]
+        raise HTTPException(status_code=404, detail="Resource not found")
     return (user, resource)
 
 
