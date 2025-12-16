@@ -258,6 +258,29 @@ EXAMPLE_500 = {
     "instance": "/api/v1/status/resources"
 }
 
+EXAMPLE_501 = {
+    "type": "https://iri.example.com/problems/not-implemented",
+    "title": "Not Implemented",
+    "status": 501,
+    "detail": "This functionality is not implemented.",
+    "instance": "/api/v1/status/resources"
+}
+
+EXAMPLE_503 = {
+    "type": "https://iri.example.com/problems/service-unavailable",
+    "title": "Service Unavailable",
+    "status": 503,
+    "detail": "The service is temporarily unavailable.",
+    "instance": "/api/v1/status/resources"
+}
+
+EXAMPLE_504 = {
+    "type": "https://iri.example.com/problems/gateway-timeout",
+    "title": "Gateway Timeout",
+    "status": 504,
+    "detail": "The server did not receive a timely response.",
+    "instance": "/api/v1/status/resources"
+}
 
 DEFAULT_RESPONSES = {
     400: {
@@ -350,6 +373,36 @@ DEFAULT_RESPONSES = {
                 "example": EXAMPLE_500,
             }
         },
+    },
+
+    501: {
+        "description": "Not Implemented",
+        "content": {
+            "application/problem+json": {
+                "schema": DEFAULT_PROBLEM_SCHEMA,
+                "example": EXAMPLE_501,
+            }
+        }
+    },
+
+    503: {
+        "description": "Service Unavailable",
+        "content": {
+            "application/problem+json": {
+                "schema": DEFAULT_PROBLEM_SCHEMA,
+                "example": EXAMPLE_503,
+            }
+        }
+    },
+
+    504: {
+        "description": "Gateway Timeout",
+        "content": {
+            "application/problem+json": {
+                "schema": DEFAULT_PROBLEM_SCHEMA,
+                "example": EXAMPLE_504,
+            }
+        }
     },
 
     304: {"description": "Not Modified"},
