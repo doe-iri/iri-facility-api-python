@@ -154,8 +154,8 @@ async def get_job_status(
 async def get_job_statuses(
     resource_id : str,
     request : Request,
-    offset : int = Query(default=0, ge=0),
-    limit : int = Query(default=100, le=10000),
+    offset : int = Query(default=0, ge=0, le=1000),
+    limit : int = Query(default=100, ge=0, le=1000),
     filters : dict[str, object] | None = None,
     historical : bool = False,
     include_spec: bool = False,
