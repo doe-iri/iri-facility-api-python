@@ -57,9 +57,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
-        self.locations = []
         self.facility = {}
-        self.sites = []
         self._init_state()
 
 
