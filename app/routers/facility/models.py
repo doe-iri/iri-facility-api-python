@@ -19,3 +19,4 @@ class Facility(NamedObject):
 
     def _self_path(self) -> str:
         return f"/facility/facilities/{self.id}"
+
