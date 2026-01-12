@@ -14,7 +14,7 @@ class ResourceSpec(BaseModel):
 
 
 class JobAttributes(BaseModel):
-    duration: datetime.timedelta = datetime.timedelta(minutes=10)
+    duration: int | None = None
     queue_name: str | None = None
     account: str | None = None
     reservation_id: str | None = None
@@ -48,7 +48,7 @@ class CommandResult(BaseModel):
 class JobState(IntEnum):
     """
     from: https://exaworks.org/psij-python/docs/v/0.9.11/_modules/psij/job_state.html#JobState
-    
+
     An enumeration holding the possible job states.
 
     The possible states are: `NEW`, `QUEUED`, `ACTIVE`, `COMPLETED`, `FAILED`, and `CANCELED`.
@@ -96,3 +96,4 @@ class JobStatus(BaseModel):
 class Job(BaseModel):
     id : str
     status : JobStatus | None = None
+    job_spec : JobSpec | None = None
