@@ -16,3 +16,4 @@ class FacilityAdapter(AuthenticatedAdapter):
         modified_since: str | None = None,
     ) -> facility_models.Facility | None:
         pass
+
