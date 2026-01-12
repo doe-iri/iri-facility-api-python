@@ -18,3 +18,4 @@ async def get_facility(
     ) -> models.Facility:
     """Get facility information"""
     return await router.adapter.get_facility(modified_since=modified_since)
+
