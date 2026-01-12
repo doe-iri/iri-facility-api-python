@@ -13,6 +13,7 @@ import base64
 from pydantic import BaseModel
 from typing import Any, Tuple
 from fastapi import HTTPException
+from .routers.facility import models as facility_models, facility_adapter as facility_adapter
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
@@ -40,9 +41,13 @@ class PathSandbox:
         return cls._base_temp_dir
 
 
+def demo_uuid(kind: str, name: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"demo:{kind}:{name}"))
+
+
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter,
                   compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter,
-                  task_adapter.FacilityAdapter):
+                  task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -52,11 +57,83 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
-
+        self.locations = []
+        self.facility = {}
+        self.sites = []
         self._init_state()
 
 
     def _init_state(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        loc1 = facility_models.Location(
+            id=demo_uuid("location", "demo_location_1"),
+            name="Demo Location 1",
+            description="The first demo location",
+            last_modified=now,
+            short_name="DL1",
+            country_name="USA",
+            locality_name="Demo City",
+            state_or_province_name="DC",
+            latitude=36.173357,
+            longitude=-234.51452)
+
+        loc2 = facility_models.Location(
+            id=demo_uuid("location", "demo_location_2"),
+            name="Demo Location 2",
+            description="The second demo location",
+            last_modified=now,
+            short_name="DL2",
+            country_name="USA",
+            locality_name="Example Town",
+            state_or_province_name="ET",
+            latitude=38.410558,
+            longitude=-286.36999)
+
+        site1 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_1"),
+            name="Demo Site 1",
+            description="The first demo site",
+            last_modified=now,
+            short_name="DS1",
+            operating_organization="Demo Org",
+            location_uri=loc1.self_uri,
+            resource_uris=[])
+        site2 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_2"),
+            name="Demo Site 2",
+            description="The second demo site",
+            last_modified=now,
+            short_name="DS2",
+            operating_organization="Demo Org",
+            location_uri=loc2.self_uri,
+            resource_uris=[])
+
+        facility = facility_models.Facility(
+            id=demo_uuid("facility", "demo_facility"),
+            name="Demo Facility",
+            description="A demo facility for testing the IRI Facility API",
+            last_modified=now,
+            short_name="DEMO",
+            organization_name="Demo Organization",
+            support_uri="https://support.demo.example",
+            site_uris=[site1.self_uri, site2.self_uri],
+            location_uris=[loc1.self_uri, loc2.self_uri],
+            resource_uris=[],
+            event_uris=[],
+            incident_uris=[],
+            capability_uris=[],
+            project_uris=[],
+            project_allocation_uris=[],
+            user_allocation_uris=[],
+        )
+
+        self.facility = facility
+        loc1.site_uris.append(site1.self_uri)
+        loc2.site_uris.append(site2.self_uri)
+        self.locations = [loc1, loc2]
+        self.sites = [site1, site2]
+
+
         day_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
         self.capabilities = {
             "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
@@ -182,6 +259,135 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
             d += datetime.timedelta(minutes=int(random.random() * 15 + 1))
 
+    # ----------------------------
+    # Facility API
+    # ----------------------------
+
+    async def get_facility(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+    ) -> facility_models.Facility:
+        return self.facility
+
+
+    async def list_sites(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+        name: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        short_name: str | None = None,
+    ) -> list[facility_models.Site]:
+
+        sites = self.sites
+
+        if name:
+            sites = [s for s in sites if name.lower() in s.name.lower()]
+
+        if short_name:
+            sites = [s for s in sites if s.short_name == short_name]
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            sites = [s for s in sites if s.last_modified > ms]
+
+        o = offset or 0
+        l = limit or len(sites)
+        return sites[o:o+l]
+
+
+    async def get_site(
+        self: "DemoAdapter",
+        site_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Site:
+
+        site = next((s for s in self.sites if s.id == site_id), None)
+        if not site:
+            raise HTTPException(status_code=404, detail="Site not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if site.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": site.last_modified.isoformat()})
+
+        return site
+
+
+    async def get_site_location(
+        self: "DemoAdapter",
+        site_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Location:
+
+        site = await self.get_site(site_id)
+
+        if not site.location_uri:
+            raise HTTPException(status_code=404, detail="Site has no location")
+
+        location = next((l for l in self.locations if l.self_uri == str(site.location_uri)), None)
+
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if location.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": location.last_modified.isoformat()})
+
+        return location
+
+
+    async def list_locations(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+        name: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        short_name: str | None = None,
+        country_name: str | None = None,
+    ) -> list[facility_models.Location]:
+
+        locs = self.locations
+
+        if name:
+            locs = [l for l in locs if name.lower() in l.name.lower()]
+
+        if short_name:
+            locs = [l for l in locs if l.short_name == short_name]
+
+        if country_name:
+            locs = [l for l in locs if l.country_name == country_name]
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            locs = [l for l in locs if l.last_modified > ms]
+
+        o = offset or 0
+        l = limit or len(locs)
+        return locs[o:o+l]
+
+
+    async def get_location(
+        self: "DemoAdapter",
+        location_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Location:
+
+        location = next((l for l in self.locations if l.id == location_id), None)
+
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if location.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": location.last_modified.isoformat()})
+        return location
+
+    # ----------------------------
+    # Status API
+    # ----------------------------
 
     async def get_resources(
         self : "DemoAdapter",

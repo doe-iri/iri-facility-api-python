@@ -21,6 +21,7 @@ router = iri_router.IriRouter(
 )
 async def get_capabilities(
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> list[models.Capability]:
     return await router.adapter.get_capabilities()
 
@@ -35,6 +36,7 @@ async def get_capabilities(
 async def get_capability(
     capability_id : str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> models.Capability:
     caps = await router.adapter.get_capabilities()
     cc = next((c for c in caps if c.id == capability_id), None)
@@ -53,6 +55,7 @@ async def get_capability(
 )
 async def get_projects(
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> list[models.Project]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -71,6 +74,7 @@ async def get_projects(
 async def get_project(
     project_id : str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> models.Project:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -93,6 +97,7 @@ async def get_project(
 async def get_project_allocations(
     project_id: str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> list[models.ProjectAllocation]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -116,6 +121,7 @@ async def get_project_allocation(
     project_id: str,
     project_allocation_id : str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> models.ProjectAllocation:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -141,6 +147,7 @@ async def get_user_allocations(
     project_id: str,
     project_allocation_id : str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> list[models.UserAllocation]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -169,6 +176,7 @@ async def get_user_allocation(
     project_allocation_id : str,
     user_allocation_id : str,
     request : Request,
+    _forbid = Depends(iri_router.forbidExtraQueryParams()),
     ) -> models.UserAllocation:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
