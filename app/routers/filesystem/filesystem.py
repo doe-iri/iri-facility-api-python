@@ -52,7 +52,8 @@ async def _user_resource(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File permissions changed successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="chmod",
 )
 async def put_chmod(
     resource_id: str,
@@ -80,7 +81,8 @@ async def put_chmod(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File ownership changed successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="chown",
 )
 async def put_chown(
     resource_id: str,
@@ -109,7 +111,8 @@ async def put_chown(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Type returned successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="file",
 )
 async def get_file(
     resource_id: str,
@@ -137,7 +140,8 @@ async def get_file(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Stat returned successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="stat",
 )
 async def get_stat(
     resource_id: str,
@@ -167,7 +171,8 @@ async def get_stat(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Directory created successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="mkdir",
 )
 async def post_mkdir(
     resource_id: str,
@@ -196,7 +201,8 @@ async def post_mkdir(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Symlink created successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="symlink",
 )
 async def post_symlink(
     resource_id: str,
@@ -225,7 +231,8 @@ async def post_symlink(
     response_model=str,
     response_description="Directory listed successfully",
     include_in_schema=router.task_adapter is not None,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="ls",
 )
 async def get_ls_async(
     resource_id: str,
@@ -273,7 +280,8 @@ async def get_ls_async(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Head operation finished successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="head",
 )
 async def get_head(
     resource_id: str,
@@ -339,7 +347,8 @@ async def get_head(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="View operation finished successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="view",
 )
 async def get_view(
     resource_id: str,
@@ -403,7 +412,8 @@ async def get_view(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="`tail` operation finished successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="tail",
 )
 async def get_tail(
     resource_id: str,
@@ -463,7 +473,8 @@ async def get_tail(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="Checksum returned successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="checksum",
 )
 async def get_checksum(
     resource_id: str,
@@ -488,7 +499,8 @@ async def get_checksum(
     dependencies=[Depends(router.current_user)],
     description="Delete file or directory operation (`rm`)",
     response_description="File or directory deleted successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="rm",
 )
 async def delete_rm(
     resource_id: str,
@@ -516,7 +528,8 @@ async def delete_rm(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File and/or directories compressed successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="compress",
 )
 async def post_compress(
     resource_id: str,
@@ -544,7 +557,8 @@ async def post_compress(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="File extracted successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="extract",
 )
 async def post_extract(
     resource_id: str,
@@ -572,7 +586,8 @@ async def post_extract(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Move file or directory operation created successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="mv",
 )
 async def move_mv(
     resource_id: str,
@@ -600,7 +615,8 @@ async def move_mv(
     status_code=status.HTTP_201_CREATED,
     response_model=str,
     response_description="Copy file or directory operation created successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="cp",
 )
 async def post_cp(
     resource_id: str,
@@ -627,7 +643,8 @@ async def post_cp(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File downloaded successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="download",
 )
 async def get_download(
     resource_id: str,
@@ -655,7 +672,8 @@ async def get_download(
     status_code=status.HTTP_200_OK,
     response_model=str,
     response_description="File uploaded successfully",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="upload",
 )
 async def post_upload(
     resource_id: str,

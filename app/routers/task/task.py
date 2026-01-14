@@ -14,7 +14,8 @@ router = iri_router.IriRouter(
     "/{task_id:str}",
     dependencies=[Depends(router.current_user)],
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getTask",
 )
 async def get_task(
     request : Request,
@@ -34,7 +35,8 @@ async def get_task(
     "",
     dependencies=[Depends(router.current_user)],
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getTasks",
 )
 async def get_tasks(
     request : Request,
