@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, Field
 import datetime
 from enum import IntEnum
 
@@ -14,7 +14,12 @@ class ResourceSpec(BaseModel):
 
 
 class JobAttributes(BaseModel):
-    duration: int | None = None
+    duration: int | None = Field(
+        default=None,
+        description="Duration in seconds",
+        ge=0,
+        examples=[30, 60, 120]
+    )
     queue_name: str | None = None
     account: str | None = None
     reservation_id: str | None = None
