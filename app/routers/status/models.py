@@ -134,8 +134,8 @@ class Incident(NamedObject):
     def resource_uris(self) -> list[str]:
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
 
+    @staticmethod
     def find(
-        self,
         incidents : list,
         name : str | None = None,
         description : str | None = None,

@@ -10,7 +10,7 @@ router = iri_router.IriRouter(
     tags=["facility"],
 )
 
-@router.get("", responses=DEFAULT_RESPONSES)
+@router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility")
 async def get_facility(
     request: Request,
     modified_since: iri_router.StrictDateTime = Query(default=None),
@@ -19,7 +19,7 @@ async def get_facility(
     """Get facility information"""
     return await router.adapter.get_facility(modified_since=modified_since)
 
-@router.get("/sites", responses=DEFAULT_RESPONSES)
+@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites")
 async def list_sites(
     request: Request,
     modified_since: iri_router.StrictDateTime = Query(default=None),
@@ -32,7 +32,7 @@ async def list_sites(
     """List sites"""
     return await router.adapter.list_sites(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name)
 
-@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES)
+@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite")
 async def get_site(
     request: Request,
     site_id: str,
@@ -42,7 +42,7 @@ async def get_site(
     """Get site by ID"""
     return await router.adapter.get_site(site_id=site_id, modified_since=modified_since)
 
-@router.get("/sites/{site_id}/location", responses=DEFAULT_RESPONSES)
+@router.get("/sites/{site_id}/location", responses=DEFAULT_RESPONSES, operation_id="getLocationBySite")
 async def get_site_location(
     request : Request,
     site_id: str,
@@ -52,7 +52,7 @@ async def get_site_location(
     """Get site location by site ID"""
     return await router.adapter.get_site_location(site_id=site_id, modified_since=modified_since)
 
-@router.get("/locations", responses=DEFAULT_RESPONSES)
+@router.get("/locations", responses=DEFAULT_RESPONSES, operation_id="getLocations")
 async def list_locations(
     request : Request,
     modified_since: iri_router.StrictDateTime = Query(default=None),
@@ -66,7 +66,7 @@ async def list_locations(
     """List locations"""
     return await router.adapter.list_locations(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name, country_name=country_name)
 
-@router.get("/locations/{location_id}", responses=DEFAULT_RESPONSES)
+@router.get("/locations/{location_id}", responses=DEFAULT_RESPONSES, operation_id="getLocation")
 async def get_location(
     request : Request,
     location_id: str,
