@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_serializer, Field
+from pydantic import BaseModel, field_serializer, ConfigDict
 import datetime
 from enum import IntEnum
 
@@ -27,6 +27,7 @@ class JobAttributes(BaseModel):
 
 
 class JobSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     executable : str | None = None
     arguments: list[str] = []
     directory: str | None = None
@@ -41,8 +42,6 @@ class JobSpec(BaseModel):
     pre_launch: str | None = None
     post_launch: str | None = None
     launcher: str | None = None
-    class Config:
-        extra = "forbid"
 
 
 class CommandResult(BaseModel):
