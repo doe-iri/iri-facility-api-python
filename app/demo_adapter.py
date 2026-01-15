@@ -368,6 +368,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         job_id: str,
         historical: bool = False,
+        include_spec: bool = False,
     ) -> compute_models.Job:
         return compute_models.Job(
             id=job_id,
@@ -389,6 +390,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         limit : int,
         filters: dict[str, object] | None = None,
         historical: bool = False,
+        include_spec: bool = False,
     ) -> list[compute_models.Job]:
         return [compute_models.Job(
             id=f"job_{i}",
