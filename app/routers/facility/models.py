@@ -1,23 +1,7 @@
-from datetime import datetime
-from uuid import UUID
+"""Facility-related models."""
 from typing import List, Optional
-from pydantic import BaseModel, Field, HttpUrl, computed_field
-from .. import iri_router
-from ... import config
-
-class NamedObject(BaseModel):
-    id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
-    def _self_path(self) -> str:
-        raise NotImplementedError
-    @computed_field(description="The canonical URL of this object")
-    @property
-    def self_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}{self._self_path()}"
-  
-    name: Optional[str] = Field(None, description="The long name of the object.")
-    description: Optional[str] = Field(None, description="Human-readable description of the object.")
-    last_modified: iri_router.StrictDateTime = Field(..., description="ISO 8601 timestamp when this object was last modified.")
-
+from pydantic import Field, HttpUrl
+from ..models import NamedObject
 
 class Site(NamedObject):
     def _self_path(self) -> str:
