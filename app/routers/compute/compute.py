@@ -17,7 +17,8 @@ router = iri_router.IriRouter(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="launchJob",
 )
 async def submit_job(
     resource_id: str,
@@ -49,7 +50,8 @@ async def submit_job(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="launchJobScript",
 )
 async def submit_job_path(
     resource_id: str,
@@ -83,7 +85,8 @@ async def submit_job_path(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="updateJob",
 )
 async def update_job(
     resource_id: str,
@@ -116,7 +119,8 @@ async def update_job(
     dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getJobs",
 )
 async def get_job_status(
     resource_id : str,
@@ -143,7 +147,8 @@ async def get_job_status(
     dependencies=[Depends(router.current_user)],
     response_model=list[models.Job],
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getJobs",
 )
 async def get_job_statuses(
     resource_id : str,
@@ -173,7 +178,8 @@ async def get_job_statuses(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="cancelJob",
 )
 async def cancel_job(
     resource_id : str,

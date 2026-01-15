@@ -13,7 +13,8 @@ router = iri_router.IriRouter(
     "/resources",
     summary="Get all resources",
     description="Get a list of all resources at this facility. You can optionally filter the returned list by specifying attribtes.",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getResources",
 )
 async def get_resources(
     request : Request,
@@ -33,7 +34,8 @@ async def get_resources(
     "/resources/{resource_id}",
     summary="Get a specific resource",
     description="Get a specific resource for a given id",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getResource",
 )
 async def get_resource(
     request : Request,
@@ -49,7 +51,8 @@ async def get_resource(
     "/incidents",
     summary="Get all incidents without their events",
     description="Get a list of all incidents. Each incident will be returned without its events.  You can optionally filter the returned list by specifying attributes.",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getIncidents",
 )
 async def get_incidents(
     request : Request,
@@ -73,7 +76,8 @@ async def get_incidents(
     "/incidents/{incident_id}",
     summary="Get a specific incident and its events",
     description="Get a specific incident for a given id. The incident's events will also be included.  You can optionally filter the returned list by specifying attributes.",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getIncident",
 
 )
 async def get_incident(
@@ -90,7 +94,8 @@ async def get_incident(
     "/incidents/{incident_id}/events",
     summary="Get all events for an incident",
     description="Get a list of all events in this incident.  You can optionally filter the returned list by specifying attribtes.",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getEventsByIncident",
 )
 async def get_events(
     request : Request,
@@ -114,7 +119,8 @@ async def get_events(
     "/incidents/{incident_id}/events/{event_id}",
     summary="Get a specific event",
     description="Get a specific event for a given id",
-    responses=DEFAULT_RESPONSES
+    responses=DEFAULT_RESPONSES,
+    operation_id="getEventByIncident",
 )
 async def get_event(
     request : Request,
