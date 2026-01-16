@@ -3,10 +3,12 @@ import os
 import logging
 import importlib
 import datetime
+from urllib.parse import parse_qs
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import APIKeyHeader
 from pydantic_core import core_schema
 from .account.models import User
+
 
 bearer_token = APIKeyHeader(name="Authorization")
 
@@ -128,17 +130,33 @@ class AuthenticatedAdapter(ABC):
 
 
 def forbidExtraQueryParams(*allowedParams: str):
-    """Dependency to forbid extra query parameters not in allowedParams."""
-
-    async def checker(_req: Request):
+    async def checker(req: Request):
         if "*" in allowedParams:
-            return  # Permit anything
-        incoming = set(_req.query_params.keys())
+            return
+
+        raw_qs = req.scope.get("query_string", b"")
+        parsed = parse_qs(raw_qs.decode("utf-8", errors="strict"), keep_blank_values=True)
+
         allowed = set(allowedParams)
-        unknown = incoming - allowed
-        if unknown:
-            raise HTTPException(status_code=422,
-                                detail=[{"type": "extra_forbidden", "loc": ["query", param], "msg": f"Unexpected query parameter: {param}"} for param in unknown])
+
+        for key, values in parsed.items():
+            if key not in allowed:
+                raise HTTPException(
+                    status_code=422,
+                    detail=[{
+                        "type": "extra_forbidden",
+                        "loc": ["query", key],
+                        "msg": f"Unexpected query parameter: {key}"
+                    }])
+
+            if len(values) > 1:
+                raise HTTPException(
+                    status_code=422,
+                    detail=[{
+                        "type": "duplicate_forbidden",
+                        "loc": ["query", key],
+                        "msg": f"Duplicate query parameter: {key}"
+                    }])
     return checker
 
 class StrictDateTime:

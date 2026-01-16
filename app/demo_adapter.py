@@ -13,6 +13,7 @@ import base64
 from pydantic import BaseModel
 from typing import Any, Tuple
 from fastapi import HTTPException
+from .routers.facility import models as facility_models, facility_adapter as facility_adapter
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
@@ -40,9 +41,13 @@ class PathSandbox:
         return cls._base_temp_dir
 
 
+def demo_uuid(kind: str, name: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"demo:{kind}:{name}"))
+
+
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter,
                   compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter,
-                  task_adapter.FacilityAdapter):
+                  task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -52,11 +57,29 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
-
+        self.facility = {}
         self._init_state()
 
 
     def _init_state(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        self.facility = facility_models.Facility(
+            id=demo_uuid("facility", "demo_facility"),
+            name="Demo Facility",
+            description="A demo facility for testing the IRI Facility API",
+            last_modified=now,
+            short_name="DEMO",
+            organization_name="Demo Organization",
+            support_uri="https://support.demo.example",
+            facility_uri="https://www.demo.example",
+            country_name="USA",
+            locality_name="Example Town",
+            state_or_province_name="ET",
+            street_address="1 main st",
+            latitude=38.410558,
+            longitude=-286.36999
+        )
+
         day_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
         self.capabilities = {
             "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
@@ -182,6 +205,19 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
             d += datetime.timedelta(minutes=int(random.random() * 15 + 1))
 
+    # ----------------------------
+    # Facility API
+    # ----------------------------
+
+    async def get_facility(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+    ) -> facility_models.Facility:
+        return self.facility
+
+    # ----------------------------
+    # Status API
+    # ----------------------------
 
     async def get_resources(
         self : "DemoAdapter",

@@ -4,6 +4,7 @@ import logging
 from fastapi import FastAPI
 
 from app.routers.error_handlers import install_error_handlers
+from app.routers.facility import facility
 from app.routers.status import status
 from app.routers.account import account
 from app.routers.compute import compute
@@ -20,6 +21,7 @@ install_error_handlers(APP)
 api_prefix = f"{config.API_PREFIX}{config.API_URL}"
 
 # Attach routers under the prefix
+APP.include_router(facility.router, prefix=api_prefix)
 APP.include_router(status.router, prefix=api_prefix)
 APP.include_router(account.router, prefix=api_prefix)
 APP.include_router(compute.router, prefix=api_prefix)

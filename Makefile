@@ -1,5 +1,6 @@
 dev : .venv
 	@source ./.venv/bin/activate && \
+	    IRI_API_ADAPTER_facility=app.demo_adapter.DemoAdapter \
 		IRI_API_ADAPTER_status=app.demo_adapter.DemoAdapter \
 		IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
 		IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
