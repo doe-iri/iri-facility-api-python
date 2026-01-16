@@ -1,4 +1,5 @@
-from pydantic import BaseModel, field_serializer, ConfigDict
+from typing import Annotated
+from pydantic import BaseModel, field_serializer, ConfigDict, Field
 import datetime
 from enum import IntEnum
 
@@ -14,12 +15,7 @@ class ResourceSpec(BaseModel):
 
 
 class JobAttributes(BaseModel):
-    duration: int | None = Field(
-        default=None,
-        description="Duration in seconds",
-        ge=0,
-        examples=[30, 60, 120]
-    )
+    duration: Annotated[int | None, Field(description="Duration in seconds", ge=0, examples=[30, 60, 120])] = None
     queue_name: str | None = None
     account: str | None = None
     reservation_id: str | None = None
