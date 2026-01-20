@@ -2,7 +2,7 @@ from fastapi import HTTPException, Request, Depends
 from . import models, facility_adapter
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
-from ..dependencies import forbidExtraQueryParams
+from ..common import forbidExtraQueryParams
 
 
 router = iri_router.IriRouter(

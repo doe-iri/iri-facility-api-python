@@ -1,7 +1,7 @@
 from pydantic import computed_field, Field
 import enum
 from ... import config
-from ..dependencies import IRIBaseModel
+from ..common import IRIBaseModel
 
 
 class AllocationUnit(enum.Enum):
