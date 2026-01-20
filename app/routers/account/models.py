@@ -1,6 +1,7 @@
-from pydantic import BaseModel, computed_field, Field
+from pydantic import computed_field, Field
 import enum
 from ... import config
+from ..dependencies import IRIBaseModel
 
 
 class AllocationUnit(enum.Enum):
@@ -9,7 +10,7 @@ class AllocationUnit(enum.Enum):
     inodes = "inodes"
 
 
-class Capability(BaseModel):
+class Capability(IRIBaseModel):
     """
         An aspect of a resource that can have an allocation.
         For example, Perlmutter nodes with GPUs
@@ -22,7 +23,7 @@ class Capability(BaseModel):
     units: list[AllocationUnit]
 
 
-class User(BaseModel):
+class User(IRIBaseModel):
     """A user of the facility"""
     id: str
     name: str
@@ -31,7 +32,7 @@ class User(BaseModel):
     # we could expose more fields here (eg. email) but it might be against policy
 
 
-class Project(BaseModel):
+class Project(IRIBaseModel):
     """A project and its users at a facility"""
     id: str
     name: str
@@ -39,14 +40,14 @@ class Project(BaseModel):
     user_ids: list[str]
 
 
-class AllocationEntry(BaseModel):
+class AllocationEntry(IRIBaseModel):
     """Base class for allocations."""
     allocation: float  # how much this allocation can spend
     usage: float # how much this allocation has spent
     unit: AllocationUnit
 
 
-class ProjectAllocation(BaseModel):
+class ProjectAllocation(IRIBaseModel):
     """
         A project's allocation for a capability. (aka. repo)
         This allocation is a piece of the total allocation for the capability. (eg. 5% of the total node hours of Perlmutter GPU nodes)
@@ -71,7 +72,7 @@ class ProjectAllocation(BaseModel):
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{self.capability_id}"
 
 
-class UserAllocation(BaseModel):
+class UserAllocation(IRIBaseModel):
     """
         A user's allcation in a project.
         This allocation is a piece of the project's allocation.

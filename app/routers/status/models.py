@@ -2,7 +2,7 @@ import datetime
 import enum
 from pydantic import BaseModel, computed_field, Field
 from ... import config
-from ..models import NamedObject
+from ..dependencies import NamedObject
 
 class Link(BaseModel):
     rel : str
