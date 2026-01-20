@@ -1,7 +1,6 @@
 import datetime
 import random
 import uuid
-import time
 import os
 import stat
 import pwd
@@ -45,6 +44,16 @@ def demo_uuid(kind: str, name: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"demo:{kind}:{name}"))
 
 
+def utc_now() -> datetime.datetime:
+    """Return current UTC datetime timestamp"""
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def utc_timestamp() -> int:
+    """Return current UTC datetime timestamp as integer"""
+    return int(utc_now().timestamp())
+
+
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter,
                   compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter,
                   task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter):
@@ -62,7 +71,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
 
     def _init_state(self):
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = utc_now()
+
         self.facility = facility_models.Facility(
             id=demo_uuid("facility", "demo_facility"),
             name="Demo Facility",
@@ -80,7 +90,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             longitude=-286.36999
         )
 
-        day_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
+
+        day_ago = utc_now() - datetime.timedelta(days=1)
         self.capabilities = {
             "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
             "gpu": account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
@@ -352,7 +363,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id="job_123",
             status=compute_models.JobStatus(
                 state=compute_models.JobState.NEW,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job submitted",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -371,7 +382,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id="job_123",
             status=compute_models.JobStatus(
                 state=compute_models.JobState.NEW,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job submitted",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -390,7 +401,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=job_id,
             status=compute_models.JobStatus(
                 state=compute_models.JobState.ACTIVE,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job updated",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -410,7 +421,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=job_id,
             status=compute_models.JobStatus(
                 state=compute_models.JobState.COMPLETED,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job completed successfully",
                 exit_code=0,
                 meta_data={ "account": "account1" },
@@ -432,7 +443,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=f"job_{i}",
             status=compute_models.JobStatus(
                 state=random.choice([s for s in compute_models.JobState]),
-                time=time.time() - (random.random() * 100),
+                time=utc_timestamp() - int(random.random() * 100),
                 message="",
                 exit_code=random.choice([0, 0, 0, 0, 0, 1, 1, 128, 127]),
                 meta_data={ "account": "account1" },
@@ -900,7 +911,7 @@ class DemoTaskQueue:
 
     @staticmethod
     async def _process_tasks(da: DemoAdapter):
-        now = time.time()
+        now = utc_timestamp()
         _tasks = []
         for t in DemoTaskQueue.tasks:
             if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
@@ -921,5 +932,5 @@ class DemoTaskQueue:
     @staticmethod
     def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> str:
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
-        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=time.time()))
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
         return task_id
