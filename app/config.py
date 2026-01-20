@@ -40,3 +40,8 @@ except Exception as exc:
 API_URL_ROOT = os.environ.get("API_URL_ROOT", "https://api.iri.nersc.gov")
 API_PREFIX = os.environ.get("API_PREFIX", "/")
 API_URL = os.environ.get("API_URL", "api/v1")
+
+OPENTELEMETRY_ENABLED = os.environ.get("OPENTELEMETRY_ENABLED", "false").lower() == "true"
+OPENTELEMETRY_DEBUG = os.environ.get("OPENTELEMETRY_DEBUG", "false").lower() == "true"
+OTLP_ENDPOINT = os.environ.get("OTLP_ENDPOINT", "")
+OTEL_SAMPLE_RATE = float(os.environ.get("OTEL_SAMPLE_RATE", "0.2"))

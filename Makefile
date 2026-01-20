@@ -6,6 +6,7 @@ dev : .venv
 		IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
 		IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
 		IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
+		OPENTELEMETRY_ENABLED=true \
 		API_URL_ROOT='http://127.0.0.1:8000' fastapi dev
 
 
