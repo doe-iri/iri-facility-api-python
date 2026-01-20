@@ -1,9 +1,10 @@
-from typing import List, Annotated
-from fastapi import HTTPException, Request, Depends, status, Form, Query
+from fastapi import HTTPException, Request, Depends, status, Query
 from . import models, facility_adapter
 from .. import iri_router
+
 from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router
+from ..dependencies import forbidExtraQueryParams, StrictBool
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -24,6 +25,7 @@ async def submit_job(
     resource_id: str,
     job_spec : models.JobSpec,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ):
     """
     Submit a job on a compute resource
@@ -45,39 +47,41 @@ async def submit_job(
     return await router.adapter.submit_job(resource, user, job_spec)
 
 
-@router.post(
-    "/job/script/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
-    response_model=models.Job,
-    response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES,
-    operation_id="launchJobScript",
-)
-async def submit_job_path(
-    resource_id: str,
-    job_script_path : str,
-    request : Request,
-    args : Annotated[List[str], Form()] = [],
-    ):
-    """
-    Submit a job on a compute resource
-
-    - **resource**: the name of the compute resource to use
-    - **job_script_path**: path to the job script on the compute resource
-    - **args**: optional arguments to the job script
-
-    This command will attempt to submit a job and return its id.
-    """
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
-
-    # the handler can use whatever means it wants to submit the job and then fill in its id
-    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    return await router.adapter.submit_job_script(resource, user, job_script_path, args)
+# TODO: this conflicts with PUT commented out while we finalize the API design
+#@router.post(
+#    "/job/script/{resource_id:str}",
+#    dependencies=[Depends(router.current_user)],
+#    response_model=models.Job,
+#    response_model_exclude_unset=True,
+#    responses=DEFAULT_RESPONSES,
+#    operation_id="launchJobScript",
+#)
+#async def submit_job_path(
+#    resource_id: str,
+#    job_script_path : str,
+#    request : Request,
+#    args : Annotated[List[str], Form()] = [],
+#    _forbid = Depends(iri_router.forbidExtraQueryParams("job_script_path")),
+#    ):
+#    """
+#    Submit a job on a compute resource
+#
+#    - **resource**: the name of the compute resource to use
+#    - **job_script_path**: path to the job script on the compute resource
+#    - **args**: optional arguments to the job script
+#
+#    This command will attempt to submit a job and return its id.
+#    """
+#    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
+#    if not user:
+#        raise HTTPException(status_code=404, detail="User not found")
+#
+#    # look up the resource (todo: maybe ensure it's available)
+#    resource = await status_router.adapter.get_resource(resource_id)
+#
+#    # the handler can use whatever means it wants to submit the job and then fill in its id
+#    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+#    return await router.adapter.submit_job_script(resource, user, job_script_path, args)
 
 
 @router.put(
@@ -93,6 +97,7 @@ async def update_job(
     job_id: str,
     job_spec : models.JobSpec,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ):
     """
     Update a previously submitted job for a resource.
@@ -126,8 +131,9 @@ async def get_job_status(
     resource_id : str,
     job_id : str,
     request : Request,
-    historical : bool = False,
-    include_spec: bool = False,
+    historical : StrictBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    include_spec: StrictBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
+    _forbid = Depends(forbidExtraQueryParams("historical", "include_spec")),
     ):
     """Get a job's status"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
@@ -149,7 +155,7 @@ async def get_job_status(
     response_model=list[models.Job],
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
-    operation_id="getJobs",
+    operation_id="getAllJobs",
 )
 async def get_job_statuses(
     resource_id : str,
@@ -157,8 +163,9 @@ async def get_job_statuses(
     offset : int = Query(default=0, ge=0, le=1000),
     limit : int = Query(default=100, ge=0, le=1000),
     filters : dict[str, object] | None = None,
-    historical : bool = False,
-    include_spec: bool = False,
+    historical : StrictBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    include_spec: StrictBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
+    _forbid = Depends(forbidExtraQueryParams("offset", "limit", "filters", "historical", "include_spec")),
     ):
     """Get multiple jobs' statuses"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
@@ -187,6 +194,7 @@ async def cancel_job(
     resource_id : str,
     job_id : str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ):
     """Cancel a job"""
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))

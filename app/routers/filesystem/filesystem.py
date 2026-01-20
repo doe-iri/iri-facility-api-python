@@ -354,40 +354,13 @@ async def get_view(
     resource_id: str,
     request : Request,
     path: Annotated[str, Query(description="File path")],
-    size: Annotated[
-        int,
-        Query(
-            alias="size",
-            description="Value, in bytes, of the size of data to be retrieved from the file.",
-        ),
-    ] = facility_adapter.OPS_SIZE_LIMIT,
-    offset: Annotated[
-        int,
-        Query(
-            alias="offset",
-            description="Value in bytes of the offset.",
-        ),
-    ] = 0,
-) -> str:
+
+    size: Annotated[int, Query(description="Value, in bytes, of the size of data to be retrieved from the file.",
+                               ge=1, le=facility_adapter.OPS_SIZE_LIMIT)] = facility_adapter.OPS_SIZE_LIMIT,
+
+    offset: Annotated[int, Query( description="Value in bytes of the offset.", ge=0)] = 0
+    ) -> str:
     user, resource = await _user_resource(resource_id, request)
-
-    if offset < 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="`offset` value must be an integer value equal or greater than 0",
-        )
-
-    if size <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="`size` value must be an integer value greater than 0",
-        )
-
-    if size > facility_adapter.OPS_SIZE_LIMIT:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"`size` value must be less than {facility_adapter.OPS_SIZE_LIMIT} bytes",
-        )
 
     return await router.task_adapter.put_task(
         user,
@@ -397,9 +370,8 @@ async def get_view(
             command="view",
             args={
                 "path": path,
-                "size": size or facility_adapter.OPS_SIZE_LIMIT,
-                "offset": offset or 0,
-
+                "size": size,
+                "offset": offset,
             }
         )
     )

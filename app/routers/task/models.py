@@ -1,19 +1,18 @@
-from pydantic import BaseModel
 import enum
+from pydantic import BaseModel
 
 
 class TaskStatus(str, enum.Enum):
-        pending = "pending"
-        active = "active"
-        completed = "completed"
-        failed = "failed"
-        canceled = "canceled"
-
+    pending = "pending"
+    active = "active"
+    completed = "completed"
+    failed = "failed"
+    canceled = "canceled"
 
 class TaskCommand(BaseModel):
-      router: str
-      command: str
-      args: dict
+    router: str
+    command: str
+    args: dict
 
 
 class Task(BaseModel):

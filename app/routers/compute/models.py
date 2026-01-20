@@ -1,46 +1,45 @@
-from typing import Annotated
-from pydantic import BaseModel, field_serializer, ConfigDict, Field
-import datetime
 from enum import IntEnum
+from pydantic import field_serializer, ConfigDict, StrictBool, Field
+from ..dependencies import IRIBaseModel
 
 
-class ResourceSpec(BaseModel):
-    node_count: int | None = None
-    process_count: int | None = None
-    processes_per_node: int | None = None
-    cpu_cores_per_process: int | None = None
-    gpu_cores_per_process: int | None = None
-    exclusive_node_use: bool = True
-    memory: int | None = None
+class ResourceSpec(IRIBaseModel):
+    node_count: int = Field(default=None, ge=1, description="Number of nodes")
+    process_count: int = Field(default=None, ge=1, description="Number of processes")
+    processes_per_node: int = Field(default=None, ge=1, description="Number of processes per node")
+    cpu_cores_per_process: int = Field(default=None, ge=1, description="Number of CPU cores per process")
+    gpu_cores_per_process: int = Field(default=None, ge=1, description="Number of GPU cores per process")
+    exclusive_node_use: StrictBool = True
+    memory: int = Field(default=None, ge=1, description="Amount of memory in megabytes")
 
 
-class JobAttributes(BaseModel):
-    duration: Annotated[int | None, Field(description="Duration in seconds", ge=0, examples=[30, 60, 120])] = None
-    queue_name: str | None = None
-    account: str | None = None
-    reservation_id: str | None = None
+class JobAttributes(IRIBaseModel):
+    duration: int = Field(default=None, ge=1, description="Duration in seconds", examples=[30, 60, 120])
+    queue_name: str = Field(default=None, min_length=1, description="Name of the queue/partition to use")
+    account: str = Field(default=None, min_length=1, description="Account/Project name to charge")
+    reservation_id: str = Field(default=None, min_length=1, description="Reservation ID to use")
     custom_attributes: dict[str, str] = {}
 
 
-class JobSpec(BaseModel):
+class JobSpec(IRIBaseModel):
     model_config = ConfigDict(extra="forbid")
-    executable : str | None = None
+    executable : str = Field(min_length=1, description="The executable to run")
     arguments: list[str] = []
-    directory: str | None = None
-    name: str | None = None
-    inherit_environment: bool = True
+    directory: str = Field(default=None, min_length=1, description="The working directory for the job")
+    name: str = Field(default=None, min_length=1, description="The name of the job")
+    inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment")
     environment: dict[str, str] = {}
-    stdin_path: str | None = None
-    stdout_path: str | None = None
-    stderr_path: str | None = None
+    stdin_path: str = Field(default=None, min_length=1, description="Path to the standard input file")
+    stdout_path: str = Field(default=None, min_length=1, description="Path to the standard output file")
+    stderr_path: str = Field(default=None, min_length=1, description="Path to the standard error file")
     resources: ResourceSpec | None = None
     attributes: JobAttributes | None = None
-    pre_launch: str | None = None
-    post_launch: str | None = None
-    launcher: str | None = None
+    pre_launch: str = Field(default=None, min_length=1, description="Command to run before launching the job")
+    post_launch: str = Field(default=None, min_length=1, description="Command to run after launching the job")
+    launcher: str = Field(default=None, min_length=1, description="Launcher to use for the job")
 
 
-class CommandResult(BaseModel):
+class CommandResult(IRIBaseModel):
     status : str
     result : str | None = None
 
@@ -80,20 +79,19 @@ class JobState(IntEnum):
     """Represents a job that was canceled by a call to :func:`~psij.Job.cancel()`."""
 
 
-class JobStatus(BaseModel):
+class JobStatus(IRIBaseModel):
     state : JobState
     time : float | None = None
     message : str | None = None
     exit_code : int | None = None
     meta_data : dict[str, object] | None = None
 
-
     @field_serializer('state')
     def serialize_state(self, state: JobState):
         return state.name
 
 
-class Job(BaseModel):
+class Job(IRIBaseModel):
     id : str
     status : JobStatus | None = None
     job_spec : JobSpec | None = None

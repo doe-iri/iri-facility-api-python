@@ -1,7 +1,7 @@
 """Facility-related models."""
 from typing import Optional
 from pydantic import Field, HttpUrl
-from ..models import NamedObject
+from ..dependencies import NamedObject
 
 class Facility(NamedObject):
     short_name: Optional[str] = Field(None, description="Common or short name of the Facility.")
