@@ -4,7 +4,7 @@ from .. import iri_router
 
 from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router
-from ..dependencies import forbidExtraQueryParams, StrictBool
+from ..common import forbidExtraQueryParams, StrictBool
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
