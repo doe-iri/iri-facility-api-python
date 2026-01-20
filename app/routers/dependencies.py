@@ -136,6 +136,10 @@ class IRIBaseModel(BaseModel):
             data.pop(k, None)
         return data
 
+    def get_extra(self, key, default=None):
+        return getattr(self, "__pydantic_extra__", {}).get(key, default)
+
+
 class NamedObject(IRIBaseModel):
     id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
     def _self_path(self) -> str:
