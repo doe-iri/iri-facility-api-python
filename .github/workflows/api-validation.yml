@@ -1,0 +1,133 @@
+name: API Validation with Schemathesis
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  schemathesis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # TODO: Change to official iri-facility-api-docs repo once https://github.com/doe-iri/iri-facility-api-docs/pull/11 is merged
+    - name: Checkout schema validator repository
+      uses: actions/checkout@v4
+      with:
+        repository: juztas/iri-facility-api-docs
+        ref: schemavalidator
+        path: schema-validator
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Build an image
+      run: docker build --platform=linux/amd64 -t iri-facility-api-base .
+
+    - name: Run Facility API container
+      run: |
+        docker run -d \
+          -p 8000:8000 \
+          --platform=linux/amd64 \
+          --name iri-facility-api-base \
+          -e IRI_API_ADAPTER_facility=app.demo_adapter.DemoAdapter \
+          -e IRI_API_ADAPTER_status=app.demo_adapter.DemoAdapter \
+          -e IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
+          -e IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
+          -e IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
+          -e IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
+          -e API_URL_ROOT=http://127.0.0.1:8000 \
+          -e IRI_API_TOKEN=12345 \
+          iri-facility-api-base
+
+    - name: Wait for API to be ready
+      run: |
+        for i in {1..60}; do
+          if curl -fs http://127.0.0.1:8000/openapi.json; then
+            echo "API ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "API did not start"
+        exit 1
+
+    - name: Create venv & install validator dependencies
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install -r schema-validator/verification/requirements.txt
+
+    - name: Run Schemathesis validation (local spec)
+      id: schemathesis_local
+      env:
+        IRI_API_TOKEN: "12345" # This is dummy token for testing (mock adapter)
+      run: |
+        set +e
+        source .venv/bin/activate
+        python schema-validator/verification/api-validator.py \
+          --baseurl http://127.0.0.1:8000 \
+          --report-name schemathesis-local
+        echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+    - name: Run Schemathesis validation (official spec)
+      id: schemathesis_official
+      env:
+        IRI_API_TOKEN: "12345"
+      run: |
+        set +e
+        source .venv/bin/activate
+        python schema-validator/verification/api-validator.py \
+          --baseurl http://localhost:8000 \
+          --schema-url https://raw.githubusercontent.com/doe-iri/iri-facility-api-docs/refs/heads/main/specification/openapi/openapi_iri_facility_api_v1.json \
+          --report-name schemathesis-official
+        echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+    - name: Fail if any Schemathesis run failed
+      if: always()
+      run: |
+        if [ "${{ steps.schemathesis_local.outputs.exitcode }}" != "0" ] || \
+          [ "${{ steps.schemathesis_official.outputs.exitcode }}" != "0" ]; then
+          echo "One or more Schemathesis validations failed"
+          exit 1
+        else
+          echo "Both Schemathesis validations passed"
+        fi
+
+    - name: Upload Schemathesis report # This only works on git actions
+      if: always() && env.ACT != 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: warn
+        name: schemathesis-report
+        path: |
+          schemathesis-local.html
+          schemathesis-local.xml
+          schemathesis-official.html
+          schemathesis-official.xml
+
+    - name: Save Schemathesis reports locally # This only works if run locally with act
+      if: always() && env.ACT == 'true'
+      run: |
+        mkdir -p artifacts
+        cp schemathesis-local.html schemathesis-local.xml artifacts/ || true
+        cp schemathesis-official.html schemathesis-official.xml artifacts/ || true
+
+    - name: Dump API logs
+      if: always()
+      run: docker logs iri-facility-api-base || true
+
+    - name: Stop container
+      if: always()
+      run: docker stop iri-facility-api-base || true
