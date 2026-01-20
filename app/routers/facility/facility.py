@@ -2,7 +2,7 @@ from fastapi import Request, Depends, Query
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from .import models, facility_adapter
-from ..dependencies import StrictDateTime, forbidExtraQueryParams
+from ..common import StrictDateTime, forbidExtraQueryParams
 
 
 router = iri_router.IriRouter(
