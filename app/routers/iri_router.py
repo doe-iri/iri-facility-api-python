@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
+import traceback
 import os
 import logging
 import importlib
-from urllib.parse import parse_qs
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import APIKeyHeader
 from .account.models import User
@@ -12,9 +12,6 @@ bearer_token = APIKeyHeader(name="Authorization")
 
 
 def get_client_ip(request : Request) -> str|None:
-    # logging.debug("Request headers=%s" % request.headers)
-    # logging.debug("client=%s" % request.client.host)
-
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
@@ -91,6 +88,7 @@ class IriRouter(APIRouter):
             user_id = await self.adapter.get_current_user(api_key, get_client_ip(request))
         except Exception as exc:
             logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
+            traceback.print_exc()
             raise HTTPException(status_code=401, detail="Invalid or malformed Authorization parameters") from exc
         if not user_id:
             raise HTTPException(status_code=403, detail="Unauthorized access")
