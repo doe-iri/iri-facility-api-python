@@ -1,3 +1,4 @@
+"""Compute resource API router"""
 from fastapi import HTTPException, Request, Depends, status, Query
 from . import models, facility_adapter
 from .. import iri_router
@@ -6,12 +7,12 @@ from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router
 from ..common import forbidExtraQueryParams, StrictBool
 
+
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/compute",
     tags=["compute"],
 )
-
 
 @router.post(
     "/job/{resource_id:str}",
@@ -204,8 +205,6 @@ async def cancel_job(
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    try:
-        await router.adapter.cancel_job(resource, user, job_id)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Unable to cancel job: {str(exc)}") from exc
+    await router.adapter.cancel_job(resource, user, job_id)
+
     return None
