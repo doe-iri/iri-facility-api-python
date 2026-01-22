@@ -36,7 +36,7 @@ class Resource(NamedObject):
     current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
     resource_type: ResourceType
 
-    @computed_field(description="The list of past events in this incident")
+    @computed_field(description="The list of capabilities in this resource")
     @property
     def capability_uris(self) -> list[str]:
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]

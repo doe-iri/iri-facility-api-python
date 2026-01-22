@@ -129,12 +129,22 @@ class IRIBaseModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     @model_serializer(mode="wrap")
-    def _hide_extra(self, handler):
+    def _hide_extra(self, handler, info):
         data = handler(self)
+
+        model_fields = set(self.model_fields or {})
+        computed_fields = set(self.model_computed_fields or {})
+        print(model_fields)
+        print(computed_fields)
         extra = getattr(self, "__pydantic_extra__", {}) or {}
         for k in extra:
-            data.pop(k, None)
+            if k not in model_fields and k not in computed_fields:
+                data.pop(k, None)
+
         return data
+
+
+
 
     def get_extra(self, key, default=None):
         return getattr(self, "__pydantic_extra__", {}).get(key, default)
