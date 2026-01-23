@@ -97,8 +97,6 @@ class StrictDateTime:
 def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = None):
     multiParams = multiParams or set()
 
-    print(allowedParams, multiParams)
-
     async def checker(req: Request):
         if "*" in allowedParams:
             return
@@ -110,27 +108,19 @@ def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = N
 
         for key, values in parsed.items():
             if key not in allowed:
-                raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        "type": "extra_forbidden",
-                        "loc": ["query", key],
-                        "msg": f"Unexpected query parameter: {key}",
-                    }],
-                )
+                raise HTTPException(status_code=422,
+                                    detail=[{"type": "extra_forbidden",
+                                             "loc": ["query", key],
+                                             "msg": f"Unexpected query parameter: {key}"}])
+
 
             if len(values) > 1 and key not in multiParams:
-                raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        "type": "duplicate_forbidden",
-                        "loc": ["query", key],
-                        "msg": f"Duplicate query parameter: {key}",
-                    }],
-                )
+                raise HTTPException(status_code=422,
+                                    detail=[{"type": "duplicate_forbidden",
+                                             "loc": ["query", key],
+                                             "msg": f"Duplicate query parameter: {key}"}])
 
     return checker
-
 
 
 
