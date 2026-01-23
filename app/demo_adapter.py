@@ -9,9 +9,10 @@ import glob
 import subprocess
 import pathlib
 import base64
-from pydantic import BaseModel
 from typing import Any, Tuple
+from pydantic import BaseModel
 from fastapi import HTTPException
+from .routers.common import AllocationUnit, Capability
 from .routers.facility import models as facility_models, facility_adapter as facility_adapter
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
@@ -35,7 +36,7 @@ class PathSandbox:
             os.makedirs(cls._base_temp_dir, exist_ok=True)
 
             # create a test file
-            with open(f"{cls._base_temp_dir}/test.txt", "w") as f:
+            with open(f"{cls._base_temp_dir}/test.txt", encoding="utf-8", mode="w") as f:
                 f.write("hello world")
         return cls._base_temp_dir
 
@@ -67,11 +68,56 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.project_allocations = []
         self.user_allocations = []
         self.facility = {}
+        self.locations = []
+        self.sites = []
         self._init_state()
 
 
     def _init_state(self):
         now = utc_now()
+
+        loc1 = facility_models.Location(
+            id=demo_uuid("location", "demo_location_1"),
+            name="Demo Location 1",
+            description="The first demo location",
+            last_modified=now,
+            short_name="DL1",
+            country_name="USA",
+            locality_name="Demo City",
+            state_or_province_name="DC",
+            latitude=36.173357,
+            longitude=-234.51452)
+
+        loc2 = facility_models.Location(
+            id=demo_uuid("location", "demo_location_2"),
+            name="Demo Location 2",
+            description="The second demo location",
+            last_modified=now,
+            short_name="DL2",
+            country_name="USA",
+            locality_name="Example Town",
+            state_or_province_name="ET",
+            latitude=38.410558,
+            longitude=-286.36999)
+
+        site1 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_1"),
+            name="Demo Site 1",
+            description="The first demo site",
+            last_modified=now,
+            short_name="DS1",
+            operating_organization="Demo Org",
+            location_uri=loc1.self_uri,
+            resource_uris=[])
+        site2 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_2"),
+            name="Demo Site 2",
+            description="The second demo site",
+            last_modified=now,
+            short_name="DS2",
+            operating_organization="Demo Org",
+            location_uri=loc2.self_uri,
+            resource_uris=[])
 
         self.facility = facility_models.Facility(
             id=demo_uuid("facility", "demo_facility"),
@@ -81,22 +127,29 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             short_name="DEMO",
             organization_name="Demo Organization",
             support_uri="https://support.demo.example",
-            facility_uri="https://www.demo.example",
-            country_name="USA",
-            locality_name="Example Town",
-            state_or_province_name="ET",
-            street_address="1 main st",
-            latitude=38.410558,
-            longitude=-286.36999
+            site_uris=[site1.self_uri, site2.self_uri],
+            location_uris=[loc1.self_uri, loc2.self_uri],
+            resource_uris=[],
+            event_uris=[],
+            incident_uris=[],
+            capability_uris=[],
+            project_uris=[],
+            project_allocation_uris=[],
+            user_allocation_uris=[],
         )
+
+        loc1.site_uris.append(site1.self_uri)
+        loc2.site_uris.append(site2.self_uri)
+        self.locations = [loc1, loc2]
+        self.sites = [site1, site2]
 
 
         day_ago = utc_now() - datetime.timedelta(days=1)
         self.capabilities = {
-            "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            "gpu": account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            "hpss": account_models.Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-            "gpfs": account_models.Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            "cpu": Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[AllocationUnit.node_hours]),
+            "gpu": Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[AllocationUnit.node_hours]),
+            "hpss": Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
+            "gpfs": Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
         }
 
         pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
@@ -226,6 +279,125 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     ) -> facility_models.Facility:
         return self.facility
 
+
+    async def list_sites(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+        name: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        short_name: str | None = None,
+    ) -> list[facility_models.Site]:
+
+        sites = self.sites
+
+        if name:
+            sites = [s for s in sites if name.lower() in s.name.lower()]
+
+        if short_name:
+            sites = [s for s in sites if s.short_name == short_name]
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            sites = [s for s in sites if s.last_modified > ms]
+
+        o = offset or 0
+        l = limit or len(sites)
+        return sites[o:o+l]
+
+
+    async def get_site(
+        self: "DemoAdapter",
+        site_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Site:
+
+        site = next((s for s in self.sites if s.id == site_id), None)
+        if not site:
+            raise HTTPException(status_code=404, detail="Site not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if site.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": site.last_modified.isoformat()})
+
+        return site
+
+
+    async def get_site_location(
+        self: "DemoAdapter",
+        site_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Location:
+
+        site = await self.get_site(site_id)
+
+        if not site.location_uri:
+            raise HTTPException(status_code=404, detail="Site has no location")
+
+        location = next((l for l in self.locations if l.self_uri == str(site.location_uri)), None)
+
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if location.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": location.last_modified.isoformat()})
+
+        return location
+
+
+    async def list_locations(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+        name: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        short_name: str | None = None,
+        country_name: str | None = None,
+    ) -> list[facility_models.Location]:
+
+        locs = self.locations
+
+        if name:
+            locs = [l for l in locs if name.lower() in l.name.lower()]
+
+        if short_name:
+            locs = [l for l in locs if l.short_name == short_name]
+
+        if country_name:
+            locs = [l for l in locs if l.country_name == country_name]
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            locs = [l for l in locs if l.last_modified > ms]
+
+        o = offset or 0
+        l = limit or len(locs)
+        return locs[o:o+l]
+
+
+    async def get_location(
+        self: "DemoAdapter",
+        location_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Location:
+
+        location = next((l for l in self.locations if l.id == location_id), None)
+
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if location.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": location.last_modified.isoformat()})
+        return location
+
+
+
+
     # ----------------------------
     # Status API
     # ----------------------------
@@ -239,6 +411,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         group : str | None = None,
         modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
+        current_status : status_models.Status | None = None,
+        capability: Capability | None = None
         ) -> list[status_models.Resource]:
         return status_models.Resource.find(self.resources, name, description, group, modified_since, resource_type)[offset:offset + limit]
 
@@ -288,6 +462,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
+        resolution: status_models.Resolution | None = None,
         ) -> list[status_models.Incident]:
         return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, modified_since, resource_id)[offset:offset + limit]
 
@@ -301,7 +476,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_capabilities(
         self : "DemoAdapter",
-        ) -> list[account_models.Capability]:
+        ) -> list[Capability]:
         return self.capabilities.values()
 
 

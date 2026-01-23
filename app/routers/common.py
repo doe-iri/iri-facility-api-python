@@ -1,5 +1,6 @@
 """Default models used by multiple routers."""
 import datetime
+import enum
 from typing import Optional
 from urllib.parse import parse_qs
 
@@ -93,7 +94,11 @@ class StrictDateTime:
         }
 
 
-def forbidExtraQueryParams(*allowedParams: str):
+def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = None):
+    multiParams = multiParams or set()
+
+    print(allowedParams, multiParams)
+
     async def checker(req: Request):
         if "*" in allowedParams:
             return
@@ -110,18 +115,24 @@ def forbidExtraQueryParams(*allowedParams: str):
                     detail=[{
                         "type": "extra_forbidden",
                         "loc": ["query", key],
-                        "msg": f"Unexpected query parameter: {key}"
-                    }])
+                        "msg": f"Unexpected query parameter: {key}",
+                    }],
+                )
 
-            if len(values) > 1:
+            if len(values) > 1 and key not in multiParams:
                 raise HTTPException(
                     status_code=422,
                     detail=[{
                         "type": "duplicate_forbidden",
                         "loc": ["query", key],
-                        "msg": f"Duplicate query parameter: {key}"
-                    }])
+                        "msg": f"Duplicate query parameter: {key}",
+                    }],
+                )
+
     return checker
+
+
+
 
 
 class IRIBaseModel(BaseModel):
@@ -134,17 +145,11 @@ class IRIBaseModel(BaseModel):
 
         model_fields = set(self.model_fields or {})
         computed_fields = set(self.model_computed_fields or {})
-        print(model_fields)
-        print(computed_fields)
         extra = getattr(self, "__pydantic_extra__", {}) or {}
         for k in extra:
             if k not in model_fields and k not in computed_fields:
                 data.pop(k, None)
-
         return data
-
-
-
 
     def get_extra(self, key, default=None):
         return getattr(self, "__pydantic_extra__", {}).get(key, default)
@@ -188,3 +193,22 @@ class NamedObject(IRIBaseModel):
                 modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
             a = [aa for aa in a if normalize(aa.last_modified) >= modified_since]
         return a
+
+
+class AllocationUnit(enum.Enum):
+    node_hours = "node_hours"
+    bytes = "bytes"
+    inodes = "inodes"
+
+
+class Capability(IRIBaseModel):
+    """
+        An aspect of a resource that can have an allocation.
+        For example, Perlmutter nodes with GPUs
+        For some resources at a facility, this will be 1 to 1 with the resource.
+        It is a way to further subdivide a resource into allocatable sub-resources.
+        The word "capability" is also known to users as something they need for a job to run. (eg. gpu)
+    """
+    id: str
+    name: str
+    units: list[AllocationUnit]

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import datetime
 from fastapi import Query
 from . import models as status_models
+from ..common import Capability
 
 
 class FacilityAdapter(ABC):
@@ -21,7 +22,9 @@ class FacilityAdapter(ABC):
         description : str | None = None,
         group : str | None = None,
         modified_since : datetime.datetime | None = None,
-        resource_type: status_models.ResourceType = Query(default=None)
+        resource_type: status_models.ResourceType = Query(default=None),
+        current_status: status_models.Status = Query(default=None),
+        capability: Capability | None = None,
         ) -> list[status_models.Resource]:
         pass
 
@@ -75,6 +78,7 @@ class FacilityAdapter(ABC):
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
+        resolution: status_models.Resolution | None = None,
         ) -> list[status_models.Incident]:
         pass
 
