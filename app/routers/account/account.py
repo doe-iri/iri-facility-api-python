@@ -1,8 +1,8 @@
-from fastapi import HTTPException, Request, Depends
+from fastapi import HTTPException, Request, Depends, Query
 from . import models, facility_adapter
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
-from ..common import forbidExtraQueryParams
+from ..common import forbidExtraQueryParams, StrictDateTime, Capability
 
 
 router = iri_router.IriRouter(
@@ -22,8 +22,12 @@ router = iri_router.IriRouter(
 )
 async def get_capabilities(
     request : Request,
-    _forbid = Depends(forbidExtraQueryParams()),
-    ) -> list[models.Capability]:
+    name : str = Query(default=None, min_length=1),
+    modified_since: StrictDateTime = Query(default=None),
+    offset : int = Query(default=0, ge=0, le=1000),
+    limit : int = Query(default=100, ge=0, le=1000),
+    _forbid = Depends(forbidExtraQueryParams("name", "modified_since", "offset", "limit")),
+    ) -> list[Capability]:
     return await router.adapter.get_capabilities()
 
 
@@ -37,8 +41,9 @@ async def get_capabilities(
 async def get_capability(
     capability_id : str,
     request : Request,
-    _forbid = Depends(forbidExtraQueryParams()),
-    ) -> models.Capability:
+    modified_since: StrictDateTime = Query(default=None),
+    _forbid = Depends(forbidExtraQueryParams("modified_since")),
+    ) -> Capability:
     caps = await router.adapter.get_capabilities()
     cc = next((c for c in caps if c.id == capability_id), None)
     if not cc:
