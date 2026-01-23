@@ -28,11 +28,10 @@ async def get_resources(
     modified_since: StrictDateTime = Query(default=None),
     resource_type: models.ResourceType = Query(default=None),
     current_status: models.Status = Query(default=None),
-    #event_uris: Optional[List[str]] = Query(default=None, min_length=1),
-    capability: Annotated[Optional[List[AllocationUnit]], Query()] = None,
+    capability: List[AllocationUnit] = Query(default=None, min_length=1),
     _forbid = Depends(forbidExtraQueryParams("name", "description", "group", "offset", "limit", "modified_since", "resource_type", "current_status", "capability", multiParams={"capability"})),
     ) -> list[models.Resource]:
-    return await router.adapter.get_resources(offset, limit, name, description, group, modified_since, resource_type, current_status)
+    return await router.adapter.get_resources(offset, limit, name, description, group, modified_since, resource_type, current_status, capability)
 
 
 @router.get(
