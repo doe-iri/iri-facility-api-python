@@ -1,26 +1,6 @@
 from pydantic import computed_field, Field
-import enum
 from ... import config
-from ..common import IRIBaseModel
-
-
-class AllocationUnit(enum.Enum):
-    node_hours = "node_hours"
-    bytes = "bytes"
-    inodes = "inodes"
-
-
-class Capability(IRIBaseModel):
-    """
-        An aspect of a resource that can have an allocation.
-        For example, Perlmutter nodes with GPUs
-        For some resources at a facility, this will be 1 to 1 with the resource.
-        It is a way to further subdivide a resource into allocatable sub-resources.
-        The word "capability" is also known to users as something they need for a job to run. (eg. gpu)
-    """
-    id: str
-    name: str
-    units: list[AllocationUnit]
+from ..common import IRIBaseModel, AllocationUnit
 
 
 class User(IRIBaseModel):

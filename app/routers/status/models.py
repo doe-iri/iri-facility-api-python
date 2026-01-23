@@ -101,6 +101,7 @@ class Event(NamedObject):
 class IncidentType(enum.Enum):
     planned = "planned"
     unplanned = "unplanned"
+    reservation = "reservation"
 
 
 class Resolution(enum.Enum):
@@ -109,6 +110,7 @@ class Resolution(enum.Enum):
     completed = "completed"
     extended = "extended"
     pending = "pending"
+
 
 
 class Incident(NamedObject):
