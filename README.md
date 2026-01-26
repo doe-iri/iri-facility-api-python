@@ -6,7 +6,9 @@ See it live:
 - NERSC instance:
    - API docs: https://api.iri.nersc.gov
    - API requests: https://api.iri.nersc.gov/nersc/api/v1/
-- ALCF instance: https://api.alcf.anl.gov/api/v1/
+- ALCF instance:
+   - API docs: https://api.alcf.anl.gov
+   - API requests: https://api.alcf.anl.gov/api/v1/
 - ESnet instance: https://iri-dev.ppg.es.net
 
 ## Prerequisites
