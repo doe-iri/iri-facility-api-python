@@ -1,15 +1,15 @@
 import os
 from abc import abstractmethod
+from typing import Any, Tuple
 from ..status import models as status_models
 from ..account import models as account_models
 from . import models as filesystem_models
 from ..iri_router import AuthenticatedAdapter
-from typing import Any, Tuple
 
 
 def to_int(name, default_value):
     try:
-        return os.environ.get(name) or default_value
+        return int(os.environ.get(name) or default_value)
     except:
         return default_value
 

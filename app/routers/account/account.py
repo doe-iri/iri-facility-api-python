@@ -1,7 +1,8 @@
-from fastapi import HTTPException, Request, Depends
+from fastapi import HTTPException, Request, Depends, Query
 from . import models, facility_adapter
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
+from ..common import forbidExtraQueryParams, StrictDateTime, Capability
 
 
 router = iri_router.IriRouter(
@@ -21,7 +22,12 @@ router = iri_router.IriRouter(
 )
 async def get_capabilities(
     request : Request,
-    ) -> list[models.Capability]:
+    name : str = Query(default=None, min_length=1),
+    modified_since: StrictDateTime = Query(default=None),
+    offset : int = Query(default=0, ge=0, le=1000),
+    limit : int = Query(default=100, ge=0, le=1000),
+    _forbid = Depends(forbidExtraQueryParams("name", "modified_since", "offset", "limit")),
+    ) -> list[Capability]:
     return await router.adapter.get_capabilities()
 
 
@@ -35,7 +41,9 @@ async def get_capabilities(
 async def get_capability(
     capability_id : str,
     request : Request,
-    ) -> models.Capability:
+    modified_since: StrictDateTime = Query(default=None),
+    _forbid = Depends(forbidExtraQueryParams("modified_since")),
+    ) -> Capability:
     caps = await router.adapter.get_capabilities()
     cc = next((c for c in caps if c.id == capability_id), None)
     if not cc:
@@ -53,6 +61,7 @@ async def get_capability(
 )
 async def get_projects(
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> list[models.Project]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -71,6 +80,7 @@ async def get_projects(
 async def get_project(
     project_id : str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> models.Project:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -93,6 +103,7 @@ async def get_project(
 async def get_project_allocations(
     project_id: str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> list[models.ProjectAllocation]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -116,6 +127,7 @@ async def get_project_allocation(
     project_id: str,
     project_allocation_id : str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> models.ProjectAllocation:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -141,6 +153,7 @@ async def get_user_allocations(
     project_id: str,
     project_allocation_id : str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> list[models.UserAllocation]:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:
@@ -169,6 +182,7 @@ async def get_user_allocation(
     project_allocation_id : str,
     user_allocation_id : str,
     request : Request,
+    _forbid = Depends(forbidExtraQueryParams()),
     ) -> models.UserAllocation:
     user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
     if not user:

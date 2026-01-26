@@ -65,6 +65,12 @@ def install_error_handlers(app: FastAPI):
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
 
+        if exc.status_code == 304:
+            return JSONResponse(
+                status_code=304,
+                content=None,
+                headers=exc.headers or {})
+
         if exc.status_code == 401:
             return problem_response(
                 request=request,

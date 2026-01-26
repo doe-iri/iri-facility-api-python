@@ -51,6 +51,8 @@ If using docker (see next section), your dockerfile could extend this reference 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
 - `API_URL`: the path to the api itself. Defaults to `api/v1`.
+- `OPENTELEMETRY_ENABLED`: Enables OpenTelemetry. If enabled, the application will use OpenTelemetry SDKs and emit traces, metrics, and logs. Default to false
+- `OTLP_ENDPOINT`: OpenTelemetry Protocol collector endpoint to export telemetry data. If empty or not set, telemetry data is logged locally to log file. Default: ""
 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 

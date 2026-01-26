@@ -12,11 +12,10 @@ from pydantic import Field, AliasChoices, ConfigDict, BaseModel
 
 
 class CompressionType(str, Enum):
-        none = "none"
-        bzip2 = "bzip2"
-        gzip = "gzip"
-        xz = "xz"
-
+    none = "none"
+    bzip2 = "bzip2"
+    gzip = "gzip"
+    xz = "xz"
 
 class ContentUnit(str, Enum):
     lines = "lines"
