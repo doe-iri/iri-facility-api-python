@@ -98,11 +98,18 @@ class IriRouter(APIRouter):
 
 class AuthenticatedAdapter(ABC):
 
+    def _warn_on_unused_kwargs(self, func_name: str, kwargs: dict) -> None:
+        if not kwargs:
+            return
+        logging.getLogger().warning("Adapter method '%s' received unused kwargs: %s", func_name,
+                                    ", ".join(sorted(kwargs.keys())))
+
     @abstractmethod
     async def get_current_user(
         self : "AuthenticatedAdapter",
         api_key: str,
         client_ip: str|None,
+        **kwargs
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
@@ -118,6 +125,7 @@ class AuthenticatedAdapter(ABC):
         user_id: str,
         api_key: str,
         client_ip: str|None,
+        **kwargs
         ) -> User:
         """
             Retrieve additional user information (name, email, etc.) for the given user_id.

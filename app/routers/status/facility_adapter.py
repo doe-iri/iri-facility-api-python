@@ -25,6 +25,7 @@ class FacilityAdapter(ABC):
         resource_type: status_models.ResourceType = Query(default=None),
         current_status: status_models.Status = Query(default=None),
         capability: Capability | None = None,
+        **kwargs
         ) -> list[status_models.Resource]:
         pass
 
@@ -32,7 +33,8 @@ class FacilityAdapter(ABC):
     @abstractmethod
     async def get_resource(
         self : "FacilityAdapter",
-        id : str
+        id_ : str,
+        **kwargs
         ) -> status_models.Resource:
         pass
 
@@ -49,8 +51,9 @@ class FacilityAdapter(ABC):
         status : status_models.Status | None = None,
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
-        time : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
+        **kwargs
         ) -> list[status_models.Event]:
         pass
 
@@ -59,7 +62,8 @@ class FacilityAdapter(ABC):
     async def get_event(
         self : "FacilityAdapter",
         incident_id : str,
-        id : str
+        id_ : str,
+        **kwargs
         ) -> status_models.Event:
         pass
 
@@ -79,6 +83,7 @@ class FacilityAdapter(ABC):
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
         resolution: status_models.Resolution | None = None,
+        **kwargs
         ) -> list[status_models.Incident]:
         pass
 
@@ -86,6 +91,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     async def get_incident(
         self : "FacilityAdapter",
-        id : str
+        id_ : str,
+        **kwargs
         ) -> status_models.Incident:
         pass

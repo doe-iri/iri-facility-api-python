@@ -5,11 +5,9 @@ from .import models, facility_adapter
 from ..common import StrictDateTime, forbidExtraQueryParams
 
 
-router = iri_router.IriRouter(
-    facility_adapter.FacilityAdapter,
-    prefix="/facility",
-    tags=["facility"],
-)
+router = iri_router.IriRouter(facility_adapter.FacilityAdapter,
+                              prefix="/facility",
+                              tags=["facility"])
 
 @router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility")
 async def get_facility(

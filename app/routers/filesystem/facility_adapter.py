@@ -29,7 +29,8 @@ class FacilityAdapter(AuthenticatedAdapter):
         self : "FacilityAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PutFileChmodRequest
+        request_model: filesystem_models.PutFileChmodRequest,
+        **kwargs
     ) -> filesystem_models.PutFileChmodResponse:
         pass
 
@@ -39,7 +40,8 @@ class FacilityAdapter(AuthenticatedAdapter):
         self : "FacilityAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PutFileChownRequest
+        request_model: filesystem_models.PutFileChownRequest,
+        **kwargs
     ) -> filesystem_models.PutFileChownResponse:
         pass
 
@@ -54,6 +56,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         numeric_uid: bool,
         recursive: bool,
         dereference: bool,
+        **kwargs
     ) -> filesystem_models.GetDirectoryLsResponse:
         pass
 
@@ -67,6 +70,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         file_bytes: int,
         lines: int,
         skip_trailing: bool,
+        **kwargs
     ) -> Tuple[Any, int]:
         pass
 
@@ -80,6 +84,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         file_bytes: int | None,
         lines: int | None,
         skip_trailing: bool,
+        **kwargs
     ) -> Tuple[Any, int]:
         pass
 
@@ -92,6 +97,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         path: str,
         size: int,
         offset: int,
+        **kwargs
     ) -> filesystem_models.GetViewFileResponse:
         pass
 
@@ -102,6 +108,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
+        **kwargs
     ) -> filesystem_models.GetFileChecksumResponse:
         pass
 
@@ -112,6 +119,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
+        **kwargs
     ) -> filesystem_models.GetFileTypeResponse:
         pass
 
@@ -123,6 +131,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: account_models.User,
         path: str,
         dereference: bool,
+        **kwargs
     ) -> filesystem_models.GetFileStatResponse:
         pass
 
@@ -133,6 +142,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
+        **kwargs
     ):
         pass
 
@@ -143,6 +153,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostMakeDirRequest,
+        **kwargs
     ) -> filesystem_models.PostMkdirResponse:
         pass
 
@@ -153,6 +164,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostFileSymlinkRequest,
+        **kwargs
     ) -> filesystem_models.PostFileSymlinkResponse:
         pass
 
@@ -163,6 +175,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
+        **kwargs
     ) -> Any:
         pass
 
@@ -174,6 +187,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: account_models.User,
         path: str,
         content: str,
+        **kwargs
     ) -> None:
         pass
 
@@ -184,6 +198,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostCompressRequest,
+        **kwargs
     ) -> filesystem_models.PostCompressResponse:
         pass
 
@@ -194,6 +209,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostExtractRequest,
+        **kwargs
     ) -> filesystem_models.PostExtractResponse:
         pass
 
@@ -204,6 +220,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostMoveRequest,
+        **kwargs
     ) -> filesystem_models.PostMoveResponse:
         pass
 
@@ -214,5 +231,6 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostCopyRequest,
+        **kwargs
     ) -> filesystem_models.PostCopyResponse:
         pass

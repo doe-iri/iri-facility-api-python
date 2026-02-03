@@ -1,15 +1,24 @@
 """Default models used by multiple routers."""
 import datetime
+from email.utils import parsedate_to_datetime
 import enum
 from typing import Optional
 from urllib.parse import parse_qs
 
 from pydantic_core import core_schema
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_serializer
-from fastapi import Request, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_serializer, field_validator
+from fastapi import Request, HTTPException, status
 
 from .. import config
 
+
+def paginate_list(items, offset: int | None, limit: int | None):
+    """Return a sliced items using offset and limit."""
+    if offset is not None and offset > 0:
+        items = items[offset:]
+    if limit is not None and limit >= 0:
+        items = items[:limit]
+    return items
 
 # These are Pydantic custom types for strict validation
 # that are not implmented in Pydantic by default.
@@ -79,6 +88,51 @@ class StrictDateTime:
 
         return StrictDateTime._normalize(dt)
 
+
+    @staticmethod
+    def modifiedSinceDatetime(
+        modified_since: str | None,
+        header_modified_since: str | None
+    ) -> datetime.datetime | None:
+        """
+        Combine modified_since (ISO8601) and If-Modified-Since (RFC1123).
+        If both are provided, the most recent timestamp is used.
+        """
+
+        parsed_times: list[datetime.datetime] = []
+
+        # Query param (ISO 8601)
+        if modified_since is not None:
+            try:
+                dt = StrictDateTime.validate(modified_since)
+                parsed_times.append(dt)
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid modified_since query param: {exc}",
+                ) from exc
+
+        # Header (RFC 1123)
+        if header_modified_since is not None:
+            try:
+                dt = parsedate_to_datetime(header_modified_since)
+                if dt is None:
+                    raise ValueError("Invalid RFC1123 date")
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=datetime.timezone.utc)
+                parsed_times.append(dt.astimezone(datetime.timezone.utc))
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid If-Modified-Since header format (must be RFC1123)",
+                ) from exc
+
+        if not parsed_times:
+            return None
+
+        # Stricter constraint wins
+        return max(parsed_times)
+
     @staticmethod
     def _normalize(dt: datetime.datetime) -> datetime.datetime:
         if dt.tzinfo is None:
@@ -123,8 +177,6 @@ def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = N
     return checker
 
 
-
-
 class IRIBaseModel(BaseModel):
     """Base model for IRI models."""
     model_config = ConfigDict(extra="allow")
@@ -150,6 +202,23 @@ class NamedObject(IRIBaseModel):
     def _self_path(self) -> str:
         raise NotImplementedError
 
+    @classmethod
+    def normalize_dt(cls, dt: datetime | None) -> datetime | None:
+        """Normalize datetime to UTC-aware."""
+        # Convert naive datetimes into UTC-aware versions
+        if dt is None:
+            return None
+        if isinstance(dt, str):
+            dt = StrictDateTime.validate(dt)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
+
+    @field_validator("last_modified", mode="before")
+    @classmethod
+    def _norm_dt_field(cls, v):
+        return cls.normalize_dt(v)
+
     @computed_field(description="The canonical URL of this object")
     @property
     def self_uri(self) -> str:
@@ -160,29 +229,32 @@ class NamedObject(IRIBaseModel):
     description: Optional[str] = Field(None, description="Human-readable description of the object.")
     last_modified: StrictDateTime = Field(..., description="ISO 8601 timestamp when this object was last modified.")
 
-    @staticmethod
-    def find_by_id(a, id, allow_name: bool|None=False):
+    @classmethod
+    def find_by_id(cls, items, id_, allow_name: bool = False):
+        """ Find an object by its id or name == id. """
         # Find a resource by its id.
         # If allow_name is True, the id parameter can also match the resource's name.
-        return next((r for r in a if r.id == id or (allow_name and r.name == id)), None)
+        matches = [r for r in items if r.id == id_ or (allow_name and r.name == id_)]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            raise ValueError(f"Multiple {cls.__name__} objects matched identifier '{id}'")
 
+        return matches[0]
 
-    @staticmethod
-    def find(a, name, description, modified_since):
-        def normalize(dt: datetime) -> datetime:
-            # Convert naive datetimes into UTC-aware versions
-            if dt.tzinfo is None:
-                return dt.replace(tzinfo=datetime.timezone.utc)
-            return dt
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None):
+        """ Find objects matching the given criteria. """
+        if not any((name, description, modified_since)):
+            return items
         if name:
-            a = [aa for aa in a if aa.name == name]
+            items = [item for item in items if item.name == name]
         if description:
-            a = [aa for aa in a if description in aa.description]
+            items = [item for item in items if item.description and description in item.description]
         if modified_since:
-            if modified_since.tzinfo is None:
-                modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
-            a = [aa for aa in a if normalize(aa.last_modified) >= modified_since]
-        return a
+            modified_since = cls.normalize_dt(modified_since)
+            items = [item for item in items if item.last_modified >= modified_since]
+        return items
 
 
 class AllocationUnit(enum.Enum):

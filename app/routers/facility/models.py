@@ -13,6 +13,14 @@ class Site(NamedObject):
     location_uri: Optional[HttpUrl] = Field(None, description="URI of Location containing this Site.")
     resource_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of Resources hosted at this Site.")
 
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None, short_name=None):
+        """ Find Sites matching the given criteria. """
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
+        if short_name:
+            items = [item for item in items if item.short_name == short_name]
+        return items
+
 class Location(NamedObject):
     def _self_path(self) -> str:
         return f"/facility/locations/{self.id}"
@@ -26,6 +34,18 @@ class Location(NamedObject):
     latitude: Optional[float] = Field(None, description="Latitude of the Location.")
     longitude: Optional[float] = Field(None, description="Longitude of the Location.")
     site_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of Sites contained in this Location.")
+
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
+        """ Find Locations matching the given criteria. """
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
+        if short_name:
+            items = [item for item in items if item.short_name == short_name]
+        if country_name:
+            items = [item for item in items if item.country_name == country_name]
+        return items
+
+
 
 class Facility(NamedObject):
     def _self_path(self) -> str:
@@ -42,4 +62,3 @@ class Facility(NamedObject):
     project_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of Projects associated with this Facility.")
     project_allocation_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of Project Allocations.")
     user_allocation_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of User Allocations.")
-

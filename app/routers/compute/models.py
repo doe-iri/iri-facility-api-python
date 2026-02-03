@@ -1,10 +1,11 @@
 from typing import Annotated
 from enum import IntEnum
-from pydantic import field_serializer, ConfigDict, StrictBool, Field
+from pydantic import field_serializer, StrictBool, Field
 from ..common import IRIBaseModel
 
 
 class ResourceSpec(IRIBaseModel):
+<<<<<<< HEAD
     """
     Specification of computational resources required for a job.
     """
@@ -27,14 +28,37 @@ class JobAttributes(IRIBaseModel):
     reservation_id: Annotated[str | None, Field(min_length=1, description="ID of a reservation to use for the job")] = None
     custom_attributes: Annotated[dict[str, str], Field(description="Custom scheduler-specific attributes as key-value pairs")] = {}
 
+=======
+    node_count: int | None = Field(default=None, description="Number of compute nodes to allocate")
+    process_count: int | None = Field(default=None, description="Total number of processes to launch")
+    processes_per_node: int | None = Field(default=None, description="Number of processes to launch per node")
+    cpu_cores_per_process: int | None = Field(default=None, description="Number of CPU cores to allocate per process")
+    gpu_cores_per_process: int | None = Field(default=None, description="Number of GPU cores to allocate per process")
+    exclusive_node_use: StrictBool = Field(default=True, description="Whether to request exclusive use of allocated nodes")
+    memory: int | None = Field(default=None, description="Amount of memory to allocate in bytes")
+
+
+class JobAttributes(IRIBaseModel):
+    duration: int = Field(default=None, ge=1, description="Duration in seconds", examples=[30, 60, 120])
+    queue_name: str | None = Field(default=None, min_length=1, description="Name of the queue or partition to submit the job to")
+    account: str | None = Field(default=None, min_length=1, description="Account or project to charge for resource usage")
+    reservation_id: str | None = Field(default=None, min_length=1, description="ID of a reservation to use for the job")
+    custom_attributes: dict[str, str] = Field(default={}, description="Custom scheduler-specific attributes as key-value pairs")
+>>>>>>> b7b104f (Make adapter forward compatible. add filtering, pagination, datetime normalization)
 
 class VolumeMount(IRIBaseModel):
     """
     Represents a volume mount for a container.
     """
+<<<<<<< HEAD
     source: Annotated[str, Field(min_length=1, description="The source path on the host system to mount")]
     target: Annotated[str, Field(min_length=1, description="The target path inside the container where the volume will be mounted")]
     read_only: Annotated[StrictBool, Field(description="Whether the mount should be read-only")] = True
+=======
+    source: str = Field(description="The source path on the host system to mount")
+    target: str = Field(description="The target path inside the container where the volume will be mounted")
+    read_only: StrictBool = Field(default=True, description="Whether the mount should be read-only")
+>>>>>>> b7b104f (Make adapter forward compatible. add filtering, pagination, datetime normalization)
 
 class Container(IRIBaseModel):
     """
@@ -45,6 +69,7 @@ class Container(IRIBaseModel):
     to determine if the container should be run with MPI support. The container should by default. be run with
     host networking.
     """
+<<<<<<< HEAD
     image: Annotated[str, Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")]
     volume_mounts: Annotated[list[VolumeMount], Field(description="List of volume mounts for the container")] = []
 
@@ -69,6 +94,28 @@ class JobSpec(IRIBaseModel):
     pre_launch: Annotated[str | None, Field(min_length=1, description="Script or commands to run before launching the job")] = None
     post_launch: Annotated[str | None, Field(min_length=1, description="Script or commands to run after the job completes")] = None
     launcher: Annotated[str | None, Field(min_length=1, description="Job launcher to use (e.g., 'mpirun', 'srun')")] = None
+=======
+    image: str = Field(description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")
+    volume_mounts: list[VolumeMount] = Field(default=[], description="List of volume mounts for the container")
+
+
+class JobSpec(IRIBaseModel):
+    executable: str | None = Field(default=None, description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.")
+    container: Container | None = Field(default=None, description="Container specification for containerized execution")
+    arguments: list[str] = Field(default=[], description="Command-line arguments to pass to the executable or container")
+    directory: str | None = Field(default=None, description="Working directory for the job")
+    name: str | None = Field(default=None, description="Name of the job")
+    inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment")
+    environment: dict[str, str] = Field(default={}, description="Environment variables to set for the job. If container is specified, these will be set inside the container.")
+    stdin_path: str | None = Field(default=None, description="Path to file to use as standard input")
+    stdout_path: str | None = Field(default=None, description="Path to file to write standard output")
+    stderr_path: str | None = Field(default=None, description="Path to file to write standard error")
+    resources: ResourceSpec | None = Field(default=None, description="Resource requirements for the job")
+    attributes: JobAttributes | None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
+    pre_launch: str | None = Field(default=None, description="Script or commands to run before launching the job")
+    post_launch: str | None = Field(default=None, description="Script or commands to run after the job completes")
+    launcher: str | None = Field(default=None, description="Job launcher to use (e.g., 'mpirun', 'srun')")
+>>>>>>> b7b104f (Make adapter forward compatible. add filtering, pagination, datetime normalization)
 
 
 class CommandResult(IRIBaseModel):

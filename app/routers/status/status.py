@@ -31,7 +31,8 @@ async def get_resources(
     capability: List[AllocationUnit] = Query(default=None, min_length=1),
     _forbid = Depends(forbidExtraQueryParams("name", "description", "group", "offset", "limit", "modified_since", "resource_type", "current_status", "capability", multiParams={"capability"})),
     ) -> list[models.Resource]:
-    return await router.adapter.get_resources(offset, limit, name, description, group, modified_since, resource_type, current_status, capability)
+    return await router.adapter.get_resources(offset=offset, limit=limit, name=name, description=description, group=group, modified_since=modified_since,
+                                              resource_type=resource_type, current_status=current_status, capability=capability)
 
 
 @router.get(
@@ -77,7 +78,8 @@ async def get_incidents(
     _forbid = Depends(forbidExtraQueryParams("name", "description", "status", "type", "from", "to", "time", "modified_since", "resource_id",
                                              "offset", "limit", "resolution", "resource_uris", "event_uris", multiParams={"resource_uris", "event_uris"})),
     ) -> list[models.Incident]:
-    return await router.adapter.get_incidents(offset, limit, name, description, status, type_, from_, to, time_, modified_since, resource_id, resolution)
+    return await router.adapter.get_incidents(offset=offset, limit=limit, name=name, description=description, status=status, type_=type_, from_=from_, to=to,
+                                              time_=time_, modified_since=modified_since, resource_id=resource_id, resolution=resolution)
 
 
 @router.get(
@@ -120,7 +122,8 @@ async def get_events(
     limit : int = Query(default=100, ge=0, le=1000),
     _forbid = Depends(forbidExtraQueryParams("resource_id", "name", "description", "status", "from", "to", "time", "modified_since", "offset", "limit")),
     ) -> list[models.Event]:
-    return await router.adapter.get_events(incident_id, offset, limit, resource_id, name, description, status, from_, to, time_, modified_since)
+    return await router.adapter.get_events(incident_id, offset=offset, limit=limit, resource_id=resource_id, name=name, description=description, status=status,
+                                           from_=from_, to=to, time_=time_, modified_since=modified_since)
 
 
 @router.get(

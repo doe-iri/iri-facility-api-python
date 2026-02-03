@@ -19,6 +19,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         job_spec: compute_models.JobSpec,
+        **kwargs
     ) -> compute_models.Job:
         pass
 
@@ -30,6 +31,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: account_models.User,
         job_script_path: str,
         args: list[str] = [],
+        **kwargs
     ) -> compute_models.Job:
         pass
 
@@ -41,6 +43,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: account_models.User,
         job_spec: compute_models.JobSpec,
         job_id: str,
+        **kwargs
     ) -> compute_models.Job:
         pass
 
@@ -67,6 +70,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         filters: dict[str, object] | None = None,
         historical: bool = False,
         include_spec: bool = False,
+        **kwargs
     ) -> list[compute_models.Job]:
         pass
 
@@ -77,5 +81,6 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: account_models.User,
         job_id: str,
+        **kwargs
     ) -> bool:
         pass

@@ -14,6 +14,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_facility(
         self: "FacilityAdapter",
         modified_since: str | None = None,
+        **kwargs
     ) -> facility_models.Facility | None:
         pass
 
@@ -25,6 +26,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         offset: int | None = None,
         limit: int | None = None,
         short_name: str | None = None,
+        **kwargs
     ) -> list[facility_models.Site]:
         pass
 
@@ -33,6 +35,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         self: "FacilityAdapter",
         site_id: str,
         modified_since: str | None = None,
+        **kwargs
     ) -> facility_models.Site | None:
         pass
 
@@ -41,6 +44,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         self: "FacilityAdapter",
         site_id: str,
         modified_since: str | None = None,
+        **kwargs
     ) -> facility_models.Location | None:
         pass
 
@@ -53,6 +57,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         limit: int | None = None,
         short_name: str | None = None,
         country_name: str | None = None,
+        **kwargs
     ) -> list[facility_models.Location]:
         pass
 
@@ -61,5 +66,6 @@ class FacilityAdapter(AuthenticatedAdapter):
         self: "FacilityAdapter",
         location_id: str,
         modified_since: str | None = None,
+        **kwargs
     ) -> facility_models.Location | None:
         pass
