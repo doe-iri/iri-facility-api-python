@@ -1,43 +1,73 @@
 from typing import Annotated
 from pydantic import BaseModel, field_serializer, ConfigDict, Field
-import datetime
 from enum import IntEnum
 
 
 class ResourceSpec(BaseModel):
-    node_count: int | None = None
-    process_count: int | None = None
-    processes_per_node: int | None = None
-    cpu_cores_per_process: int | None = None
-    gpu_cores_per_process: int | None = None
-    exclusive_node_use: bool = True
-    memory: int | None = None
+    """
+    Specification of computational resources required for a job.
+    """
+    node_count: Annotated[int | None, Field(description="Number of compute nodes to allocate")] = None
+    process_count: Annotated[int | None, Field(description="Total number of processes to launch")] = None
+    processes_per_node: Annotated[int | None, Field(description="Number of processes to launch per node")] = None
+    cpu_cores_per_process: Annotated[int | None, Field(description="Number of CPU cores to allocate per process")] = None
+    gpu_cores_per_process: Annotated[int | None, Field(description="Number of GPU cores to allocate per process")] = None
+    exclusive_node_use: Annotated[bool, Field(description="Whether to request exclusive use of allocated nodes")] = True
+    memory: Annotated[int | None, Field(description="Amount of memory to allocate in bytes")] = None
 
 
 class JobAttributes(BaseModel):
+    """
+    Additional attributes and scheduling parameters for a job.
+    """
     duration: Annotated[int | None, Field(description="Duration in seconds", ge=0, examples=[30, 60, 120])] = None
-    queue_name: str | None = None
-    account: str | None = None
-    reservation_id: str | None = None
-    custom_attributes: dict[str, str] = {}
+    queue_name: Annotated[str | None, Field(description="Name of the queue or partition to submit the job to")] = None
+    account: Annotated[str | None, Field(description="Account or project to charge for resource usage")] = None
+    reservation_id: Annotated[str | None, Field(description="ID of a reservation to use for the job")] = None
+    custom_attributes: Annotated[dict[str, str], Field(description="Custom scheduler-specific attributes as key-value pairs")] = {}
+
+
+class VolumeMount(BaseModel):
+    """
+    Represents a volume mount for a container.
+    """
+    source: Annotated[str, Field(description="The source path on the host system to mount")]
+    target: Annotated[str, Field(description="The target path inside the container where the volume will be mounted")]
+    read_only: Annotated[bool, Field(description="Whether the mount should be read-only")] = True
+
+class Container(BaseModel):
+    """
+    Represents a container specification for job execution.
+
+    Implementation notes: The value of gpu_cores_per_process in ResourceSpec should be used to determine
+    if the container should be run with GPU support. Likewise, the value of launcher in JobSpec should be used
+    to determine if the container should be run with MPI support. The container should by default. be run with
+    host networking.
+    """
+    image: Annotated[str, Field(description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")]
+    volume_mounts: Annotated[list[VolumeMount], Field(description="List of volume mounts for the container")] = []
 
 
 class JobSpec(BaseModel):
+    """
+    Specification for job.
+    """
     model_config = ConfigDict(extra="forbid")
-    executable : str | None = None
-    arguments: list[str] = []
-    directory: str | None = None
-    name: str | None = None
-    inherit_environment: bool = True
-    environment: dict[str, str] = {}
-    stdin_path: str | None = None
-    stdout_path: str | None = None
-    stderr_path: str | None = None
-    resources: ResourceSpec | None = None
-    attributes: JobAttributes | None = None
-    pre_launch: str | None = None
-    post_launch: str | None = None
-    launcher: str | None = None
+    executable: Annotated[str | None, Field(description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.")] = None
+    container: Annotated[Container | None, Field(description="Container specification for containerized execution")] = None
+    arguments: Annotated[list[str], Field(description="Command-line arguments to pass to the executable or container")] = []
+    directory: Annotated[str | None, Field(description="Working directory for the job")] = None
+    name: Annotated[str | None, Field(description="Name of the job")] = None
+    inherit_environment: Annotated[bool, Field(description="Whether to inherit the environment variables from the submission environment")] = True
+    environment: Annotated[dict[str, str], Field(description="Environment variables to set for the job. If container is specified, these will be set inside the container.")] = {}
+    stdin_path: Annotated[str | None, Field(description="Path to file to use as standard input")] = None
+    stdout_path: Annotated[str | None, Field(description="Path to file to write standard output")] = None
+    stderr_path: Annotated[str | None, Field(description="Path to file to write standard error")] = None
+    resources: Annotated[ResourceSpec | None, Field(description="Resource requirements for the job")] = None
+    attributes: Annotated[JobAttributes | None, Field(description="Additional job attributes such as duration, queue, and account")] = None
+    pre_launch: Annotated[str | None, Field(description="Script or commands to run before launching the job")] = None
+    post_launch: Annotated[str | None, Field(description="Script or commands to run after the job completes")] = None
+    launcher: Annotated[str | None, Field(description="Job launcher to use (e.g., 'mpirun', 'srun')")] = None
 
 
 class CommandResult(BaseModel):
