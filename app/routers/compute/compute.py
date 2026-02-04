@@ -41,7 +41,7 @@ async def submit_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -78,7 +78,7 @@ async def submit_job(
 #        raise HTTPException(status_code=404, detail="User not found")
 #
 #    # look up the resource (todo: maybe ensure it's available)
-#    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+#    resource = await status_router.adapter.get_resource(resource_id)
 #
 #    # the handler can use whatever means it wants to submit the job and then fill in its id
 #    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -113,7 +113,7 @@ async def update_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -143,7 +143,7 @@ async def get_job_status(
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     job = await router.adapter.get_job(resource=resource, user=user, job_id=job_id, historical=historical, include_spec=include_spec)
 
@@ -175,7 +175,7 @@ async def get_job_statuses(
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     jobs = await router.adapter.get_jobs(resource=resource, user=user, offset=offset, limit=limit, filters=filters, historical=historical, include_spec=include_spec)
 
@@ -203,7 +203,7 @@ async def cancel_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id=resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     await router.adapter.cancel_job(resource=resource, user=user, job_id=job_id)
 
