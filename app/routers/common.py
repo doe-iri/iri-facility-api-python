@@ -4,7 +4,7 @@ from email.utils import parsedate_to_datetime
 import enum
 from typing import Optional
 from urllib.parse import parse_qs
-
+from collections.abc import Iterable
 from pydantic_core import core_schema
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_serializer, field_validator
 from fastapi import Request, HTTPException, status
@@ -245,8 +245,14 @@ class NamedObject(IRIBaseModel):
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None):
         """ Find objects matching the given criteria. """
+        single = False
         if not any((name, description, modified_since)):
             return items
+
+        if not isinstance(items, Iterable) or isinstance(items, BaseModel):
+            items = [items]
+            single = True
+
         if name:
             items = [item for item in items if item.name == name]
         if description:
@@ -254,6 +260,9 @@ class NamedObject(IRIBaseModel):
         if modified_since:
             modified_since = cls.normalize_dt(modified_since)
             items = [item for item in items if item.last_modified >= modified_since]
+
+        if single:
+            return items[0] if items else None
         return items
 
 

@@ -18,8 +18,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_task(
         self : "FacilityAdapter",
         user: account_models.User,
-        task_id: str,
-        **kwargs
+        task_id: str
         ) -> task_models.Task|None:
         pass
 
@@ -27,8 +26,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def get_tasks(
         self : "FacilityAdapter",
-        user: account_models.User,
-        **kwargs
+        user: account_models.User
         ) -> list[task_models.Task]:
         pass
 
@@ -38,9 +36,8 @@ class FacilityAdapter(AuthenticatedAdapter):
         self: "FacilityAdapter",
         user: account_models.User,
         resource: status_models.Resource|None,
-        task: task_models.TaskCommand,
-        **kwargs
-    ) -> str:
+        task: task_models.TaskCommand
+        ) -> str:
         pass
 
 
@@ -48,9 +45,8 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def on_task(
         resource: status_models.Resource,
         user: account_models.User,
-        task: task_models.TaskCommand,
-        **kwargs
-    ) -> tuple[str, task_models.TaskStatus]:
+        task: task_models.TaskCommand
+        ) -> tuple[str, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         try:

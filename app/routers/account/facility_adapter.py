@@ -17,8 +17,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         name : str | None = None,
         modified_since : str | None = None,
         offset : int = 0,
-        limit : int = 1000,
-        **kwargs
+        limit : int = 1000
         ) -> list[Capability]:
         pass
 
@@ -26,8 +25,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def get_projects(
         self : "FacilityAdapter",
-        user: account_models.User,
-        **kwargs
+        user: account_models.User
         ) -> list[account_models.Project]:
         pass
 
@@ -36,8 +34,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_project_allocations(
         self : "FacilityAdapter",
         project: account_models.Project,
-        user: account_models.User,
-        **kwargs
+        user: account_models.User
         ) -> list[account_models.ProjectAllocation]:
         pass
 
@@ -46,7 +43,6 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_user_allocations(
         self : "FacilityAdapter",
         user: account_models.User,
-        project_allocation: account_models.ProjectAllocation,
-        **kwargs
+        project_allocation: account_models.ProjectAllocation
         ) -> list[account_models.UserAllocation]:
         pass

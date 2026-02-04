@@ -275,10 +275,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_facility(
         self: "DemoAdapter",
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Facility:
-        self._warn_on_unused_kwargs("get_facility", kwargs)
+        modified_since: str | None = None
+        ) -> facility_models.Facility:
         return self.facility
 
 
@@ -288,10 +286,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         name: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        short_name: str | None = None,
-        **kwargs
-    ) -> list[facility_models.Site]:
-        self._warn_on_unused_kwargs("list_sites", kwargs)
+        short_name: str | None = None
+        ) -> list[facility_models.Site]:
         sites = self.sites
 
         if name:
@@ -312,10 +308,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_site(
         self: "DemoAdapter",
         site_id: str,
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Site:
-        self._warn_on_unused_kwargs("get_site", kwargs)
+        modified_since: str | None = None
+        ) -> facility_models.Site:
         site = next((s for s in self.sites if s.id == site_id), None)
         if not site:
             raise HTTPException(status_code=404, detail="Site not found")
@@ -331,10 +325,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_site_location(
         self: "DemoAdapter",
         site_id: str,
-        modified_since: str | None = None,
-        **kwargs
+        modified_since: str | None = None
     ) -> facility_models.Location:
-        self._warn_on_unused_kwargs("get_site_location", kwargs)
         site = await self.get_site(site_id)
 
         if not site.location_uri:
@@ -360,10 +352,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         offset: int | None = None,
         limit: int | None = None,
         short_name: str | None = None,
-        country_name: str | None = None,
-        **kwargs
-    ) -> list[facility_models.Location]:
-        self._warn_on_unused_kwargs("list_locations", kwargs)
+        country_name: str | None = None
+        ) -> list[facility_models.Location]:
         locs = self.locations
 
         if name:
@@ -387,10 +377,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_location(
         self: "DemoAdapter",
         location_id: str,
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Location:
-        self._warn_on_unused_kwargs("get_location", kwargs)
+        modified_since: str | None = None
+        ) -> facility_models.Location:
         location = next((l for l in self.locations if l.id == location_id), None)
 
         if not location:
@@ -416,10 +404,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
         current_status : status_models.Status | None = None,
-        capability: Capability | None = None,
-        **kwargs
+        capability: Capability | None = None
         ) -> list[status_models.Resource]:
-        self._warn_on_unused_kwargs("get_resources", kwargs)
         resources = status_models.Resource.find(self.resources, name=name, description=description, group=group, modified_since=modified_since,
                                                 resource_type=resource_type, current_status=current_status, capability=capability)
         return paginate_list(resources, offset, limit)
@@ -427,10 +413,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_resource(
         self : "DemoAdapter",
-        id_ : str,
-        **kwargs
+        id_ : str
         ) -> status_models.Resource:
-        self._warn_on_unused_kwargs("get_resource", kwargs)
         return status_models.Resource.find_by_id(self.resources, id_)
 
     async def get_events(
@@ -445,10 +429,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        modified_since : datetime.datetime | None = None,
-        **kwargs
+        modified_since : datetime.datetime | None = None
         ) -> list[status_models.Event]:
-        self._warn_on_unused_kwargs("get_events", kwargs)
         events = status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id=resource_id, name=name, description=description,
                                           status=status, from_=from_, to=to, time_=time_, modified_since=modified_since)
         return paginate_list(events, offset, limit)
@@ -457,10 +439,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_event(
         self : "DemoAdapter",
         incident_id : str,
-        id_ : str,
-        **kwargs
+        id_ : str
         ) -> status_models.Event:
-        self._warn_on_unused_kwargs("get_event", kwargs)
         return status_models.Event.find_by_id(self.events, id_)
 
 
@@ -477,10 +457,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
-        resolution: status_models.Resolution | None = None,
-        **kwargs
+        resolution: status_models.Resolution | None = None
         ) -> list[status_models.Incident]:
-        self._warn_on_unused_kwargs("get_incidents", kwargs)
         incidents = status_models.Incident.find(self.incidents, name=name, description=description, status=status, type_=type_,from_=from_, to=to,
                                                 time_=time_, modified_since=modified_since, resource_id=resource_id, resolution=resolution)
         return paginate_list(incidents, offset, limit)
@@ -488,10 +466,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_incident(
         self : "DemoAdapter",
-        id_ : str,
-        **kwargs
+        id_ : str
         ) -> status_models.Incident:
-        self._warn_on_unused_kwargs("get_incident", kwargs)
         return status_models.Incident.find_by_id(self.incidents, id_)
 
 
@@ -501,9 +477,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         modified_since : str | None = None,
         offset : int = 0,
         limit : int = 1000,
-        **kwargs
         ) -> list[Capability]:
-        self._warn_on_unused_kwargs("get_capabilities", kwargs)
         caps = list(self.capabilities.values())
         if name:
             caps = [c for c in caps if name.lower() in c.name.lower()]
@@ -515,13 +489,11 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             self : "DemoAdapter",
             api_key: str,
             client_ip: str,
-            **kwargs
         ) -> str:
         """
             In a real deployment, this would decode the api_key jwt and return the current user's id.
             This method is not async.
         """
-        self._warn_on_unused_kwargs("get_current_user", kwargs)
         return "gtorok"
 
 
@@ -530,9 +502,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             user_id: str,
             api_key: str,
             client_ip: str|None,
-            **kwargs
             ) -> account_models.User:
-        self._warn_on_unused_kwargs("get_user", kwargs)
         if user_id != self.user.id:
             raise HTTPException(status_code=401, detail="User not found")
         if api_key != self.user.api_key:
@@ -542,10 +512,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_projects(
             self : "DemoAdapter",
-            user: account_models.User,
-            **kwargs
+            user: account_models.User
             ) -> list[account_models.Project]:
-        self._warn_on_unused_kwargs("get_projects", kwargs)
         return self.projects
 
 
@@ -553,9 +521,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         project: account_models.Project,
         user: account_models.User,
-        **kwargs
         ) -> list[account_models.ProjectAllocation]:
-        self._warn_on_unused_kwargs("get_project_allocations", kwargs)
         return [pa for pa in self.project_allocations if pa.project_id == project.id]
 
 
@@ -563,9 +529,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         user: account_models.User,
         project_allocation: account_models.ProjectAllocation,
-        **kwargs
         ) -> list[account_models.UserAllocation]:
-        self._warn_on_unused_kwargs("get_user_allocations", kwargs)
         return [ua for ua in self.user_allocations if ua.project_allocation_id == project_allocation.id]
 
 
@@ -574,9 +538,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         job_spec: compute_models.JobSpec,
-        **kwargs,
     ) -> compute_models.Job:
-        self._warn_on_unused_kwargs("submit_job", kwargs)
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
@@ -595,9 +557,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         job_script_path: str,
         args: list[str] = [],
-        **kwargs
     ) -> compute_models.Job:
-        self._warn_on_unused_kwargs("submit_job_script", kwargs)
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
@@ -616,9 +576,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         job_spec: compute_models.JobSpec,
         job_id: str,
-        **kwargs,
     ) -> compute_models.Job:
-        self._warn_on_unused_kwargs("update_job", kwargs)
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
@@ -638,9 +596,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         job_id: str,
         historical: bool = False,
         include_spec: bool = False,
-        **kwargs,
     ) -> compute_models.Job:
-        self._warn_on_unused_kwargs("get_job", kwargs)
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
@@ -662,9 +618,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         filters: dict[str, object] | None = None,
         historical: bool = False,
         include_spec: bool = False,
-        **kwargs,
     ) -> list[compute_models.Job]:
-        self._warn_on_unused_kwargs("get_jobs", kwargs)
         return [compute_models.Job(
             id=f"job_{i}",
             status=compute_models.JobStatus(
@@ -682,9 +636,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         job_id: str,
-        **kwargs,
     ) -> bool:
-        self._warn_on_unused_kwargs("cancel_job", kwargs)
         # call slurm/etc. to cancel job
         return True
 
@@ -754,10 +706,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PutFileChmodRequest,
-        **kwargs,
+        request_model: filesystem_models.PutFileChmodRequest
     ) -> filesystem_models.PutFileChmodResponse:
-        self._warn_on_unused_kwargs("chmod", kwargs)
         rp = self.validate_path(request_model.path)
         os.chmod(rp, int(request_model.mode, 8))
         return filesystem_models.PutFileChmodResponse(
@@ -770,9 +720,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PutFileChownRequest,
-        **kwargs,
     ) -> filesystem_models.PutFileChownResponse:
-        self._warn_on_unused_kwargs("chown", kwargs)
         rp = self.validate_path(request_model.path)
         os.chown(rp, request_model.owner, request_model.group)
         return filesystem_models.PutFileChmodResponse(
@@ -789,9 +737,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         numeric_uid: bool,
         recursive: bool,
         dereference: bool,
-        **kwargs,
     ) -> filesystem_models.GetDirectoryLsResponse:
-        self._warn_on_unused_kwargs("ls", kwargs)
         rp = self.validate_path(path)
         files = glob.glob(rp, recursive=recursive)
         return filesystem_models.GetDirectoryLsResponse(
@@ -832,9 +778,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         file_bytes: int | None,
         lines: int | None,
         skip_trailing: bool,
-        **kwargs,
     ) -> Tuple[Any, int]:
-        self._warn_on_unused_kwargs("head", kwargs)
         return self._headtail("head", path, file_bytes, lines)
 
 
@@ -845,10 +789,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str,
         file_bytes: int | None,
         lines: int | None,
-        skip_trailing: bool,
-        **kwargs
+        skip_trailing: bool
     ) -> Tuple[Any, int]:
-        self._warn_on_unused_kwargs("tail", kwargs)
         return self._headtail("tail", path, file_bytes, lines)
 
 
@@ -858,10 +800,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         path: str,
         size: int,
-        offset: int,
-        **kwargs
-    ) -> filesystem_models.GetViewFileResponse:
-        self._warn_on_unused_kwargs("view", kwargs)
+        offset: int
+        ) -> filesystem_models.GetViewFileResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
             f"tail -c +{offset+1} {rp} | head -c {size}",
@@ -879,10 +819,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
-        **kwargs
-    ) -> filesystem_models.GetFileChecksumResponse:
-        self._warn_on_unused_kwargs("checksum", kwargs)
+        path: str
+        ) -> filesystem_models.GetFileChecksumResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
             ["sha256sum", rp],
@@ -901,10 +839,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
-        **kwargs
+        path: str
     ) -> filesystem_models.GetFileTypeResponse:
-        self._warn_on_unused_kwargs("file", kwargs)
         rp = self.validate_path(path)
         result = subprocess.run(
             ["file", "-b", rp],
@@ -921,10 +857,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
-        dereference: bool,
-        **kwargs
+        dereference: bool
     ) -> filesystem_models.GetFileStatResponse:
-        self._warn_on_unused_kwargs("stat", kwargs)
         rp = self.validate_path(path)
         if dereference:
             stat_info = os.stat(rp)
@@ -951,9 +885,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
-        **kwargs
     ):
-        self._warn_on_unused_kwargs("rm", kwargs)
         rp = self.validate_path(path)
         if rp == PathSandbox.get_base_temp_dir():
             raise HTTPException(status_code=400, detail="Cannot delete sandbox")
@@ -965,10 +897,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostMakeDirRequest,
-        **kwargs
-    ) -> filesystem_models.PostMkdirResponse:
-        self._warn_on_unused_kwargs("mkdir", kwargs)
+        request_model: filesystem_models.PostMakeDirRequest
+        ) -> filesystem_models.PostMkdirResponse:
         rp = self.validate_path(request_model.path)
         args = ["mkdir"]
         if request_model.parent:
@@ -984,10 +914,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostFileSymlinkRequest,
-        **kwargs
+        request_model: filesystem_models.PostFileSymlinkRequest
     ) -> filesystem_models.PostFileSymlinkResponse:
-        self._warn_on_unused_kwargs("symlink", kwargs)
         rp_src = self.validate_path(request_model.path)
         rp_dst = self.validate_path(request_model.link_path)
         subprocess.run(["ln", "-s", rp_src, rp_dst], check=True)
@@ -1000,10 +928,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
-        **kwargs
+        path: str
     ) -> Any:
-        self._warn_on_unused_kwargs("download", kwargs)
         rp = self.validate_path(path)
         raw_content = pathlib.Path(rp).read_bytes()
 
@@ -1018,10 +944,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
-        content: str,
-        **kwargs
+        content: str
     ) -> None:
-        self._warn_on_unused_kwargs("upload", kwargs)
         rp = self.validate_path(path)
         if isinstance(content, bytes):
             pathlib.Path(rp).write_bytes(content)
@@ -1035,10 +959,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostCompressRequest,
-        **kwargs
-    ) -> filesystem_models.PostCompressResponse:
-        self._warn_on_unused_kwargs("compress", kwargs)
+        request_model: filesystem_models.PostCompressRequest
+        ) -> filesystem_models.PostCompressResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
 
@@ -1070,10 +992,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostExtractRequest,
-        **kwargs
-    ) -> filesystem_models.PostExtractResponse:
-        self._warn_on_unused_kwargs("extract", kwargs)
+        request_model: filesystem_models.PostExtractRequest
+        ) -> filesystem_models.PostExtractResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
 
@@ -1100,10 +1020,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostMoveRequest,
-        **kwargs
-    ) -> filesystem_models.PostMoveResponse:
-        self._warn_on_unused_kwargs("mv", kwargs)
+        request_model: filesystem_models.PostMoveRequest
+        ) -> filesystem_models.PostMoveResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
         subprocess.run(["mv", src_rp, dst_rp], check=True)
@@ -1116,10 +1034,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostCopyRequest,
-        **kwargs
-    ) -> filesystem_models.PostCopyResponse:
-        self._warn_on_unused_kwargs("cp", kwargs)
+        request_model: filesystem_models.PostCopyRequest
+        ) -> filesystem_models.PostCopyResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
         args = ["cp"]
@@ -1136,20 +1052,16 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_task(
         self : "DemoAdapter",
         user: account_models.User,
-        task_id: str,
-        **kwargs
+        task_id: str
         ) -> task_models.Task|None:
-        self._warn_on_unused_kwargs("get_task", kwargs)
         await DemoTaskQueue._process_tasks(self)
         return next((t for t in DemoTaskQueue.tasks if t.user.name == user.name and t.id == task_id), None)
 
 
     async def get_tasks(
         self : "DemoAdapter",
-        user: account_models.User,
-        **kwargs
+        user: account_models.User
         ) -> list[task_models.Task]:
-        self._warn_on_unused_kwargs("get_tasks", kwargs)
         await DemoTaskQueue._process_tasks(self)
         return [t for t in DemoTaskQueue.tasks if t.user.name == user.name]
 
@@ -1158,10 +1070,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self: "DemoAdapter",
         user: account_models.User,
         resource: status_models.Resource,
-        task: str,
-        **kwargs,
-    ) -> str:
-        self._warn_on_unused_kwargs("put_task", kwargs)
+        task: str) -> str:
         await DemoTaskQueue._process_tasks(self)
         return DemoTaskQueue._create_task(user, resource, task)
 

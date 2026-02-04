@@ -13,9 +13,8 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def get_facility(
         self: "FacilityAdapter",
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Facility | None:
+        modified_since: str | None = None
+        ) -> facility_models.Facility | None:
         pass
 
     @abstractmethod
@@ -25,27 +24,24 @@ class FacilityAdapter(AuthenticatedAdapter):
         name: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        short_name: str | None = None,
-        **kwargs
-    ) -> list[facility_models.Site]:
+        short_name: str | None = None
+        ) -> list[facility_models.Site]:
         pass
 
     @abstractmethod
     async def get_site(
         self: "FacilityAdapter",
         site_id: str,
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Site | None:
+        modified_since: str | None = None
+        ) -> facility_models.Site | None:
         pass
 
     @abstractmethod
     async def get_site_location(
         self: "FacilityAdapter",
         site_id: str,
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Location | None:
+        modified_since: str | None = None
+        ) -> facility_models.Location | None:
         pass
 
     @abstractmethod
@@ -56,8 +52,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         offset: int | None = None,
         limit: int | None = None,
         short_name: str | None = None,
-        country_name: str | None = None,
-        **kwargs
+        country_name: str | None = None
     ) -> list[facility_models.Location]:
         pass
 
@@ -65,7 +60,6 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_location(
         self: "FacilityAdapter",
         location_id: str,
-        modified_since: str | None = None,
-        **kwargs
-    ) -> facility_models.Location | None:
+        modified_since: str | None = None
+        ) -> facility_models.Location | None:
         pass
