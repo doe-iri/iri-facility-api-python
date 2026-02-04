@@ -12,7 +12,7 @@ import base64
 from typing import Any, Tuple
 from pydantic import BaseModel
 from fastapi import HTTPException
-from .routers.common import AllocationUnit, Capability, paginate_list
+from .routers.common import AllocationUnit, Capability
 from .routers.facility import models as facility_models, facility_adapter as facility_adapter
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
@@ -473,16 +473,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_capabilities(
         self : "DemoAdapter",
-        name : str | None = None,
-        modified_since : str | None = None,
-        offset : int = 0,
-        limit : int = 1000,
         ) -> list[Capability]:
-        caps = list(self.capabilities.values())
-        if name:
-            caps = [c for c in caps if name.lower() in c.name.lower()]
-
-        return paginate_list(caps, offset, limit)
+        return self.capabilities.values()
 
 
     async def get_current_user(

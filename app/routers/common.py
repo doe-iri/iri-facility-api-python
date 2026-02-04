@@ -12,14 +12,6 @@ from fastapi import Request, HTTPException, status
 from .. import config
 
 
-def paginate_list(items, offset: int | None, limit: int | None):
-    """Return a sliced items using offset and limit."""
-    if offset is not None and offset > 0:
-        items = items[offset:]
-    if limit is not None and limit >= 0:
-        items = items[:limit]
-    return items
-
 # These are Pydantic custom types for strict validation
 # that are not implmented in Pydantic by default.
 # -----------------------------------------------------------------------
