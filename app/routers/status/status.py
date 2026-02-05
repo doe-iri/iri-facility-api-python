@@ -73,7 +73,7 @@ async def get_incidents(
     limit : int = Query(default=100, ge=0, le=1000),
     resolution : models.Resolution = Query(default=None),
     _forbid = Depends(forbidExtraQueryParams("name", "description", "status", "type", "from", "to", "time", "modified_since", "resource_id",
-                                             "offset", "limit", "resolution")),
+                                             "offset", "limit", "resolution", "resource_uris", "event_uris", multiParams={"resource_uris", "event_uris"})),
     ) -> list[models.Incident]:
     return await router.adapter.get_incidents(offset, limit, name, description, status, type_, from_, to, time_, modified_since, resource_id, resolution)
 
