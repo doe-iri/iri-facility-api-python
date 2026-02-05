@@ -27,6 +27,7 @@ class JobAttributes(IRIBaseModel):
     reservation_id: Annotated[str | None, Field(min_length=1, description="ID of a reservation to use for the job")] = None
     custom_attributes: Annotated[dict[str, str], Field(description="Custom scheduler-specific attributes as key-value pairs")] = {}
 
+
 class VolumeMount(IRIBaseModel):
     """
     Represents a volume mount for a container.
@@ -46,6 +47,7 @@ class Container(IRIBaseModel):
     """
     image: Annotated[str, Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")]
     volume_mounts: Annotated[list[VolumeMount], Field(description="List of volume mounts for the container")] = []
+
 
 class JobSpec(IRIBaseModel):
     """
@@ -107,6 +109,7 @@ class JobState(IntEnum):
     """
     CANCELED = 5
     """Represents a job that was canceled by a call to :func:`~psij.Job.cancel()`."""
+
 
 class JobStatus(IRIBaseModel):
     state : JobState
