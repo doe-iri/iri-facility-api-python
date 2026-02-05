@@ -11,7 +11,6 @@ from fastapi import Request, HTTPException, status
 
 from .. import config
 
-
 # These are Pydantic custom types for strict validation
 # that are not implmented in Pydantic by default.
 # -----------------------------------------------------------------------

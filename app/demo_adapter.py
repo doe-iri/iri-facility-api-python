@@ -22,6 +22,14 @@ from .routers.task import models as task_models, facility_adapter as task_adapte
 
 DEMO_QUEUE_UPDATE_SECS = 5
 
+def paginate_list(items, offset: int | None, limit: int | None):
+    """Return a sliced items using offset and limit."""
+    if offset is not None and offset > 0:
+        items = items[offset:]
+    if limit is not None and limit >= 0:
+        items = items[:limit]
+    return items
+
 class PathSandbox:
     _base_temp_dir = None
 
@@ -473,6 +481,10 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_capabilities(
         self : "DemoAdapter",
+        name : str | None = None,
+        modified_since : str | None = None,
+        offset : int = 0,
+        limit : int = 1000
         ) -> list[Capability]:
         return self.capabilities.values()
 
