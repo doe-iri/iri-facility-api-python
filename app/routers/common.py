@@ -229,7 +229,7 @@ class NamedObject(IRIBaseModel):
         if not matches:
             return None
         if len(matches) > 1:
-            raise ValueError(f"Multiple {cls.__name__} objects matched identifier '{id}'")
+            raise ValueError(f"Multiple {cls.__name__} objects matched identifier '{id_}'")
 
         return matches[0]
 
@@ -250,8 +250,8 @@ class NamedObject(IRIBaseModel):
             items = [item for item in items if item.description and description in item.description]
         if modified_since:
             modified_since = cls.normalize_dt(modified_since)
-            items = [item for item in items if item.last_modified >= modified_since]
-
+            items = [item for item in items
+                     if item.last_modified and item.last_modified >= modified_since]
         if single:
             return items[0] if items else None
         return items
@@ -263,7 +263,7 @@ class AllocationUnit(enum.Enum):
     inodes = "inodes"
 
 
-class Capability(IRIBaseModel):
+class Capability(NamedObject):
     """
         An aspect of a resource that can have an allocation.
         For example, Perlmutter nodes with GPUs
@@ -271,6 +271,9 @@ class Capability(IRIBaseModel):
         It is a way to further subdivide a resource into allocatable sub-resources.
         The word "capability" is also known to users as something they need for a job to run. (eg. gpu)
     """
-    id: str
-    name: str
+    def _self_path(self) -> str:
+        return f"/account/capabilities/{self.id}"
+
+    last_modified: StrictDateTime | None = Field(default=None, description="ISO 8601 timestamp when this object was last modified.")
+
     units: list[AllocationUnit]

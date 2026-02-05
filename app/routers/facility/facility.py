@@ -51,7 +51,7 @@ async def get_site_location(
     """Get site location by site ID"""
     return await router.adapter.get_site_location(site_id=site_id, modified_since=modified_since)
 
-@router.get("/locations", responses=DEFAULT_RESPONSES, operation_id="getLocations")
+@router.get("/locations", responses=DEFAULT_RESPONSES, operation_id="getLocations", response_model_exclude_none=True)
 async def list_locations(
     request : Request,
     modified_since: StrictDateTime = Query(default=None),

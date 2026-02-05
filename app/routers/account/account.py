@@ -18,8 +18,7 @@ router = iri_router.IriRouter(
     description="Get a list of capabilities at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getCapabilities",
-
-)
+    response_model_exclude_none=True)
 async def get_capabilities(
     request : Request,
     name : str = Query(default=None, min_length=1),
