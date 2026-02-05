@@ -126,7 +126,7 @@ async def update_job(
     response_model=models.Job,
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
-    operation_id="getJobs",
+    operation_id="getJob",
 )
 async def get_job_status(
     resource_id : str,
@@ -156,7 +156,7 @@ async def get_job_status(
     response_model=list[models.Job],
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
-    operation_id="getAllJobs",
+    operation_id="getJobs",
 )
 async def get_job_statuses(
     resource_id : str,
