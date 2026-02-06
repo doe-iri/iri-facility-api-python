@@ -80,8 +80,6 @@ jobs:
           --report-name schemathesis-local
         echo "exitcode=$?" >> $GITHUB_OUTPUT
 
-    # TODO: Change back to https://raw.githubusercontent.com/doe-iri/iri-facility-api-docs/refs/heads/main/specification/openapi/openapi_iri_facility_api_v1.json
-    # Once https://github.com/doe-iri/iri-facility-api-docs/pull/12 merged.
     - name: Run Schemathesis validation (official spec)
       id: schemathesis_official
       env:
@@ -91,7 +89,7 @@ jobs:
         source .venv/bin/activate
         python schema-validator/verification/api-validator.py \
           --baseurl http://localhost:8000 \
-          --schema-url https://raw.githubusercontent.com/juztas/iri-facility-api-docs/refs/heads/newspec/specification/openapi/openapi_iri_facility_api_v1.json \
+          --schema-url https://raw.githubusercontent.com/doe-iri/iri-facility-api-docs/refs/heads/main/specification/openapi/openapi_iri_facility_api_v1.json \
           --report-name schemathesis-official
         echo "exitcode=$?" >> $GITHUB_OUTPUT
 

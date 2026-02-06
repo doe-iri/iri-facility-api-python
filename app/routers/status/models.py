@@ -1,8 +1,10 @@
 import datetime
 import enum
-from pydantic import BaseModel, computed_field, Field, field_validator
+from typing import Optional
+from pydantic import BaseModel, computed_field, Field, field_validator, HttpUrl
 from ... import config
 from ..common import NamedObject
+
 
 class Link(BaseModel):
     rel : str
@@ -36,6 +38,9 @@ class Resource(NamedObject):
     group: str | None
     current_status: Status | None = Field(default=None, description="The current status comes from the status of the last event for this resource")
     resource_type: ResourceType
+    located_at_uri: Optional[HttpUrl] = Field(None, description="Resource located at specific Site")
+
+
 
     @computed_field(description="The list of capabilities in this resource")
     @property
