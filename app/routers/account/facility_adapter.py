@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from . import models as account_models
+from ..common import Capability
 from ..iri_router import AuthenticatedAdapter
 
 
@@ -13,7 +14,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def get_capabilities(
         self : "FacilityAdapter",
-        ) -> list[account_models.Capability]:
+        ) -> list[Capability]:
         pass
 
 

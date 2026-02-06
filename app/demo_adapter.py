@@ -1,7 +1,6 @@
 import datetime
 import random
 import uuid
-import time
 import os
 import stat
 import pwd
@@ -10,9 +9,11 @@ import glob
 import subprocess
 import pathlib
 import base64
-from pydantic import BaseModel
 from typing import Any, Tuple
+from pydantic import BaseModel
 from fastapi import HTTPException
+from .routers.common import AllocationUnit, Capability
+from .routers.facility import models as facility_models, facility_adapter as facility_adapter
 from .routers.status import models as status_models, facility_adapter as status_adapter
 from .routers.account import models as account_models, facility_adapter as account_adapter
 from .routers.compute import models as compute_models, facility_adapter as compute_adapter
@@ -35,14 +36,28 @@ class PathSandbox:
             os.makedirs(cls._base_temp_dir, exist_ok=True)
 
             # create a test file
-            with open(f"{cls._base_temp_dir}/test.txt", "w") as f:
+            with open(f"{cls._base_temp_dir}/test.txt", encoding="utf-8", mode="w") as f:
                 f.write("hello world")
         return cls._base_temp_dir
 
 
+def demo_uuid(kind: str, name: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"demo:{kind}:{name}"))
+
+
+def utc_now() -> datetime.datetime:
+    """Return current UTC datetime timestamp"""
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def utc_timestamp() -> int:
+    """Return current UTC datetime timestamp as integer"""
+    return int(utc_now().timestamp())
+
+
 class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapter,
                   compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter,
-                  task_adapter.FacilityAdapter):
+                  task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter):
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -52,17 +67,63 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []
-
+        self.facility = {}
+        self.locations = []
+        self.sites = []
         self._init_state()
 
 
     def _init_state(self):
-        day_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
+        now = utc_now()
+
+        site1 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_1"),
+            name="Demo Site 1",
+            description="The first demo site",
+            last_modified=now,
+            short_name="DS1",
+            operating_organization="Demo Org",
+            country_name="USA",
+            locality_name="Demo City",
+            state_or_province_name="DC",
+            latitude=36.173357,
+            longitude=-234.51452,
+            resource_uris=[])
+
+        site2 = facility_models.Site(
+            id=demo_uuid("site", "demo_site_2"),
+            name="Demo Site 2",
+            description="The second demo site",
+            last_modified=now,
+            short_name="DS2",
+            operating_organization="Demo Org",
+            country_name="USA",
+            locality_name="Example Town",
+            state_or_province_name="ET",
+            latitude=38.410558,
+            longitude=-286.36999,
+            resource_uris=[])
+
+        self.facility = facility_models.Facility(
+            id=demo_uuid("facility", "demo_facility"),
+            name="Demo Facility",
+            description="A demo facility for testing the IRI Facility API",
+            last_modified=now,
+            short_name="DEMO",
+            organization_name="Demo Organization",
+            support_uri="https://support.demo.example",
+            site_uris=[site1.self_uri, site2.self_uri]
+        )
+
+        self.sites = [site1, site2]
+
+
+        day_ago = utc_now() - datetime.timedelta(days=1)
         self.capabilities = {
-            "cpu": account_models.Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            "gpu": account_models.Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[account_models.AllocationUnit.node_hours]),
-            "hpss": account_models.Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
-            "gpfs": account_models.Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]),
+            "cpu": Capability(id=str(uuid.uuid4()), name="CPU Nodes", units=[AllocationUnit.node_hours]),
+            "gpu": Capability(id=str(uuid.uuid4()), name="GPU Nodes", units=[AllocationUnit.node_hours]),
+            "hpss": Capability(id=str(uuid.uuid4()), name="Tape Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
+            "gpfs": Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
         }
 
         pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
@@ -182,6 +243,64 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
             d += datetime.timedelta(minutes=int(random.random() * 15 + 1))
 
+    # ----------------------------
+    # Facility API
+    # ----------------------------
+
+    async def get_facility(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+    ) -> facility_models.Facility:
+        return self.facility
+
+
+    async def list_sites(
+        self: "DemoAdapter",
+        modified_since: str | None = None,
+        name: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        short_name: str | None = None,
+    ) -> list[facility_models.Site]:
+
+        sites = self.sites
+
+        if name:
+            sites = [s for s in sites if name.lower() in s.name.lower()]
+
+        if short_name:
+            sites = [s for s in sites if s.short_name == short_name]
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            sites = [s for s in sites if s.last_modified > ms]
+
+        o = offset or 0
+        l = limit or len(sites)
+        return sites[o:o+l]
+
+
+    async def get_site(
+        self: "DemoAdapter",
+        site_id: str,
+        modified_since: str | None = None,
+    ) -> facility_models.Site:
+
+        site = next((s for s in self.sites if s.id == site_id), None)
+        if not site:
+            raise HTTPException(status_code=404, detail="Site not found")
+
+        if modified_since:
+            ms = datetime.datetime.fromisoformat(str(modified_since))
+            if site.last_modified <= ms:
+                raise HTTPException(status_code=304, headers={"Last-Modified": site.last_modified.isoformat()})
+
+        return site
+
+
+    # ----------------------------
+    # Status API
+    # ----------------------------
 
     async def get_resources(
         self : "DemoAdapter",
@@ -192,6 +311,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         group : str | None = None,
         modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
+        current_status : status_models.Status | None = None,
+        capability: Capability | None = None
         ) -> list[status_models.Resource]:
         return status_models.Resource.find(self.resources, name, description, group, modified_since, resource_type)[offset:offset + limit]
 
@@ -241,6 +362,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
+        resolution: status_models.Resolution | None = None,
         ) -> list[status_models.Incident]:
         return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, modified_since, resource_id)[offset:offset + limit]
 
@@ -254,7 +376,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_capabilities(
         self : "DemoAdapter",
-        ) -> list[account_models.Capability]:
+        ) -> list[Capability]:
         return self.capabilities.values()
 
 
@@ -316,7 +438,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id="job_123",
             status=compute_models.JobStatus(
                 state=compute_models.JobState.NEW,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job submitted",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -335,7 +457,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id="job_123",
             status=compute_models.JobStatus(
                 state=compute_models.JobState.NEW,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job submitted",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -354,7 +476,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=job_id,
             status=compute_models.JobStatus(
                 state=compute_models.JobState.ACTIVE,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job updated",
                 exit_code=None,
                 meta_data={ "account": "account1" },
@@ -374,7 +496,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=job_id,
             status=compute_models.JobStatus(
                 state=compute_models.JobState.COMPLETED,
-                time=time.time(),
+                time=utc_timestamp(),
                 message="job completed successfully",
                 exit_code=0,
                 meta_data={ "account": "account1" },
@@ -396,7 +518,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             id=f"job_{i}",
             status=compute_models.JobStatus(
                 state=random.choice([s for s in compute_models.JobState]),
-                time=time.time() - (random.random() * 100),
+                time=utc_timestamp() - int(random.random() * 100),
                 message="",
                 exit_code=random.choice([0, 0, 0, 0, 0, 1, 1, 128, 127]),
                 meta_data={ "account": "account1" },
@@ -864,7 +986,7 @@ class DemoTaskQueue:
 
     @staticmethod
     async def _process_tasks(da: DemoAdapter):
-        now = time.time()
+        now = utc_timestamp()
         _tasks = []
         for t in DemoTaskQueue.tasks:
             if now - t.start > 5 * 60 and t.status in [task_models.TaskStatus.completed, task_models.TaskStatus.canceled, task_models.TaskStatus.failed]:
@@ -885,5 +1007,5 @@ class DemoTaskQueue:
     @staticmethod
     def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> str:
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
-        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=time.time()))
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
         return task_id
