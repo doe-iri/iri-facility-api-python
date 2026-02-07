@@ -1,9 +1,11 @@
 import datetime
 import enum
 from typing import Optional
-from pydantic import BaseModel, computed_field, Field, field_validator, HttpUrl
+
+from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator
+
 from ... import config
-from ..common import NamedObject
+from ...types.base import NamedObject
 
 
 class Link(BaseModel):

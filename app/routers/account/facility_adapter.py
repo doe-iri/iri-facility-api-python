@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from . import models as account_models
-from ..common import Capability
+
+from ...types.models import Capability
 from ..iri_router import AuthenticatedAdapter
+from . import models as account_models
 
 
 class FacilityAdapter(AuthenticatedAdapter):

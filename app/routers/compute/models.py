@@ -1,7 +1,9 @@
-from typing import Annotated
 from enum import IntEnum
-from pydantic import field_serializer, ConfigDict, StrictBool, Field
-from ..common import IRIBaseModel
+from typing import Annotated
+
+from pydantic import ConfigDict, Field, StrictBool, field_serializer
+
+from ...types.base import IRIBaseModel
 
 
 class ResourceSpec(IRIBaseModel):

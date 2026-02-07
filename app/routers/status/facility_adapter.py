@@ -1,8 +1,10 @@
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
+
 from fastapi import Query
+
+from ...types.models import Capability
 from . import models as status_models
-from ..common import Capability
 
 
 class FacilityAdapter(ABC):
