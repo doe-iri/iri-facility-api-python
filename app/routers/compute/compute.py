@@ -1,4 +1,5 @@
 """Compute resource API router"""
+
 from fastapi import Depends, HTTPException, Query, Request, status
 
 from ...types.http import forbidExtraQueryParams
@@ -14,6 +15,7 @@ router = iri_router.IriRouter(
     tags=["compute"],
 )
 
+
 @router.post(
     "/job/{resource_id:str}",
     dependencies=[Depends(router.current_user)],
@@ -24,10 +26,10 @@ router = iri_router.IriRouter(
 )
 async def submit_job(
     resource_id: str,
-    job_spec : models.JobSpec,
-    request : Request,
-    _forbid = Depends(forbidExtraQueryParams()),
-    ):
+    job_spec: models.JobSpec,
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+):
     """
     Submit a job on a compute resource
 
@@ -49,15 +51,15 @@ async def submit_job(
 
 
 # TODO: this conflicts with PUT commented out while we finalize the API design
-#@router.post(
+# @router.post(
 #    "/job/script/{resource_id:str}",
 #    dependencies=[Depends(router.current_user)],
 #    response_model=models.Job,
 #    response_model_exclude_unset=True,
 #    responses=DEFAULT_RESPONSES,
 #    operation_id="launchJobScript",
-#)
-#async def submit_job_path(
+# )
+# async def submit_job_path(
 #    resource_id: str,
 #    job_script_path : str,
 #    request : Request,
@@ -96,10 +98,10 @@ async def submit_job(
 async def update_job(
     resource_id: str,
     job_id: str,
-    job_spec : models.JobSpec,
-    request : Request,
-    _forbid = Depends(forbidExtraQueryParams()),
-    ):
+    job_spec: models.JobSpec,
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+):
     """
     Update a previously submitted job for a resource.
     Note that only some attributes of a scheduled job can be updated. Check the facility documentation for details.
@@ -129,13 +131,13 @@ async def update_job(
     operation_id="getJob",
 )
 async def get_job_status(
-    resource_id : str,
-    job_id : str,
-    request : Request,
-    historical : StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    resource_id: str,
+    job_id: str,
+    request: Request,
+    historical: StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
     include_spec: StrictHTTPBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
-    _forbid = Depends(forbidExtraQueryParams("historical", "include_spec")),
-    ):
+    _forbid=Depends(forbidExtraQueryParams("historical", "include_spec")),
+):
     """Get a job's status"""
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:
@@ -159,15 +161,15 @@ async def get_job_status(
     operation_id="getJobs",
 )
 async def get_job_statuses(
-    resource_id : str,
-    request : Request,
-    offset : int = Query(default=0, ge=0, le=1000),
-    limit : int = Query(default=100, ge=0, le=1000),
-    filters : dict[str, object] | None = None,
-    historical : StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    resource_id: str,
+    request: Request,
+    offset: int = Query(default=0, ge=0, le=1000),
+    limit: int = Query(default=100, ge=0, le=1000),
+    filters: dict[str, object] | None = None,
+    historical: StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
     include_spec: StrictHTTPBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
-    _forbid = Depends(forbidExtraQueryParams("offset", "limit", "filters", "historical", "include_spec")),
-    ):
+    _forbid=Depends(forbidExtraQueryParams("offset", "limit", "filters", "historical", "include_spec")),
+):
     """Get multiple jobs' statuses"""
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:
@@ -192,11 +194,11 @@ async def get_job_statuses(
     operation_id="cancelJob",
 )
 async def cancel_job(
-    resource_id : str,
-    job_id : str,
-    request : Request,
-    _forbid = Depends(forbidExtraQueryParams()),
-    ):
+    resource_id: str,
+    job_id: str,
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+):
     """Cancel a job"""
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:

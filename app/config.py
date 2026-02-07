@@ -23,11 +23,8 @@ API_CONFIG = {
     "description": description,
     "version": API_VERSION,
     "docs_url": "/",
-    "contact": {
-        "name": "Facility API contact",
-        "url": "https://www.somefacility.gov/about/contact-us/"
-    },
-    "terms_of_service": "https://www.somefacility.gov/terms-of-service"
+    "contact": {"name": "Facility API contact", "url": "https://www.somefacility.gov/about/contact-us/"},
+    "terms_of_service": "https://www.somefacility.gov/terms-of-service",
 }
 try:
     # optionally overload the init params

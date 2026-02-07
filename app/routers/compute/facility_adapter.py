@@ -12,38 +12,17 @@ class FacilityAdapter(AuthenticatedAdapter):
     to install your facility adapter before the API starts.
     """
 
-
     @abstractmethod
-    async def submit_job(
-        self: "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        job_spec: compute_models.JobSpec
-        ) -> compute_models.Job:
+    async def submit_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_spec: compute_models.JobSpec) -> compute_models.Job:
         pass
 
-
     @abstractmethod
-    async def submit_job_script(
-        self: "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        job_script_path: str,
-        args: list[str] = []
-    ) -> compute_models.Job:
+    async def submit_job_script(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_script_path: str, args: list[str] = []) -> compute_models.Job:
         pass
 
-
     @abstractmethod
-    async def update_job(
-        self: "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        job_spec: compute_models.JobSpec,
-        job_id: str
-    ) -> compute_models.Job:
+    async def update_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_spec: compute_models.JobSpec, job_id: str) -> compute_models.Job:
         pass
-
 
     @abstractmethod
     async def get_job(
@@ -56,26 +35,19 @@ class FacilityAdapter(AuthenticatedAdapter):
     ) -> compute_models.Job:
         pass
 
-
     @abstractmethod
     async def get_jobs(
         self: "FacilityAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        offset : int,
-        limit : int,
+        offset: int,
+        limit: int,
         filters: dict[str, object] | None = None,
         historical: bool = False,
-        include_spec: bool = False
+        include_spec: bool = False,
     ) -> list[compute_models.Job]:
         pass
 
-
     @abstractmethod
-    async def cancel_job(
-        self: "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        job_id: str
-    ) -> bool:
+    async def cancel_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_id: str) -> bool:
         pass
