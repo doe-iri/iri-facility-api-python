@@ -11,3 +11,6 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.60b1,<0.61b0",
     "opentelemetry-exporter-otlp>=1.39.1,<1.40.0"
 ]
+[tool.ruff]
+line-length = 200
+exclude = [".venv", "__pycache__", "build", "dist"]

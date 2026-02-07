@@ -1,7 +1,7 @@
 from fastapi import Request, HTTPException, Depends
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
-from .import models, facility_adapter
+from . import models, facility_adapter
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -18,9 +18,9 @@ router = iri_router.IriRouter(
     operation_id="getTask",
 )
 async def get_task(
-    request : Request,
-    task_id : str,
-    ) -> models.Task:
+    request: Request,
+    task_id: str,
+) -> models.Task:
     """Get a task"""
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:
@@ -39,8 +39,8 @@ async def get_task(
     operation_id="getTasks",
 )
 async def get_tasks(
-    request : Request,
-    ) -> list[models.Task]:
+    request: Request,
+) -> list[models.Task]:
     """Get all tasks"""
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:

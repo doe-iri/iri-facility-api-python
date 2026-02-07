@@ -1,10 +1,10 @@
 """Default models used by multiple routers."""
+
 import datetime
 from collections.abc import Iterable
 from typing import Optional
 
-from pydantic import (BaseModel, ConfigDict, Field, computed_field,
-                      field_validator, model_serializer)
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_serializer
 
 from .. import config
 from .scalars import StrictDateTime
@@ -12,6 +12,7 @@ from .scalars import StrictDateTime
 
 class IRIBaseModel(BaseModel):
     """Base model for IRI models."""
+
     model_config = ConfigDict(extra="allow")
 
     @model_serializer(mode="wrap")
@@ -33,7 +34,9 @@ class IRIBaseModel(BaseModel):
 
 class NamedObject(IRIBaseModel):
     """Base model for named objects."""
+
     id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
+
     def _self_path(self) -> str:
         raise NotImplementedError
 
@@ -66,7 +69,7 @@ class NamedObject(IRIBaseModel):
 
     @classmethod
     def find_by_id(cls, items, id_, allow_name: bool = False):
-        """ Find an object by its id or name == id. """
+        """Find an object by its id or name == id."""
         # Find a resource by its id.
         # If allow_name is True, the id parameter can also match the resource's name.
         matches = [r for r in items if r.id == id_ or (allow_name and r.name == id_)]
@@ -79,7 +82,7 @@ class NamedObject(IRIBaseModel):
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None):
-        """ Find objects matching the given criteria. """
+        """Find objects matching the given criteria."""
         single = False
         if not any((name, description, modified_since)):
             return items
@@ -94,8 +97,7 @@ class NamedObject(IRIBaseModel):
             items = [item for item in items if item.description and description in item.description]
         if modified_since:
             modified_since = cls.normalize_dt(modified_since)
-            items = [item for item in items
-                     if item.last_modified and item.last_modified >= modified_since]
+            items = [item for item in items if item.last_modified and item.last_modified >= modified_since]
         if single:
             return items[0] if items else None
         return items

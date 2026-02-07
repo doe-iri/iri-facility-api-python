@@ -9,6 +9,7 @@ class TaskStatus(str, enum.Enum):
     failed = "failed"
     canceled = "canceled"
 
+
 class TaskCommand(BaseModel):
     router: str
     command: str
@@ -17,6 +18,6 @@ class TaskCommand(BaseModel):
 
 class Task(BaseModel):
     id: str
-    status: TaskStatus=TaskStatus.pending
-    result: str|None=None
-    command: TaskCommand|None=None
+    status: TaskStatus = TaskStatus.pending
+    result: str | None = None
+    command: TaskCommand | None = None

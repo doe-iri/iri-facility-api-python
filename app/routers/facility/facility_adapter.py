@@ -11,21 +11,13 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    async def get_facility(
-        self: "FacilityAdapter",
-        modified_since: str | None = None
-        ) -> facility_models.Facility | None:
+    async def get_facility(self: "FacilityAdapter", modified_since: str | None = None) -> facility_models.Facility | None:
         pass
 
     @abstractmethod
     async def list_sites(
-        self: "FacilityAdapter",
-        modified_since: str | None = None,
-        name: str | None = None,
-        offset: int | None = None,
-        limit: int | None = None,
-        short_name: str | None = None
-        ) -> list[facility_models.Site]:
+        self: "FacilityAdapter", modified_since: str | None = None, name: str | None = None, offset: int | None = None, limit: int | None = None, short_name: str | None = None
+    ) -> list[facility_models.Site]:
         pass
 
     @abstractmethod

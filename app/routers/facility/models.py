@@ -1,4 +1,5 @@
 """Facility-related models."""
+
 from typing import List, Optional
 
 from pydantic import Field, HttpUrl
@@ -9,6 +10,7 @@ from ...types.base import NamedObject
 class Site(NamedObject):
     def _self_path(self) -> str:
         return f"/facility/sites/{self.id}"
+
     short_name: Optional[str] = Field(None, description="Common or short name of the Site.")
     operating_organization: str = Field(..., description="Organization operating the Site.")
     country_name: Optional[str] = Field(None, description="Country name of the Location.")
@@ -23,7 +25,7 @@ class Site(NamedObject):
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
-        """ Find Locations matching the given criteria. """
+        """Find Locations matching the given criteria."""
         items = super().find(items, name=name, description=description, modified_since=modified_since)
         if short_name:
             items = [item for item in items if item.short_name == short_name]
@@ -35,6 +37,7 @@ class Site(NamedObject):
 class Facility(NamedObject):
     def _self_path(self) -> str:
         return "/facility"
+
     short_name: Optional[str] = Field(None, description="Common or short name of the Facility.")
     organization_name: Optional[str] = Field(None, description="Operating organization’s name.")
     support_uri: Optional[HttpUrl] = Field(None, description="Link to facility support portal.")

@@ -1,4 +1,5 @@
 """HTTP-related types and utilities for the IRI Facility API"""
+
 import datetime
 from email.utils import parsedate_to_datetime
 from urllib.parse import parse_qs
@@ -14,10 +15,8 @@ from .scalars import StrictDateTime
 # If-Modified-Since must be a valid RFC1123 datetime string.
 # TODO: If-Modified-Since is not yet supported/used by the API.
 
-def modifiedSinceDatetime(
-    modified_since: str | None,
-    header_modified_since: str | None
-) -> datetime.datetime | None:
+
+def modifiedSinceDatetime(modified_since: str | None, header_modified_since: str | None) -> datetime.datetime | None:
     """
     Combine modified_since (ISO8601) and If-Modified-Since (RFC1123).
     If both are provided, the most recent timestamp is used.
@@ -57,8 +56,10 @@ def modifiedSinceDatetime(
     # Stricter constraint wins
     return max(parsed_times)
 
+
 # -----------------------------------------------------------------------
 # forbidExtraQueryParams: a dependency to forbid extra query parameters
+
 
 def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = None):
     """Dependency to forbid extra query parameters. If allowedParams contains "*", all params are allowed."""
@@ -75,16 +76,9 @@ def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = N
 
         for key, values in parsed.items():
             if key not in allowed:
-                raise HTTPException(status_code=422,
-                                    detail=[{"type": "extra_forbidden",
-                                             "loc": ["query", key],
-                                             "msg": f"Unexpected query parameter: {key}"}])
-
+                raise HTTPException(status_code=422, detail=[{"type": "extra_forbidden", "loc": ["query", key], "msg": f"Unexpected query parameter: {key}"}])
 
             if len(values) > 1 and key not in multiParams:
-                raise HTTPException(status_code=422,
-                                    detail=[{"type": "duplicate_forbidden",
-                                             "loc": ["query", key],
-                                             "msg": f"Duplicate query parameter: {key}"}])
+                raise HTTPException(status_code=422, detail=[{"type": "duplicate_forbidden", "loc": ["query", key], "msg": f"Duplicate query parameter: {key}"}])
 
     return checker

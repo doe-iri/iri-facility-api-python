@@ -1,5 +1,5 @@
 # Copied from: https://github.com/eth-cscs/firecrest-v2/blob/master/src/firecrest/filesystem/ops/models.py
-# 
+#
 # Copyright (c) 2025, ETH Zurich. All rights reserved.
 #
 # Please, refer to the LICENSE file in the root directory.
@@ -17,6 +17,7 @@ class CompressionType(str, Enum):
     gzip = "gzip"
     xz = "xz"
 
+
 class ContentUnit(str, Enum):
     lines = "lines"
     bytes = "bytes"
@@ -29,6 +30,7 @@ class CamelModel(BaseModel):
         populate_by_name=True,
         validate_assignment=True,
     )
+
 
 class File(CamelModel):
     name: str
@@ -110,19 +112,12 @@ class PatchFileMetadataResponse(CamelModel):
 
 
 class FilesystemRequestBase(CamelModel):
-    path: Optional[str] = Field(
-        validation_alias=AliasChoices("sourcePath", "source_path"),
-        example="/home/user/dir"
-    )
+    path: Optional[str] = Field(validation_alias=AliasChoices("sourcePath", "source_path"), example="/home/user/dir")
 
 
 class PutFileChmodRequest(FilesystemRequestBase):
     mode: str = Field(..., description="Mode in octal permission format")
-    model_config = {
-        "json_schema_extra": {
-            "examples": [{"path": "/home/user/dir/file.out", "mode": "777"}]
-        }
-    }
+    model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir/file.out", "mode": "777"}]}}
 
 
 class PutFileChmodResponse(CamelModel):
@@ -130,12 +125,8 @@ class PutFileChmodResponse(CamelModel):
 
 
 class PutFileChownRequest(FilesystemRequestBase):
-    owner: Optional[str] = Field(
-        default="", description="User name of the new user owner of the file"
-    )
-    group: Optional[str] = Field(
-        default="", description="Group name of the new group owner of the file"
-    )
+    owner: Optional[str] = Field(default="", description="User name of the new user owner of the file")
+    group: Optional[str] = Field(default="", description="Group name of the new group owner of the file")
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -158,20 +149,12 @@ class PostMakeDirRequest(FilesystemRequestBase):
         default=False,
         description="If set to `true` creates all its parent directories if they do not already exist",
     )
-    model_config = {
-        "json_schema_extra": {
-            "examples": [{"path": "/home/user/dir/newdir", "parent": "true"}]
-        }
-    }
+    model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir/newdir", "parent": "true"}]}}
 
 
 class PostFileSymlinkRequest(FilesystemRequestBase):
     link_path: str = Field(..., description="Path to the new symlink")
-    model_config = {
-        "json_schema_extra": {
-            "examples": [{"path": "/home/user/dir", "link_path": "/home/user/newlink"}]
-        }
-    }
+    model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir", "link_path": "/home/user/newlink"}]}}
 
 
 class PostFileSymlinkResponse(CamelModel):
@@ -192,9 +175,7 @@ class PostCompressResponse(CamelModel):
 
 class PostCompressRequest(FilesystemRequestBase):
     target_path: str = Field(..., description="Path to the compressed file")
-    match_pattern: Optional[str] = Field(
-        default=None, description="Regex pattern to filter files to compress"
-    )
+    match_pattern: Optional[str] = Field(default=None, description="Regex pattern to filter files to compress")
     dereference: Optional[bool] = Field(
         default=False,
         description="If set to `true`, it follows symbolic links and archive the files they point to instead of the links themselves.",
@@ -223,9 +204,7 @@ class PostExtractResponse(CamelModel):
 
 
 class PostExtractRequest(FilesystemRequestBase):
-    target_path: str = Field(
-        ..., description="Path to the directory where to extract the compressed file"
-    )
+    target_path: str = Field(..., description="Path to the directory where to extract the compressed file")
     compression: Optional[CompressionType] = Field(
         default="gzip",
         description="Defines the type of compression to be used. By default gzip is used.",
@@ -247,10 +226,7 @@ class PostCopyRequest(FilesystemRequestBase):
     target_path: str = Field(..., description="Target path of the copy operation")
     dereference: Optional[bool] = Field(
         default=False,
-        description=(
-            "If set to `true`, it follows symbolic links and copies the "
-            "files they point to instead of the links themselves."
-        ),
+        description=("If set to `true`, it follows symbolic links and copies the files they point to instead of the links themselves."),
     )
     model_config = {
         "json_schema_extra": {
@@ -285,4 +261,3 @@ class PostMoveRequest(FilesystemRequestBase):
 
 class PostMoveResponse(CamelModel):
     output: Optional[File]
-

@@ -6,21 +6,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import base64
 from typing import Annotated
-from fastapi import (
-    Depends,
-    HTTPException,
-    status,
-    Query,
-    Request,
-    File,
-    UploadFile
-)
+from fastapi import Depends, HTTPException, status, Query, Request, File, UploadFile
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
 from ..task import facility_adapter as task_facility_adapter, models as task_models
-from .import models, facility_adapter
+from . import models, facility_adapter
 
 
 router = iri_router.IriRouter(
@@ -30,10 +22,11 @@ router = iri_router.IriRouter(
     tags=["filesystem"],
 )
 
+
 async def _user_resource(
-        resource_id: str,
-        request: Request,
-    ) -> tuple[account_models.User, status_models.Resource]:
+    resource_id: str,
+    request: Request,
+) -> tuple[account_models.User, status_models.Resource]:
     user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -58,7 +51,7 @@ async def _user_resource(
 async def put_chmod(
     resource_id: str,
     request_model: models.PutFileChmodRequest,
-    request : Request,
+    request: Request,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
@@ -69,8 +62,8 @@ async def put_chmod(
             command="chmod",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -87,7 +80,7 @@ async def put_chmod(
 async def put_chown(
     resource_id: str,
     request_model: models.PutFileChownRequest,
-    request : Request,
+    request: Request,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
@@ -98,10 +91,9 @@ async def put_chown(
             command="chown",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
-
 
 
 @router.get(
@@ -116,7 +108,7 @@ async def put_chown(
 )
 async def get_file(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="A file or folder path")],
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -128,8 +120,8 @@ async def get_file(
             command="file",
             args={
                 "path": path,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -145,7 +137,7 @@ async def get_file(
 )
 async def get_stat(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="A file or folder path")],
     dereference: Annotated[bool, Query(description="Follow symbolic links")] = False,
 ) -> str:
@@ -159,8 +151,8 @@ async def get_stat(
             args={
                 "path": path,
                 "dereference": dereference,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -176,7 +168,7 @@ async def get_stat(
 )
 async def post_mkdir(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostMakeDirRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -188,10 +180,9 @@ async def post_mkdir(
             command="mkdir",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
-
 
 
 @router.post(
@@ -206,7 +197,7 @@ async def post_mkdir(
 )
 async def post_symlink(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostFileSymlinkRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -218,8 +209,8 @@ async def post_symlink(
             command="symlink",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -236,17 +227,11 @@ async def post_symlink(
 )
 async def get_ls_async(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="The path to list")],
-    show_hidden: Annotated[
-        bool, Query(alias="showHidden", description="Show hidden files")
-    ] = False,
-    numeric_uid: Annotated[
-        bool, Query(alias="numericUid", description="List numeric user and group IDs")
-    ] = False,
-    recursive: Annotated[
-        bool, Query(alias="recursive", description="Recursively list files and folders")
-    ] = False,
+    show_hidden: Annotated[bool, Query(alias="showHidden", description="Show hidden files")] = False,
+    numeric_uid: Annotated[bool, Query(alias="numericUid", description="List numeric user and group IDs")] = False,
+    recursive: Annotated[bool, Query(alias="recursive", description="Recursively list files and folders")] = False,
     dereference: Annotated[
         bool,
         Query(
@@ -260,16 +245,8 @@ async def get_ls_async(
         user=user,
         resource=resource,
         task=task_models.TaskCommand(
-            router=router.get_router_name(),
-            command="ls",
-            args={
-                "path": path,
-                "show_hidden": show_hidden,
-                "numeric_uid": numeric_uid,
-                "recursive": recursive,
-                "dereference": dereference
-            }
-        )
+            router=router.get_router_name(), command="ls", args={"path": path, "show_hidden": show_hidden, "numeric_uid": numeric_uid, "recursive": recursive, "dereference": dereference}
+        ),
     )
 
 
@@ -285,7 +262,7 @@ async def get_ls_async(
 )
 async def get_head(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="File path")],
     # TODO Should we allow bytes and lines to be strings? The head allows the following:
     #    NUM may have a multiplier suffix: b 512, kB 1000, K 1024, MB
@@ -309,21 +286,14 @@ async def get_head(
         bool,
         Query(
             alias="skipTrailing",
-            description=(
-                "The output will be the whole file, without the last NUM "
-                "bytes/lines of each file. NUM should be specified in the "
-                "respective argument through `bytes` or `lines`."
-            ),
+            description=("The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`."),
         ),
     ] = False,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     # Enforce that exactly one of `bytes` or `lines` is specified
     if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
-        raise HTTPException(
-            status_code=400,
-            detail="Exactly one of `bytes` or `lines` must be specified."
-        )
+        raise HTTPException(status_code=400, detail="Exactly one of `bytes` or `lines` must be specified.")
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -335,8 +305,8 @@ async def get_head(
                 "file_bytes": file_bytes,
                 "lines": lines,
                 "skip_trailing": skip_trailing,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -352,14 +322,11 @@ async def get_head(
 )
 async def get_view(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="File path")],
-
-    size: Annotated[int, Query(description="Value, in bytes, of the size of data to be retrieved from the file.",
-                               ge=1, le=facility_adapter.OPS_SIZE_LIMIT)] = facility_adapter.OPS_SIZE_LIMIT,
-
-    offset: Annotated[int, Query( description="Value in bytes of the offset.", ge=0)] = 0
-    ) -> str:
+    size: Annotated[int, Query(description="Value, in bytes, of the size of data to be retrieved from the file.", ge=1, le=facility_adapter.OPS_SIZE_LIMIT)] = facility_adapter.OPS_SIZE_LIMIT,
+    offset: Annotated[int, Query(description="Value in bytes of the offset.", ge=0)] = 0,
+) -> str:
     user, resource = await _user_resource(resource_id, request)
 
     return await router.task_adapter.put_task(
@@ -372,8 +339,8 @@ async def get_view(
                 "path": path,
                 "size": size,
                 "offset": offset,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -389,11 +356,11 @@ async def get_view(
 )
 async def get_tail(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="File path", min_length=1)],
-    file_bytes: Annotated[int, Query(alias="bytes",
-                                     description="The output will be the last NUM bytes of each file.",
-                                     ge=1),
+    file_bytes: Annotated[
+        int,
+        Query(alias="bytes", description="The output will be the last NUM bytes of each file.", ge=1),
     ] = None,
     lines: Annotated[
         int,
@@ -406,21 +373,14 @@ async def get_tail(
         bool,
         Query(
             alias="skipHeading",
-            description=(
-                "The output will be the whole file, without the first NUM "
-                "bytes/lines of each file. NUM should be specified in the "
-                "respective argument through `bytes` or `lines`."
-            ),
+            description=("The output will be the whole file, without the first NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`."),
         ),
     ] = False,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     # Enforce that exactly one of `bytes` or `lines` is specified
     if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
-        raise HTTPException(
-            status_code=400,
-            detail="Exactly one of `bytes` or `lines` must be specified."
-        )
+        raise HTTPException(status_code=400, detail="Exactly one of `bytes` or `lines` must be specified.")
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -432,9 +392,8 @@ async def get_tail(
                 "file_bytes": file_bytes,
                 "lines": lines,
                 "skip_heading": skip_heading,
-
-            }
-        )
+            },
+        ),
     )
 
 
@@ -450,7 +409,7 @@ async def get_tail(
 )
 async def get_checksum(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="Target system")],
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -462,9 +421,10 @@ async def get_checksum(
             command="checksum",
             args={
                 "path": path,
-            }
-        )
+            },
+        ),
     )
+
 
 @router.delete(
     "/rm/{resource_id:str}",
@@ -476,7 +436,7 @@ async def get_checksum(
 )
 async def delete_rm(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="The path to delete")],
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -488,8 +448,8 @@ async def delete_rm(
             command="rm",
             args={
                 "path": path,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -505,7 +465,7 @@ async def delete_rm(
 )
 async def post_compress(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostCompressRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -517,8 +477,8 @@ async def post_compress(
             command="compress",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -534,7 +494,7 @@ async def post_compress(
 )
 async def post_extract(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostExtractRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -546,8 +506,8 @@ async def post_extract(
             command="extract",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -563,7 +523,7 @@ async def post_extract(
 )
 async def move_mv(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostMoveRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -575,8 +535,8 @@ async def move_mv(
             command="mv",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -592,7 +552,7 @@ async def move_mv(
 )
 async def post_cp(
     resource_id: str,
-    request : Request,
+    request: Request,
     request_model: models.PostCopyRequest,
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -604,9 +564,10 @@ async def post_cp(
             command="cp",
             args={
                 "request_model": request_model,
-            }
-        )
+            },
+        ),
     )
+
 
 @router.get(
     "/download/{resource_id:str}",
@@ -620,7 +581,7 @@ async def post_cp(
 )
 async def get_download(
     resource_id: str,
-    request : Request,
+    request: Request,
     path: Annotated[str, Query(description="A file to download")],
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -632,8 +593,8 @@ async def get_download(
             command="download",
             args={
                 "path": path,
-            }
-        )
+            },
+        ),
     )
 
 
@@ -649,10 +610,8 @@ async def get_download(
 )
 async def post_upload(
     resource_id: str,
-    request : Request,
-    path: Annotated[
-        str, Query(description="Specify path where file should be uploaded.")
-    ],
+    request: Request,
+    path: Annotated[str, Query(description="Specify path where file should be uploaded.")],
     file: UploadFile = File(description="File to be uploaded as `multipart/form-data`"),
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
@@ -672,7 +631,7 @@ async def post_upload(
             command="upload",
             args={
                 "path": path,
-                "content": base64.b64encode(raw_content).decode('utf-8'),
-            }
-        )
+                "content": base64.b64encode(raw_content).decode("utf-8"),
+            },
+        ),
     )

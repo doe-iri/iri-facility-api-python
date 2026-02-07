@@ -1,4 +1,5 @@
 """Scalar types for the IRI Facility API"""
+
 # pylint: disable=unused-argument
 import datetime
 import enum
@@ -8,10 +9,11 @@ from pydantic_core import core_schema
 # -----------------------------------------------------------------------
 # StrictHTTPBool: a strict boolean type
 
+
 class StrictHTTPBool:
     """Strict boolean:
-       - Accepts: real booleans, 'true', 'false'
-       - Rejects everything else.
+    - Accepts: real booleans, 'true', 'false'
+    - Rejects everything else.
     """
 
     @classmethod
@@ -34,13 +36,12 @@ class StrictHTTPBool:
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema, handler):
-        return {
-            "type": "boolean",
-            "description": "Strict boolean. Only true/false allowed (bool or string)."
-        }
+        return {"type": "boolean", "description": "Strict boolean. Only true/false allowed (bool or string)."}
+
 
 # -----------------------------------------------------------------------
 # StrictDateTime: a strict ISO8601 datetime type
+
 
 class StrictDateTime:
     """
@@ -81,17 +82,16 @@ class StrictDateTime:
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema, handler):
-        return {
-            "type": "string",
-            "format": "date-time",
-            "description": "Strict ISO8601 datetime. Only valid ISO8601 datetime strings are accepted."
-        }
+        return {"type": "string", "format": "date-time", "description": "Strict ISO8601 datetime. Only valid ISO8601 datetime strings are accepted."}
+
 
 # -----------------------------------------------------------------------
 # AllocationUnit: an enum for allocation units
 
+
 class AllocationUnit(enum.Enum):
     """Units for allocation"""
+
     node_hours = "node_hours"
     bytes = "bytes"
     inodes = "inodes"

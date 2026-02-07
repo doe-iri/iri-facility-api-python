@@ -13,40 +13,20 @@ class FacilityAdapter(AuthenticatedAdapter):
     to install your facility adapter before the API starts.
     """
 
-
     @abstractmethod
-    async def get_task(
-        self : "FacilityAdapter",
-        user: account_models.User,
-        task_id: str
-        ) -> task_models.Task|None:
+    async def get_task(self: "FacilityAdapter", user: account_models.User, task_id: str) -> task_models.Task | None:
         pass
 
-
     @abstractmethod
-    async def get_tasks(
-        self : "FacilityAdapter",
-        user: account_models.User
-        ) -> list[task_models.Task]:
+    async def get_tasks(self: "FacilityAdapter", user: account_models.User) -> list[task_models.Task]:
         pass
 
-
     @abstractmethod
-    async def put_task(
-        self: "FacilityAdapter",
-        user: account_models.User,
-        resource: status_models.Resource|None,
-        task: task_models.TaskCommand
-        ) -> str:
+    async def put_task(self: "FacilityAdapter", user: account_models.User, resource: status_models.Resource | None, task: task_models.TaskCommand) -> str:
         pass
-
 
     @staticmethod
-    async def on_task(
-        resource: status_models.Resource,
-        user: account_models.User,
-        task: task_models.TaskCommand
-        ) -> tuple[str, task_models.TaskStatus]:
+    async def on_task(resource: status_models.Resource, user: account_models.User, task: task_models.TaskCommand) -> tuple[str, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         try:

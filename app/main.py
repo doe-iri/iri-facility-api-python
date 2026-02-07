@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Main API application"""
+
 import logging
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -24,10 +25,7 @@ from . import config
 # OpenTelemetry Tracing Configuration
 # ------------------------------------------------------------------
 if config.OPENTELEMETRY_ENABLED:
-    resource = Resource.create({
-        "service.name": "iri-facility-api",
-        "service.version": config.API_VERSION,
-        "service.endpoint": config.API_URL_ROOT})
+    resource = Resource.create({"service.name": "iri-facility-api", "service.version": config.API_VERSION, "service.endpoint": config.API_URL_ROOT})
 
     samplerate = "1.0" if config.OPENTELEMETRY_DEBUG else config.OTEL_SAMPLE_RATE
     provider = TracerProvider(resource=resource, sampler=ParentBased(TraceIdRatioBased(samplerate)))
