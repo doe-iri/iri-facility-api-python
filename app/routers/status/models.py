@@ -34,6 +34,9 @@ class Resource(NamedObject):
         """ Return the API path for this resource. """
         return f"/status/resources/{self.id}"
 
+    # NOTE (TBR): If site_id is required, then located_at_uri should be also required. This can be easily identified by Site.self_uri
+    # Is there a specific Resource, that has no Site?
+    site_id: str = Field(..., description="The site identifier this resource is located at")
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
     group: str | None
     current_status: Status | None = Field(default=None, description="The current status comes from the status of the last event for this resource")
@@ -49,7 +52,8 @@ class Resource(NamedObject):
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
 
     @classmethod
-    def find(cls, items, name=None, description=None, modified_since=None, group=None, resource_type=None, current_status=None, capability=None) -> list:
+    def find(cls, items, name=None, description=None, modified_since=None, group=None,
+             resource_type=None, current_status=None, capability=None, site_id=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
         if group:
             items = [item for item in items if item.group == group]
@@ -62,6 +66,8 @@ class Resource(NamedObject):
         if capability:
             items = [item for item in items
                      if any(cap_id in item.capability_ids for cap_id in capability)]
+        if site_id:
+            items = [item for item in items if item.site_id == site_id]
         return items
 
 class Event(NamedObject):

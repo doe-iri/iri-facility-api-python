@@ -24,7 +24,8 @@ class FacilityAdapter(ABC):
         modified_since : datetime.datetime | None = None,
         resource_type: status_models.ResourceType = Query(default=None),
         current_status: status_models.Status = Query(default=None),
-        capability: Capability | None = None
+        capability: Capability | None = None,
+        site_id: str | None = None
         ) -> list[status_models.Resource]:
         pass
 

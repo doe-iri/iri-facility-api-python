@@ -134,21 +134,30 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             "gpfs": Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
         }
 
-        pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
-            self.capabilities["cpu"].id,
-            self.capabilities["gpu"].id,
-        ], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.compute)
-        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
-        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
+        pm = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes",
+                                    capability_ids=[self.capabilities["cpu"].id, self.capabilities["gpu"].id,], current_status=status_models.Status.degraded,
+                                    last_modified=day_ago, resource_type=status_models.ResourceType.compute, located_at_uri=site1.self_uri)
 
-        self.resources = [
-            pm,
-            hpss,
-            cfs,
-            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.system),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_modified=day_ago, resource_type=status_models.ResourceType.website),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.service),
-        ]
+        hpss = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="hpss", name="hpss", description="hpss tape storage",
+                                      capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up,
+                                      last_modified=day_ago, resource_type=status_models.ResourceType.storage, located_at_uri=site1.self_uri)
+
+        cfs = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="cfs", name="cfs", description="cfs storage",
+                                     capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up,
+                                     last_modified=day_ago, resource_type=status_models.ResourceType.storage, located_at_uri=site1.self_uri)
+
+        login = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="perlmutter", name="login nodes", description="the perlmutter computer login nodes",
+                                       capability_ids=[], current_status=status_models.Status.degraded,
+                                       last_modified=day_ago, resource_type=status_models.ResourceType.system, located_at_uri=site2.self_uri)
+
+        iris = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="services", name="Iris", description="Iris webapp",
+                                      capability_ids=[], current_status=status_models.Status.down,
+                                      last_modified=day_ago, resource_type=status_models.ResourceType.website, located_at_uri=site2.self_uri)
+        sfapi = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="services", name="sfapi", description="the Superfacility API",
+                                       capability_ids=[], current_status=status_models.Status.up,
+                                       last_modified=day_ago, resource_type=status_models.ResourceType.service, located_at_uri=site2.self_uri)
+
+        self.resources = [pm, hpss, cfs, login, iris, sfapi]
 
         self.projects = [
             account_models.Project(
@@ -318,10 +327,11 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
         current_status : status_models.Status | None = None,
-        capability: Capability | None = None
+        capability: Capability | None = None,
+        site_id: str | None = None
         ) -> list[status_models.Resource]:
         resources = status_models.Resource.find(self.resources, name=name, description=description, group=group, modified_since=modified_since,
-                                                resource_type=resource_type, current_status=current_status, capability=capability)
+                                                resource_type=resource_type, current_status=current_status, capability=capability, site_id=site_id)
         return paginate_list(resources, offset, limit)
 
 

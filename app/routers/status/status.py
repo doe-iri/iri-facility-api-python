@@ -17,6 +17,7 @@ router = iri_router.IriRouter(
     description="Get a list of all resources at this facility. You can optionally filter the returned list by specifying attribtes.",
     responses=DEFAULT_RESPONSES,
     operation_id="getResources",
+    response_model_exclude_none=True
 )
 async def get_resources(
     request : Request,
