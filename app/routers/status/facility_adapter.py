@@ -1,8 +1,10 @@
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
+
 from fastapi import Query
+
+from ...types.models import Capability
 from . import models as status_models
-from ..common import Capability
 
 
 class FacilityAdapter(ABC):
@@ -25,6 +27,7 @@ class FacilityAdapter(ABC):
         resource_type: status_models.ResourceType = Query(default=None),
         current_status: status_models.Status = Query(default=None),
         capability: Capability | None = None,
+        site_id: str | None = None
         ) -> list[status_models.Resource]:
         pass
 
@@ -32,7 +35,7 @@ class FacilityAdapter(ABC):
     @abstractmethod
     async def get_resource(
         self : "FacilityAdapter",
-        id : str
+        id_ : str
         ) -> status_models.Resource:
         pass
 
@@ -49,8 +52,8 @@ class FacilityAdapter(ABC):
         status : status_models.Status | None = None,
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
-        time : datetime.datetime | None = None,
-        modified_since : datetime.datetime | None = None,
+        time_ : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None
         ) -> list[status_models.Event]:
         pass
 
@@ -59,7 +62,7 @@ class FacilityAdapter(ABC):
     async def get_event(
         self : "FacilityAdapter",
         incident_id : str,
-        id : str
+        id_ : str
         ) -> status_models.Event:
         pass
 
@@ -78,7 +81,7 @@ class FacilityAdapter(ABC):
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
-        resolution: status_models.Resolution | None = None,
+        resolution: status_models.Resolution | None = None
         ) -> list[status_models.Incident]:
         pass
 
@@ -86,6 +89,6 @@ class FacilityAdapter(ABC):
     @abstractmethod
     async def get_incident(
         self : "FacilityAdapter",
-        id : str
+        id_ : str
         ) -> status_models.Incident:
         pass

@@ -13,8 +13,8 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def get_facility(
         self: "FacilityAdapter",
-        modified_since: str | None = None,
-    ) -> facility_models.Facility | None:
+        modified_since: str | None = None
+        ) -> facility_models.Facility | None:
         pass
 
     @abstractmethod
@@ -24,8 +24,8 @@ class FacilityAdapter(AuthenticatedAdapter):
         name: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        short_name: str | None = None,
-    ) -> list[facility_models.Site]:
+        short_name: str | None = None
+        ) -> list[facility_models.Site]:
         pass
 
     @abstractmethod

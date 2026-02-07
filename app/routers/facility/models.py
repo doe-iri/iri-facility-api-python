@@ -1,8 +1,9 @@
 """Facility-related models."""
-from typing import Optional, List
-from pydantic import Field, HttpUrl
-from ..common import NamedObject
+from typing import List, Optional
 
+from pydantic import Field, HttpUrl
+
+from ...types.base import NamedObject
 
 
 class Site(NamedObject):
@@ -19,6 +20,16 @@ class Site(NamedObject):
     latitude: Optional[float] = Field(None, description="Latitude of the Location.")
     longitude: Optional[float] = Field(None, description="Longitude of the Location.")
     resource_uris: List[HttpUrl] = Field(default_factory=list, description="URIs of Resources hosted at this Site.")
+
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
+        """ Find Locations matching the given criteria. """
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
+        if short_name:
+            items = [item for item in items if item.short_name == short_name]
+        if country_name:
+            items = [item for item in items if item.country_name == country_name]
+        return items
 
 
 class Facility(NamedObject):
