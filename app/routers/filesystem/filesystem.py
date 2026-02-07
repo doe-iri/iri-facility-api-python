@@ -34,12 +34,12 @@ async def _user_resource(
         resource_id: str,
         request: Request,
     ) -> tuple[account_models.User, status_models.Resource]:
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
+    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id=resource_id)
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
     return (user, resource)
@@ -62,9 +62,9 @@ async def put_chmod(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="chmod",
             args={
@@ -91,9 +91,9 @@ async def put_chown(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="chown",
             args={
@@ -121,9 +121,9 @@ async def get_file(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="file",
             args={
@@ -151,9 +151,9 @@ async def get_stat(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="stat",
             args={
@@ -181,9 +181,9 @@ async def post_mkdir(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="mkdir",
             args={
@@ -211,9 +211,9 @@ async def post_symlink(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="symlink",
             args={
@@ -257,9 +257,9 @@ async def get_ls_async(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="ls",
             args={
@@ -325,9 +325,9 @@ async def get_head(
             detail="Exactly one of `bytes` or `lines` must be specified."
         )
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="head",
             args={
@@ -363,9 +363,9 @@ async def get_view(
     user, resource = await _user_resource(resource_id, request)
 
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="view",
             args={
@@ -422,9 +422,9 @@ async def get_tail(
             detail="Exactly one of `bytes` or `lines` must be specified."
         )
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="tail",
             args={
@@ -455,9 +455,9 @@ async def get_checksum(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="checksum",
             args={
@@ -481,9 +481,9 @@ async def delete_rm(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="rm",
             args={
@@ -510,9 +510,9 @@ async def post_compress(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="compress",
             args={
@@ -539,9 +539,9 @@ async def post_extract(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="extract",
             args={
@@ -568,9 +568,9 @@ async def move_mv(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="mv",
             args={
@@ -597,9 +597,9 @@ async def post_cp(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="cp",
             args={
@@ -625,9 +625,9 @@ async def get_download(
 ) -> str:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="download",
             args={
@@ -665,9 +665,9 @@ async def post_upload(
         )
 
     return await router.task_adapter.put_task(
-        user,
-        resource,
-        task_models.TaskCommand(
+        user=user,
+        resource=resource,
+        task=task_models.TaskCommand(
             router=router.get_router_name(),
             command="upload",
             args={

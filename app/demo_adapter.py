@@ -1,26 +1,43 @@
-import datetime
-import random
-import uuid
-import os
-import stat
-import pwd
-import grp
-import glob
-import subprocess
-import pathlib
 import base64
+import datetime
+import glob
+import grp
+import os
+import pathlib
+import pwd
+import random
+import stat
+import subprocess
+import uuid
 from typing import Any, Tuple
-from pydantic import BaseModel
+
 from fastapi import HTTPException
-from .routers.common import AllocationUnit, Capability
-from .routers.facility import models as facility_models, facility_adapter as facility_adapter
-from .routers.status import models as status_models, facility_adapter as status_adapter
-from .routers.account import models as account_models, facility_adapter as account_adapter
-from .routers.compute import models as compute_models, facility_adapter as compute_adapter
-from .routers.filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
-from .routers.task import models as task_models, facility_adapter as task_adapter
+from pydantic import BaseModel
+
+from .routers.account import facility_adapter as account_adapter
+from .routers.account import models as account_models
+from .routers.compute import facility_adapter as compute_adapter
+from .routers.compute import models as compute_models
+from .routers.facility import facility_adapter
+from .routers.facility import models as facility_models
+from .routers.filesystem import facility_adapter as filesystem_adapter
+from .routers.filesystem import models as filesystem_models
+from .routers.status import facility_adapter as status_adapter
+from .routers.status import models as status_models
+from .routers.task import facility_adapter as task_adapter
+from .routers.task import models as task_models
+from .types.models import Capability
+from .types.scalars import AllocationUnit
 
 DEMO_QUEUE_UPDATE_SECS = 5
+
+def paginate_list(items, offset: int | None, limit: int | None):
+    """Return a sliced items using offset and limit."""
+    if offset is not None and offset > 0:
+        items = items[offset:]
+    if limit is not None and limit >= 0:
+        items = items[:limit]
+    return items
 
 class PathSandbox:
     _base_temp_dir = None
@@ -126,21 +143,30 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
             "gpfs": Capability(id=str(uuid.uuid4()), name="GPFS Storage", units=[AllocationUnit.bytes, AllocationUnit.inodes]),
         }
 
-        pm = status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes", capability_ids=[
-            self.capabilities["cpu"].id,
-            self.capabilities["gpu"].id,
-        ], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.compute)
-        hpss = status_models.Resource(id=str(uuid.uuid4()), group="hpss", name="hpss", description="hpss tape storage", capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
-        cfs = status_models.Resource(id=str(uuid.uuid4()), group="cfs", name="cfs", description="cfs storage", capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.storage)
+        pm = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="perlmutter", name="compute nodes", description="the perlmutter computer compute nodes",
+                                    capability_ids=[self.capabilities["cpu"].id, self.capabilities["gpu"].id,], current_status=status_models.Status.degraded,
+                                    last_modified=day_ago, resource_type=status_models.ResourceType.compute, located_at_uri=site1.self_uri)
 
-        self.resources = [
-            pm,
-            hpss,
-            cfs,
-            status_models.Resource(id=str(uuid.uuid4()), group="perlmutter", name="login nodes", description="the perlmutter computer login nodes", capability_ids=[], current_status=status_models.Status.degraded, last_modified=day_ago, resource_type=status_models.ResourceType.system),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="Iris", description="Iris webapp", capability_ids=[], current_status=status_models.Status.down, last_modified=day_ago, resource_type=status_models.ResourceType.website),
-            status_models.Resource(id=str(uuid.uuid4()), group="services", name="sfapi", description="the Superfacility API", capability_ids=[], current_status=status_models.Status.up, last_modified=day_ago, resource_type=status_models.ResourceType.service),
-        ]
+        hpss = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="hpss", name="hpss", description="hpss tape storage",
+                                      capability_ids=[self.capabilities["hpss"].id], current_status=status_models.Status.up,
+                                      last_modified=day_ago, resource_type=status_models.ResourceType.storage, located_at_uri=site1.self_uri)
+
+        cfs = status_models.Resource(id=str(uuid.uuid4()), site_id=site1.id, group="cfs", name="cfs", description="cfs storage",
+                                     capability_ids=[self.capabilities["gpfs"].id], current_status=status_models.Status.up,
+                                     last_modified=day_ago, resource_type=status_models.ResourceType.storage, located_at_uri=site1.self_uri)
+
+        login = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="perlmutter", name="login nodes", description="the perlmutter computer login nodes",
+                                       capability_ids=[], current_status=status_models.Status.degraded,
+                                       last_modified=day_ago, resource_type=status_models.ResourceType.system, located_at_uri=site2.self_uri)
+
+        iris = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="services", name="Iris", description="Iris webapp",
+                                      capability_ids=[], current_status=status_models.Status.down,
+                                      last_modified=day_ago, resource_type=status_models.ResourceType.website, located_at_uri=site2.self_uri)
+        sfapi = status_models.Resource(id=str(uuid.uuid4()), site_id=site2.id, group="services", name="sfapi", description="the Superfacility API",
+                                       capability_ids=[], current_status=status_models.Status.up,
+                                       last_modified=day_ago, resource_type=status_models.ResourceType.service, located_at_uri=site2.self_uri)
+
+        self.resources = [pm, hpss, cfs, login, iris, sfapi]
 
         self.projects = [
             account_models.Project(
@@ -249,8 +275,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_facility(
         self: "DemoAdapter",
-        modified_since: str | None = None,
-    ) -> facility_models.Facility:
+        modified_since: str | None = None
+        ) -> facility_models.Facility:
         return self.facility
 
 
@@ -260,9 +286,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         name: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        short_name: str | None = None,
-    ) -> list[facility_models.Site]:
-
+        short_name: str | None = None
+        ) -> list[facility_models.Site]:
         sites = self.sites
 
         if name:
@@ -283,9 +308,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_site(
         self: "DemoAdapter",
         site_id: str,
-        modified_since: str | None = None,
-    ) -> facility_models.Site:
-
+        modified_since: str | None = None
+        ) -> facility_models.Site:
         site = next((s for s in self.sites if s.id == site_id), None)
         if not site:
             raise HTTPException(status_code=404, detail="Site not found")
@@ -312,17 +336,19 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         modified_since : datetime.datetime | None = None,
         resource_type : status_models.ResourceType | None = None,
         current_status : status_models.Status | None = None,
-        capability: Capability | None = None
+        capability: Capability | None = None,
+        site_id: str | None = None
         ) -> list[status_models.Resource]:
-        return status_models.Resource.find(self.resources, name, description, group, modified_since, resource_type)[offset:offset + limit]
+        resources = status_models.Resource.find(self.resources, name=name, description=description, group=group, modified_since=modified_since,
+                                                resource_type=resource_type, current_status=current_status, capability=capability, site_id=site_id)
+        return paginate_list(resources, offset, limit)
 
 
     async def get_resource(
         self : "DemoAdapter",
-        id : str
+        id_ : str
         ) -> status_models.Resource:
-        return status_models.Resource.find_by_id(self.resources, id)
-
+        return status_models.Resource.find_by_id(self.resources, id_)
 
     async def get_events(
         self : "DemoAdapter",
@@ -336,17 +362,19 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
-        modified_since : datetime.datetime | None = None,
+        modified_since : datetime.datetime | None = None
         ) -> list[status_models.Event]:
-        return status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id, name, description, status, from_, to, time_, modified_since)[offset:offset + limit]
+        events = status_models.Event.find([e for e in self.events if e.incident_id == incident_id], resource_id=resource_id, name=name, description=description,
+                                          status=status, from_=from_, to=to, time_=time_, modified_since=modified_since)
+        return paginate_list(events, offset, limit)
 
 
     async def get_event(
         self : "DemoAdapter",
         incident_id : str,
-        id : str
+        id_ : str
         ) -> status_models.Event:
-        return status_models.Event.find_by_id(self.events, id)
+        return status_models.Event.find_by_id(self.events, id_)
 
 
     async def get_incidents(
@@ -356,26 +384,32 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         name : str | None = None,
         description : str | None = None,
         status : status_models.Status | None = None,
-        type : status_models.IncidentType | None = None,
+        type_ : status_models.IncidentType | None = None,
         from_ : datetime.datetime | None = None,
         to : datetime.datetime | None = None,
         time_ : datetime.datetime | None = None,
         modified_since : datetime.datetime | None = None,
         resource_id : str | None = None,
-        resolution: status_models.Resolution | None = None,
+        resolution: status_models.Resolution | None = None
         ) -> list[status_models.Incident]:
-        return status_models.Incident.find(self.incidents, name, description, status, type, from_, to, time_, modified_since, resource_id)[offset:offset + limit]
+        incidents = status_models.Incident.find(self.incidents, name=name, description=description, status=status, type_=type_,from_=from_, to=to,
+                                                time_=time_, modified_since=modified_since, resource_id=resource_id, resolution=resolution)
+        return paginate_list(incidents, offset, limit)
 
 
     async def get_incident(
         self : "DemoAdapter",
-        id : str
+        id_ : str
         ) -> status_models.Incident:
-        return status_models.Incident.find_by_id(self.incidents, id)
+        return status_models.Incident.find_by_id(self.incidents, id_)
 
 
     async def get_capabilities(
         self : "DemoAdapter",
+        name : str | None = None,
+        modified_since : str | None = None,
+        offset : int = 0,
+        limit : int = 1000
         ) -> list[Capability]:
         return self.capabilities.values()
 
@@ -415,7 +449,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_project_allocations(
         self : "DemoAdapter",
         project: account_models.Project,
-        user: account_models.User
+        user: account_models.User,
         ) -> list[account_models.ProjectAllocation]:
         return [pa for pa in self.project_allocations if pa.project_id == project.id]
 
@@ -614,7 +648,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PutFileChownRequest
+        request_model: filesystem_models.PutFileChownRequest,
     ) -> filesystem_models.PutFileChownResponse:
         rp = self.validate_path(request_model.path)
         os.chown(rp, request_model.owner, request_model.group)
@@ -684,7 +718,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         path: str,
         file_bytes: int | None,
         lines: int | None,
-        skip_trailing: bool,
+        skip_trailing: bool
     ) -> Tuple[Any, int]:
         return self._headtail("tail", path, file_bytes, lines)
 
@@ -695,8 +729,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         user: account_models.User,
         path: str,
         size: int,
-        offset: int,
-    ) -> filesystem_models.GetViewFileResponse:
+        offset: int
+        ) -> filesystem_models.GetViewFileResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
             f"tail -c +{offset+1} {rp} | head -c {size}",
@@ -714,8 +748,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
-    ) -> filesystem_models.GetFileChecksumResponse:
+        path: str
+        ) -> filesystem_models.GetFileChecksumResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
             ["sha256sum", rp],
@@ -734,7 +768,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
+        path: str
     ) -> filesystem_models.GetFileTypeResponse:
         rp = self.validate_path(path)
         result = subprocess.run(
@@ -752,7 +786,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
-        dereference: bool,
+        dereference: bool
     ) -> filesystem_models.GetFileStatResponse:
         rp = self.validate_path(path)
         if dereference:
@@ -792,8 +826,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostMakeDirRequest,
-    ) -> filesystem_models.PostMkdirResponse:
+        request_model: filesystem_models.PostMakeDirRequest
+        ) -> filesystem_models.PostMkdirResponse:
         rp = self.validate_path(request_model.path)
         args = ["mkdir"]
         if request_model.parent:
@@ -809,7 +843,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostFileSymlinkRequest,
+        request_model: filesystem_models.PostFileSymlinkRequest
     ) -> filesystem_models.PostFileSymlinkResponse:
         rp_src = self.validate_path(request_model.path)
         rp_dst = self.validate_path(request_model.link_path)
@@ -823,7 +857,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        path: str,
+        path: str
     ) -> Any:
         rp = self.validate_path(path)
         raw_content = pathlib.Path(rp).read_bytes()
@@ -839,7 +873,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         resource: status_models.Resource,
         user: account_models.User,
         path: str,
-        content: str,
+        content: str
     ) -> None:
         rp = self.validate_path(path)
         if isinstance(content, bytes):
@@ -854,8 +888,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostCompressRequest,
-    ) -> filesystem_models.PostCompressResponse:
+        request_model: filesystem_models.PostCompressRequest
+        ) -> filesystem_models.PostCompressResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
 
@@ -887,8 +921,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostExtractRequest,
-    ) -> filesystem_models.PostExtractResponse:
+        request_model: filesystem_models.PostExtractRequest
+        ) -> filesystem_models.PostExtractResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
 
@@ -915,8 +949,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostMoveRequest,
-    ) -> filesystem_models.PostMoveResponse:
+        request_model: filesystem_models.PostMoveRequest
+        ) -> filesystem_models.PostMoveResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
         subprocess.run(["mv", src_rp, dst_rp], check=True)
@@ -929,8 +963,8 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self : "DemoAdapter",
         resource: status_models.Resource,
         user: account_models.User,
-        request_model: filesystem_models.PostCopyRequest,
-    ) -> filesystem_models.PostCopyResponse:
+        request_model: filesystem_models.PostCopyRequest
+        ) -> filesystem_models.PostCopyResponse:
         src_rp = self.validate_path(request_model.path)
         dst_rp = self.validate_path(request_model.target_path)
         args = ["cp"]
@@ -947,7 +981,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
     async def get_task(
         self : "DemoAdapter",
         user: account_models.User,
-        task_id: str,
+        task_id: str
         ) -> task_models.Task|None:
         await DemoTaskQueue._process_tasks(self)
         return next((t for t in DemoTaskQueue.tasks if t.user.name == user.name and t.id == task_id), None)
@@ -955,7 +989,7 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
 
     async def get_tasks(
         self : "DemoAdapter",
-        user: account_models.User,
+        user: account_models.User
         ) -> list[task_models.Task]:
         await DemoTaskQueue._process_tasks(self)
         return [t for t in DemoTaskQueue.tasks if t.user.name == user.name]
@@ -965,15 +999,14 @@ class DemoAdapter(status_adapter.FacilityAdapter, account_adapter.FacilityAdapte
         self: "DemoAdapter",
         user: account_models.User,
         resource: status_models.Resource,
-        body: str
-    ) -> str:
+        task: str) -> str:
         await DemoTaskQueue._process_tasks(self)
-        return DemoTaskQueue._create_task(user, resource, body)
+        return DemoTaskQueue._create_task(user, resource, task)
 
 
 class DemoTask(BaseModel):
     id: str
-    body: str
+    task: str
     resource: status_models.Resource
     user: account_models.User
     start: float
@@ -996,7 +1029,7 @@ class DemoTaskQueue:
                 t.status = task_models.TaskStatus.active
                 t.start = now
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
-                cmd = task_models.TaskCommand.model_validate_json(t.body)
+                cmd = task_models.TaskCommand.model_validate_json(t.task)
                 (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd)
                 t.result = result
                 t.status = status
@@ -1007,5 +1040,5 @@ class DemoTaskQueue:
     @staticmethod
     def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> str:
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
-        DemoTaskQueue.tasks.append(DemoTask(id=task_id, body=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
+        DemoTaskQueue.tasks.append(DemoTask(id=task_id, task=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
         return task_id

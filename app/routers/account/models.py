@@ -1,6 +1,8 @@
-from pydantic import computed_field, Field
+from pydantic import Field, computed_field
+
 from ... import config
-from ..common import IRIBaseModel, AllocationUnit
+from ...types.base import IRIBaseModel
+from ...types.scalars import AllocationUnit
 
 
 class User(IRIBaseModel):

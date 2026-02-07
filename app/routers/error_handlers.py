@@ -3,7 +3,7 @@
 Default problem schema and example responses for various HTTP status codes.
 """
 import logging
-from urllib.parse import unquote
+from urllib.parse import urlsplit, urlunsplit, quote
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -16,12 +16,36 @@ def get_url_base(request: Request) -> str:
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     return f"{proto}://{host}/problems"
 
+def safe_instance_url(request: Request) -> str:
+    """Return a URL-safe version of the request URL for the 'instance' field."""
+    parts = urlsplit(str(request.url))
+
+    # Encode unsafe characters in each component
+    safe_path = quote(parts.path, safe="/:@&+$,;=-._~")
+    safe_query = quote(parts.query, safe="=&?/:@+$,;=-._~")
+    safe_fragment = quote(parts.fragment, safe="=&?/:@+$,;=-._~")
+
+    return urlunsplit((parts.scheme, parts.netloc, safe_path, safe_query, safe_fragment))
+
 def problem_response(*, request: Request, status: int,
-                     title: str, detail: str, problem_type: str,
+                     title, detail, problem_type: str,
                      invalid_params=None, extra_headers=None):
     """Return a JSON problem response with the given status, title, and detail."""
-    instance = unquote(str(request.url))
+    instance = safe_instance_url(request)
     url_base = get_url_base(request)
+
+    # Normalize title and detail to strings (Official spec says they must be strings)
+    # but fastapi validation errors may provide lists/dicts
+    if not isinstance(title, str):
+        title = "Error"
+
+    if not isinstance(detail, str):
+        if isinstance(detail, list):
+            detail = ", ".join(err.get("msg", str(err)) if isinstance(err, dict) else str(err)
+                               for err in detail)
+        else:
+            detail = str(detail)
+
     body = {
         "type": f"{url_base}/{problem_type}",
         "title": title,
@@ -34,7 +58,13 @@ def problem_response(*, request: Request, status: int,
         body["invalid_params"] = invalid_params
 
     headers = extra_headers or {}
-    return JSONResponse(status_code=status, content=body, headers=headers)
+    return JSONResponse(
+        status_code=status,
+        content=body,
+        headers=headers,
+        media_type="application/problem+json"
+    )
+
 
 
 def install_error_handlers(app: FastAPI):
@@ -45,8 +75,7 @@ def install_error_handlers(app: FastAPI):
         invalid_params = []
 
         for err in exc.errors():
-            loc = err.get("loc", [])
-            name = loc[-1] if loc else "unknown"
+            name = str((err.get("loc") or ["unknown"])[-1])
             reason = err.get("msg", "Invalid parameter")
             invalid_params.append({"name": name, "reason": reason})
 

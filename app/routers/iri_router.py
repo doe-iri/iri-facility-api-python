@@ -102,7 +102,7 @@ class AuthenticatedAdapter(ABC):
     async def get_current_user(
         self : "AuthenticatedAdapter",
         api_key: str,
-        client_ip: str|None,
+        client_ip: str|None
         ) -> str:
         """
             Decode the api_key and return the authenticated user's id.
@@ -117,7 +117,7 @@ class AuthenticatedAdapter(ABC):
         self : "AuthenticatedAdapter",
         user_id: str,
         api_key: str,
-        client_ip: str|None,
+        client_ip: str|None
         ) -> User:
         """
             Retrieve additional user information (name, email, etc.) for the given user_id.
