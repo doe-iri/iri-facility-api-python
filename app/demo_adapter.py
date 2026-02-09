@@ -103,7 +103,7 @@ class DemoAdapter(
             state_or_province_name="DC",
             latitude=36.173357,
             longitude=-234.51452,
-            resource_uris=[],
+            resource_ids=[],
         )
 
         site2 = facility_models.Site(
@@ -118,7 +118,7 @@ class DemoAdapter(
             state_or_province_name="ET",
             latitude=38.410558,
             longitude=-286.36999,
-            resource_uris=[],
+            resource_ids=[],
         )
 
         self.facility = facility_models.Facility(
@@ -129,7 +129,7 @@ class DemoAdapter(
             short_name="DEMO",
             organization_name="Demo Organization",
             support_uri="https://support.demo.example",
-            site_uris=[site1.self_uri, site2.self_uri],
+            site_ids=[site1.id, site2.id],
         )
 
         self.sites = [site1, site2]
@@ -155,7 +155,6 @@ class DemoAdapter(
             current_status=status_models.Status.degraded,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.compute,
-            located_at_uri=site1.self_uri,
         )
 
         hpss = status_models.Resource(
@@ -168,7 +167,6 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
-            located_at_uri=site1.self_uri,
         )
 
         cfs = status_models.Resource(
@@ -181,7 +179,6 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
-            located_at_uri=site1.self_uri,
         )
 
         login = status_models.Resource(
@@ -194,7 +191,6 @@ class DemoAdapter(
             current_status=status_models.Status.degraded,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.system,
-            located_at_uri=site2.self_uri,
         )
 
         iris = status_models.Resource(
@@ -207,7 +203,6 @@ class DemoAdapter(
             current_status=status_models.Status.down,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.website,
-            located_at_uri=site2.self_uri,
         )
         sfapi = status_models.Resource(
             id=str(uuid.uuid4()),
@@ -219,10 +214,13 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.service,
-            located_at_uri=site2.self_uri,
         )
 
         self.resources = [pm, hpss, cfs, login, iris, sfapi]
+
+        # Populate site resource_ids based on which resources are at each site
+        site1.resource_ids = [r.id for r in self.resources if r.site_id == site1.id]
+        site2.resource_ids = [r.id for r in self.resources if r.site_id == site2.id]
 
         self.projects = [
             account_models.Project(

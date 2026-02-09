@@ -1,8 +1,7 @@
 import datetime
 import enum
-from typing import Optional
 
-from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from ... import config
 from ...types.base import NamedObject
@@ -35,14 +34,17 @@ class Resource(NamedObject):
         """Return the API path for this resource."""
         return f"/status/resources/{self.id}"
 
-    # NOTE (TBR): If site_id is required, then located_at_uri should be also required. This can be easily identified by Site.self_uri
-    # Is there a specific Resource, that has no Site?
-    site_id: str = Field(..., description="The site identifier this resource is located at")
+    site_id: str = Field(..., description="The site identifier this resource is located at", exclude=True)
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
     group: str | None
     current_status: Status | None = Field(default=None, description="The current status comes from the status of the last event for this resource")
     resource_type: ResourceType
-    located_at_uri: Optional[HttpUrl] = Field(None, description="Resource located at specific Site")
+
+    @computed_field(description="URI of the site where this resource is located")
+    @property
+    def site_uri(self) -> str:
+        """Return the site URI for this resource."""
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/facility/sites/{self.site_id}"
 
     @computed_field(description="The list of capabilities in this resource")
     @property
