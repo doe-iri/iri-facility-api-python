@@ -26,192 +26,87 @@ class FacilityAdapter(AuthenticatedAdapter):
 
     @abstractmethod
     async def chmod(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PutFileChmodRequest
-        ) -> filesystem_models.PutFileChmodResponse:
+        self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PutFileChmodRequest
+    ) -> filesystem_models.PutFileChmodResponse:
         pass
-
 
     @abstractmethod
     async def chown(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PutFileChownRequest
-        ) -> filesystem_models.PutFileChownResponse:
+        self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PutFileChownRequest
+    ) -> filesystem_models.PutFileChownResponse:
         pass
-
 
     @abstractmethod
     async def ls(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        show_hidden: bool,
-        numeric_uid: bool,
-        recursive: bool,
-        dereference: bool
+        self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, show_hidden: bool, numeric_uid: bool, recursive: bool, dereference: bool
     ) -> filesystem_models.GetDirectoryLsResponse:
         pass
 
-
     @abstractmethod
-    async def head(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        file_bytes: int,
-        lines: int,
-        skip_trailing: bool
-    ) -> Tuple[Any, int]:
+    async def head(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int, lines: int, skip_trailing: bool) -> Tuple[Any, int]:
         pass
 
-
     @abstractmethod
-    async def tail(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        file_bytes: int | None,
-        lines: int | None,
-        skip_trailing: bool
-        ) -> Tuple[Any, int]:
+    async def tail(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int | None, lines: int | None, skip_trailing: bool) -> Tuple[Any, int]:
         pass
 
-
     @abstractmethod
-    async def view(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        size: int,
-        offset: int
-        ) -> filesystem_models.GetViewFileResponse:
+    async def view(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, size: int, offset: int) -> filesystem_models.GetViewFileResponse:
         pass
 
-
     @abstractmethod
-    async def checksum(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str
-        ) -> filesystem_models.GetFileChecksumResponse:
+    async def checksum(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileChecksumResponse:
         pass
 
-
     @abstractmethod
-    async def file(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str
-        ) -> filesystem_models.GetFileTypeResponse:
+    async def file(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileTypeResponse:
         pass
 
-
     @abstractmethod
-    async def stat(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        dereference: bool
-        ) -> filesystem_models.GetFileStatResponse:
+    async def stat(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, dereference: bool) -> filesystem_models.GetFileStatResponse:
         pass
 
-
     @abstractmethod
-    async def rm(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str):
+    async def rm(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str):
         pass
 
-
     @abstractmethod
-    async def mkdir(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PostMakeDirRequest
-        ) -> filesystem_models.PostMkdirResponse:
+    async def mkdir(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostMakeDirRequest) -> filesystem_models.PostMkdirResponse:
         pass
-
 
     @abstractmethod
     async def symlink(
-        self : "FacilityAdapter",
+        self: "FacilityAdapter",
         resource: status_models.Resource,
         user: account_models.User,
         request_model: filesystem_models.PostFileSymlinkRequest,
-        ) -> filesystem_models.PostFileSymlinkResponse:
+    ) -> filesystem_models.PostFileSymlinkResponse:
         pass
-
 
     @abstractmethod
-    async def download(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str
-        ) -> Any:
+    async def download(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> Any:
         pass
-
 
     @abstractmethod
-    async def upload(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        path: str,
-        content: str
-        ) -> None:
+    async def upload(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, content: str) -> None:
         pass
-
 
     @abstractmethod
     async def compress(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PostCompressRequest
-        ) -> filesystem_models.PostCompressResponse:
+        self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostCompressRequest
+    ) -> filesystem_models.PostCompressResponse:
         pass
-
 
     @abstractmethod
     async def extract(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PostExtractRequest
-        ) -> filesystem_models.PostExtractResponse:
+        self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostExtractRequest
+    ) -> filesystem_models.PostExtractResponse:
         pass
 
-
     @abstractmethod
-    async def mv(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PostMoveRequest
-        ) -> filesystem_models.PostMoveResponse:
+    async def mv(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostMoveRequest) -> filesystem_models.PostMoveResponse:
         pass
 
-
     @abstractmethod
-    async def cp(
-        self : "FacilityAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        request_model: filesystem_models.PostCopyRequest
-        ) -> filesystem_models.PostCopyResponse:
+    async def cp(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostCopyRequest) -> filesystem_models.PostCopyResponse:
         pass

@@ -10,19 +10,21 @@ class ResourceSpec(IRIBaseModel):
     """
     Specification of computational resources required for a job.
     """
+
     node_count: Annotated[int | None, Field(ge=1, description="Number of compute nodes to allocate")] = None
     process_count: Annotated[int | None, Field(ge=1, description="Total number of processes to launch")] = None
     processes_per_node: Annotated[int | None, Field(ge=1, description="Number of processes to launch per node")] = None
     cpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of CPU cores to allocate per process")] = None
     gpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of GPU cores to allocate per process")] = None
     exclusive_node_use: Annotated[StrictBool, Field(description="Whether to request exclusive use of allocated nodes")] = True
-    memory: Annotated[int | None, Field(ge=1,description="Amount of memory to allocate in bytes")] = None
+    memory: Annotated[int | None, Field(ge=1, description="Amount of memory to allocate in bytes")] = None
 
 
 class JobAttributes(IRIBaseModel):
     """
     Additional attributes and scheduling parameters for a job.
     """
+
     duration: Annotated[int | None, Field(description="Duration in seconds", ge=1, examples=[30, 60, 120])] = None
     queue_name: Annotated[str | None, Field(min_length=1, description="Name of the queue or partition to submit the job to")] = None
     account: Annotated[str | None, Field(min_length=1, description="Account or project to charge for resource usage")] = None
@@ -34,9 +36,11 @@ class VolumeMount(IRIBaseModel):
     """
     Represents a volume mount for a container.
     """
+
     source: Annotated[str, Field(min_length=1, description="The source path on the host system to mount")]
     target: Annotated[str, Field(min_length=1, description="The target path inside the container where the volume will be mounted")]
     read_only: Annotated[StrictBool, Field(description="Whether the mount should be read-only")] = True
+
 
 class Container(IRIBaseModel):
     """
@@ -47,6 +51,7 @@ class Container(IRIBaseModel):
     to determine if the container should be run with MPI support. The container should by default. be run with
     host networking.
     """
+
     image: Annotated[str, Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')")]
     volume_mounts: Annotated[list[VolumeMount], Field(description="List of volume mounts for the container")] = []
 
@@ -55,6 +60,7 @@ class JobSpec(IRIBaseModel):
     """
     Specification for job.
     """
+
     model_config = ConfigDict(extra="forbid")
     executable: Annotated[str | None, Field(min_length=1, description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.")] = None
     container: Annotated[Container | None, Field(description="Container specification for containerized execution")] = None
@@ -74,8 +80,8 @@ class JobSpec(IRIBaseModel):
 
 
 class CommandResult(IRIBaseModel):
-    status : str
-    result : str | None = None
+    status: str
+    result: str | None = None
 
 
 class JobState(IntEnum):
@@ -114,18 +120,18 @@ class JobState(IntEnum):
 
 
 class JobStatus(IRIBaseModel):
-    state : JobState
-    time : float | None = None
-    message : str | None = None
-    exit_code : int | None = None
-    meta_data : dict[str, object] | None = None
+    state: JobState
+    time: float | None = None
+    message: str | None = None
+    exit_code: int | None = None
+    meta_data: dict[str, object] | None = None
 
-    @field_serializer('state')
+    @field_serializer("state")
     def serialize_state(self, state: JobState):
         return state.name
 
 
 class Job(IRIBaseModel):
-    id : str
-    status : JobStatus | None = None
-    job_spec : JobSpec | None = None
+    id: str
+    status: JobStatus | None = None
+    job_spec: JobSpec | None = None

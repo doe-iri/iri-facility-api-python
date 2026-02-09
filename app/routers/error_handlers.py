@@ -2,6 +2,7 @@
 """
 Default problem schema and example responses for various HTTP status codes.
 """
+
 import logging
 from urllib.parse import urlsplit, urlunsplit, quote
 from fastapi import FastAPI, HTTPException, Request
@@ -9,12 +10,14 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+
 def get_url_base(request: Request) -> str:
     """Return the base URL for the API."""
     # If behind a proxy (and x-forwarded-* headers present), use the forwarded host and protocol
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     return f"{proto}://{host}/problems"
+
 
 def safe_instance_url(request: Request) -> str:
     """Return a URL-safe version of the request URL for the 'instance' field."""
@@ -27,9 +30,8 @@ def safe_instance_url(request: Request) -> str:
 
     return urlunsplit((parts.scheme, parts.netloc, safe_path, safe_query, safe_fragment))
 
-def problem_response(*, request: Request, status: int,
-                     title, detail, problem_type: str,
-                     invalid_params=None, extra_headers=None):
+
+def problem_response(*, request: Request, status: int, title, detail, problem_type: str, invalid_params=None, extra_headers=None):
     """Return a JSON problem response with the given status, title, and detail."""
     instance = safe_instance_url(request)
     url_base = get_url_base(request)
@@ -41,8 +43,7 @@ def problem_response(*, request: Request, status: int,
 
     if not isinstance(detail, str):
         if isinstance(detail, list):
-            detail = ", ".join(err.get("msg", str(err)) if isinstance(err, dict) else str(err)
-                               for err in detail)
+            detail = ", ".join(err.get("msg", str(err)) if isinstance(err, dict) else str(err) for err in detail)
         else:
             detail = str(detail)
 
@@ -58,17 +59,12 @@ def problem_response(*, request: Request, status: int,
         body["invalid_params"] = invalid_params
 
     headers = extra_headers or {}
-    return JSONResponse(
-        status_code=status,
-        content=body,
-        headers=headers,
-        media_type="application/problem+json"
-    )
-
+    return JSONResponse(status_code=status, content=body, headers=headers, media_type="application/problem+json")
 
 
 def install_error_handlers(app: FastAPI):
     """Install custom error handlers for the FastAPI app."""
+
     # 400 — VALIDATION ERRORS
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
@@ -95,10 +91,7 @@ def install_error_handlers(app: FastAPI):
     async def http_exception_handler(request: Request, exc: HTTPException):
 
         if exc.status_code == 304:
-            return JSONResponse(
-                status_code=304,
-                content=None,
-                headers=exc.headers or {})
+            return JSONResponse(status_code=304, content=None, headers=exc.headers or {})
 
         if exc.status_code == 401:
             return problem_response(
@@ -229,25 +222,17 @@ EXAMPLE_400 = {
     "status": 400,
     "detail": "modified_since must be in ISO 8601 format.",
     "instance": "/api/v1/status/resources?modified_since=BADVALUE",
-    "invalid_params": [
-        {"name": "modified_since", "reason": "Invalid datetime format"}
-    ]
+    "invalid_params": [{"name": "modified_since", "reason": "Invalid datetime format"}],
 }
 
-EXAMPLE_401 = {
-    "type": "https://iri.example.com/problems/unauthorized",
-    "title": "Unauthorized",
-    "status": 401,
-    "detail": "Bearer token is missing or invalid.",
-    "instance": "/api/v1/status/resources"
-}
+EXAMPLE_401 = {"type": "https://iri.example.com/problems/unauthorized", "title": "Unauthorized", "status": 401, "detail": "Bearer token is missing or invalid.", "instance": "/api/v1/status/resources"}
 
 EXAMPLE_403 = {
     "type": "https://iri.example.com/problems/forbidden",
     "title": "Forbidden",
     "status": 403,
     "detail": "Caller is authenticated but lacks required role.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 EXAMPLE_404 = {
@@ -255,7 +240,7 @@ EXAMPLE_404 = {
     "title": "Not Found",
     "status": 404,
     "detail": "The resource ID 'abc123' does not exist.",
-    "instance": "/api/v1/status/resources/abc123"
+    "instance": "/api/v1/status/resources/abc123",
 }
 
 EXAMPLE_405 = {
@@ -263,7 +248,7 @@ EXAMPLE_405 = {
     "title": "Method Not Allowed",
     "status": 405,
     "detail": "HTTP method TRACE is not allowed for this endpoint.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 EXAMPLE_409 = {
@@ -271,7 +256,7 @@ EXAMPLE_409 = {
     "title": "Conflict",
     "status": 409,
     "detail": "A job with this ID already exists.",
-    "instance": "/api/v1/compute/job/perlmutter/123"
+    "instance": "/api/v1/compute/job/perlmutter/123",
 }
 
 EXAMPLE_422 = {
@@ -280,9 +265,7 @@ EXAMPLE_422 = {
     "status": 422,
     "detail": "The PSIJ JobSpec is syntactically correct but invalid.",
     "instance": "/api/v1/compute/job/perlmutter",
-    "invalid_params": [
-        {"name": "job_spec.executable", "reason": "Executable must be provided"}
-    ]
+    "invalid_params": [{"name": "job_spec.executable", "reason": "Executable must be provided"}],
 }
 
 EXAMPLE_500 = {
@@ -290,7 +273,7 @@ EXAMPLE_500 = {
     "title": "Internal Server Error",
     "status": 500,
     "detail": "An unexpected error occurred.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 EXAMPLE_501 = {
@@ -298,7 +281,7 @@ EXAMPLE_501 = {
     "title": "Not Implemented",
     "status": 501,
     "detail": "This functionality is not implemented.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 EXAMPLE_503 = {
@@ -306,7 +289,7 @@ EXAMPLE_503 = {
     "title": "Service Unavailable",
     "status": 503,
     "detail": "The service is temporarily unavailable.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 EXAMPLE_504 = {
@@ -314,7 +297,7 @@ EXAMPLE_504 = {
     "title": "Gateway Timeout",
     "status": 504,
     "detail": "The server did not receive a timely response.",
-    "instance": "/api/v1/status/resources"
+    "instance": "/api/v1/status/resources",
 }
 
 DEFAULT_RESPONSES = {
@@ -327,7 +310,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     401: {
         "description": "Unauthorized",
         "headers": {
@@ -343,7 +325,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     403: {
         "description": "Forbidden",
         "content": {
@@ -353,7 +334,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     404: {
         "description": "Not Found",
         "content": {
@@ -363,7 +343,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     405: {
         "description": "Method Not Allowed",
         "headers": {
@@ -379,7 +358,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     409: {
         "description": "Conflict",
         "content": {
@@ -389,7 +367,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     422: {
         "description": "Unprocessable Entity",
         "content": {
@@ -399,7 +376,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     500: {
         "description": "Internal Server Error",
         "content": {
@@ -409,7 +385,6 @@ DEFAULT_RESPONSES = {
             }
         },
     },
-
     501: {
         "description": "Not Implemented",
         "content": {
@@ -417,9 +392,8 @@ DEFAULT_RESPONSES = {
                 "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_501,
             }
-        }
+        },
     },
-
     503: {
         "description": "Service Unavailable",
         "content": {
@@ -427,9 +401,8 @@ DEFAULT_RESPONSES = {
                 "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_503,
             }
-        }
+        },
     },
-
     504: {
         "description": "Gateway Timeout",
         "content": {
@@ -437,8 +410,7 @@ DEFAULT_RESPONSES = {
                 "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_504,
             }
-        }
+        },
     },
-
     304: {"description": "Not Modified"},
 }

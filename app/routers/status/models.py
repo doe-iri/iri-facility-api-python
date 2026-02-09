@@ -9,8 +9,8 @@ from ...types.base import NamedObject
 
 
 class Link(BaseModel):
-    rel : str
-    href : str
+    rel: str
+    href: str
 
 
 class Status(enum.Enum):
@@ -31,9 +31,8 @@ class ResourceType(enum.Enum):
 
 
 class Resource(NamedObject):
-
     def _self_path(self) -> str:
-        """ Return the API path for this resource. """
+        """Return the API path for this resource."""
         return f"/status/resources/{self.id}"
 
     # NOTE (TBR): If site_id is required, then located_at_uri should be also required. This can be easily identified by Site.self_uri
@@ -45,17 +44,14 @@ class Resource(NamedObject):
     resource_type: ResourceType
     located_at_uri: Optional[HttpUrl] = Field(None, description="Resource located at specific Site")
 
-
-
     @computed_field(description="The list of capabilities in this resource")
     @property
     def capability_uris(self) -> list[str]:
-        """ Return the list of capability URIs for this resource. """
+        """Return the list of capability URIs for this resource."""
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
 
     @classmethod
-    def find(cls, items, name=None, description=None, modified_since=None, group=None,
-             resource_type=None, current_status=None, capability=None, site_id=None) -> list:
+    def find(cls, items, name=None, description=None, modified_since=None, group=None, resource_type=None, current_status=None, capability=None, site_id=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
         if group:
             items = [item for item in items if item.group == group]
@@ -66,16 +62,15 @@ class Resource(NamedObject):
         if current_status:
             items = [item for item in items if item.current_status == current_status]
         if capability:
-            items = [item for item in items
-                     if any(cap_id in item.capability_ids for cap_id in capability)]
+            items = [item for item in items if any(cap_id in item.capability_ids for cap_id in capability)]
         if site_id:
             items = [item for item in items if item.site_id == site_id]
         return items
 
-class Event(NamedObject):
 
+class Event(NamedObject):
     def _self_path(self) -> str:
-        """ Return the API path for this event. """
+        """Return the API path for this event."""
         return f"/status/incidents/{self.incident_id}/events/{self.id}"
 
     @field_validator("occurred_at", mode="before")
@@ -83,27 +78,25 @@ class Event(NamedObject):
     def _norm_dt_field(cls, v):
         return cls.normalize_dt(v)
 
-    occurred_at : datetime.datetime
-    status : Status
-    resource_id : str = Field(exclude=True)
-    incident_id : str | None = Field(exclude=True, default=None)
+    occurred_at: datetime.datetime
+    status: Status
+    resource_id: str = Field(exclude=True)
+    incident_id: str | None = Field(exclude=True, default=None)
 
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
-        """ Return the resource URI for this event. """
+        """Return the resource URI for this event."""
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.resource_id}"
 
     @computed_field(description="The event's incident")
     @property
-    def incident_uri(self) -> str|None:
-        """ Return the incident URI for this event. """
+    def incident_uri(self) -> str | None:
+        """Return the incident URI for this event."""
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
 
-
     @classmethod
-    def find(cls, items, name=None, description=None, modified_since=None,
-             resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
+    def find(cls, items, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
 
         if resource_id:
@@ -140,11 +133,9 @@ class Resolution(enum.Enum):
     pending = "pending"
 
 
-
 class Incident(NamedObject):
-
     def _self_path(self) -> str:
-        """ Return the API path for this incident. """
+        """Return the API path for this incident."""
         return f"/status/incidents/{self.id}"
 
     @field_validator("start", "end", mode="before")
@@ -152,29 +143,28 @@ class Incident(NamedObject):
     def _norm_dt_field(cls, v):
         return cls.normalize_dt(v)
 
-    status : Status
-    resource_ids : list[str] = Field(default_factory=list, exclude=True)
-    event_ids : list[str] = Field(default_factory=list, exclude=True)
-    start : datetime.datetime
-    end : datetime.datetime | None
-    type : IncidentType
-    resolution : Resolution
+    status: Status
+    resource_ids: list[str] = Field(default_factory=list, exclude=True)
+    event_ids: list[str] = Field(default_factory=list, exclude=True)
+    start: datetime.datetime
+    end: datetime.datetime | None
+    type: IncidentType
+    resolution: Resolution
 
     @computed_field(description="The list of past events in this incident")
     @property
     def event_uris(self) -> list[str]:
-        """ Return the list of event URIs for this incident. """
+        """Return the list of event URIs for this incident."""
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
-        """ Return the list of resource URIs for this incident. """
+        """Return the list of resource URIs for this incident."""
         return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
 
     @classmethod
-    def find(cls, items, name=None, description=None, modified_since=None, status=None,
-             type_=None, from_= None, to = None, time_ = None, resource_id = None, resolution=None) -> list:
+    def find(cls, items, name=None, description=None, modified_since=None, status=None, type_=None, from_=None, to=None, time_=None, resource_id=None, resolution=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
 
         if resource_id:
@@ -196,6 +186,5 @@ class Incident(NamedObject):
             items = [e for e in items if e.end and e.end < to]
 
         if time_:
-            items = [e for e in items
-                     if e.start <= time_ and (e.end is None or e.end > time_)]
+            items = [e for e in items if e.start <= time_ and (e.end is None or e.end > time_)]
         return items
