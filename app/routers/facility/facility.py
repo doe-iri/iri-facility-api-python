@@ -9,7 +9,7 @@ from . import facility_adapter, models
 router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facility", tags=["facility"])
 
 
-@router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility")
+@router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility", response_model_exclude_none=True,)
 async def get_facility(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
@@ -19,7 +19,7 @@ async def get_facility(
     return await router.adapter.get_facility(modified_since=modified_since)
 
 
-@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites")
+@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True,)
 async def list_sites(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
@@ -33,7 +33,7 @@ async def list_sites(
     return await router.adapter.list_sites(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name)
 
 
-@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite")
+@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite", response_model_exclude_none=True,)
 async def get_site(
     request: Request,
     site_id: str,
