@@ -124,8 +124,8 @@ ENV IRI_API_PARAMS='{ \
 ## Next steps
 
 - Learn more about [fastapi](https://fastapi.tiangolo.com/), including how to run it [in production](https://fastapi.tiangolo.com/advanced/behind-a-proxy/)
-- Instead of the simulated state, keep real data in a [database](/Users/gtorok/dev/iri-api-python/README.md)
-- Add monitoring by [integrating with OpenTelemetry](https://opentelemetry.io/docs/zero-code/python/)
+- Instead of the simulated state, keep real data in a database
+- Specify the monitoring endpoint by setting the [OpenTelemetry](https://opentelemetry.io/docs/zero-code/python/) env vars
 - Add additional routers for other API-s
 - Add authenticated API-s via an [OAuth2 integration](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
 
