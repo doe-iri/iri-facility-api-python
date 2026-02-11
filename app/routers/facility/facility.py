@@ -10,7 +10,7 @@ router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facilit
 
 
 @router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility", response_model_exclude_none=True,)
-@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getFacilityWithSlash", response_model_exclude_none=True,)
+@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getFacilityWithSlash", response_model_exclude_none=True, include_in_schema=False,)
 async def get_facility(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
