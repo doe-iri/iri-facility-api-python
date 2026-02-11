@@ -17,7 +17,7 @@ class ResourceSpec(IRIBaseModel):
     cpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of CPU cores to allocate per process")] = None
     gpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of GPU cores to allocate per process")] = None
     exclusive_node_use: Annotated[StrictBool, Field(description="Whether to request exclusive use of allocated nodes")] = True
-    memory: Annotated[str | None, Field(min_length=4, examples=["1GiB", "512MiB", "64GiB"], description="Amount of memory to allocate in IEC binary format (e.g. '512MiB', '4GiB')")] = None
+    memory: Annotated[str | None, Field(min_length=4, pattern=r"^[1-9]\d*(MiB|GiB)$", examples=["1GiB", "512MiB", "64GiB"], description="Amount of memory to allocate in IEC binary format (e.g. '512MiB', '4GiB')")] = None
 
     @field_validator("memory")
     @classmethod
