@@ -1,4 +1,4 @@
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Query, Request, HTTPException
 
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictDateTime
@@ -10,13 +10,17 @@ router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facilit
 
 
 @router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility", response_model_exclude_none=True,)
+@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getFacilityWithSlash", response_model_exclude_none=True, include_in_schema=False,)
 async def get_facility(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
     _forbid=Depends(forbidExtraQueryParams("modified_since")),
 ) -> models.Facility:
     """Get facility information"""
-    return await router.adapter.get_facility(modified_since=modified_since)
+    facility = await router.adapter.get_facility(modified_since=modified_since)
+    if not facility:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    return facility
 
 
 @router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True,)
@@ -41,4 +45,7 @@ async def get_site(
     _forbid=Depends(forbidExtraQueryParams("modified_since")),
 ) -> models.Site:
     """Get site by ID"""
-    return await router.adapter.get_site(site_id=site_id, modified_since=modified_since)
+    site = await router.adapter.get_site(site_id=site_id, modified_since=modified_since)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site
