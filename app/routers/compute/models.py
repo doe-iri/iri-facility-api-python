@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, StrictBool, field_serializer
+from pydantic import ConfigDict, Field, StrictBool, field_serializer, field_validator
 
 from ...types.base import IRIBaseModel
 
@@ -17,7 +17,30 @@ class ResourceSpec(IRIBaseModel):
     cpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of CPU cores to allocate per process")] = None
     gpu_cores_per_process: Annotated[int | None, Field(ge=1, description="Number of GPU cores to allocate per process")] = None
     exclusive_node_use: Annotated[StrictBool, Field(description="Whether to request exclusive use of allocated nodes")] = True
-    memory: Annotated[int | None, Field(ge=1, description="Amount of memory to allocate in bytes")] = None
+    memory: Annotated[str | None, Field(min_length=4, examples=["1GiB", "512MiB", "64GiB"], description="Amount of memory to allocate in IEC binary format (e.g. '512MiB', '4GiB')")] = None
+
+    @field_validator("memory")
+    @classmethod
+    def validate_memory(cls, v):
+        """Validate memory string in IEC binary format (e.g. '512MiB', '4GiB') and convert to bytes."""
+        if v is None:
+            return v
+
+        v = v.strip()
+        units = {"mib": 2**20, "gib": 2**30}
+
+        lower = v.lower()
+        for unit, multiplier in units.items():
+            if lower.endswith(unit):
+                number_part = lower[: -len(unit)].strip()
+                try:
+                    value = int(number_part)
+                except ValueError as ex:
+                    raise ValueError("Memory value must be an integer followed by MiB or GiB") from ex
+                if value < 1:
+                    raise ValueError("Memory value must be a positive integer")
+                return value * multiplier
+        raise ValueError("Memory must use units MiB or GiB (e.g. '512MiB', '4GiB')")
 
 
 class JobAttributes(IRIBaseModel):
