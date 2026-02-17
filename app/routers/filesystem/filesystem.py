@@ -440,7 +440,7 @@ async def delete_rm(
     resource_id: str,
     request: Request,
     path: Annotated[str, Query(description="The path to delete")],
-) -> str:
+) -> task_models.TaskSubmitResponse:
     user, resource = await _user_resource(resource_id, request)
     return await router.task_adapter.put_task(
         user=user,
