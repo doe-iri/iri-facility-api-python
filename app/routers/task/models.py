@@ -11,7 +11,7 @@ class TaskSubmitResponse(BaseModel):
     @computed_field(description="The list of past events in this incident")
     @property
     def task_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/tasks/{self.task_id}"
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/task/{self.task_id}"
 
 
 class TaskStatus(str, enum.Enum):
