@@ -31,13 +31,9 @@ async def get_task(
     return task
 
 
-@router.get(
-    "",
-    dependencies=[Depends(router.current_user)],
-    response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES,
-    operation_id="getTasks",
-)
+@router.get("", dependencies=[Depends(router.current_user)], response_model_exclude_unset=True, responses=DEFAULT_RESPONSES, operation_id="getTasks")
+@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getTasksWithSlash", include_in_schema=False)
+
 async def get_tasks(
     request: Request,
 ) -> list[models.Task]:
@@ -46,3 +42,20 @@ async def get_tasks(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return await router.adapter.get_tasks(user=user)
+
+@router.delete(
+    "/{task_id:str}",
+    dependencies=[Depends(router.current_user)],
+    responses=DEFAULT_RESPONSES,
+    operation_id="deleteTask",
+)
+async def delete_task(
+    request: Request,
+    task_id: str,
+) -> str:
+    """Delete a task"""
+    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await router.adapter.delete_task(user=user, task_id=task_id)
+    return f"Task {task_id} deleted successfully"

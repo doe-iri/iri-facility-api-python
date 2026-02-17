@@ -876,9 +876,17 @@ class DemoAdapter(
         await DemoTaskQueue._process_tasks(self)
         return [t for t in DemoTaskQueue.tasks if t.user.name == user.name]
 
-    async def put_task(self: "DemoAdapter", user: account_models.User, resource: status_models.Resource, task: str) -> str:
+    async def put_task(self: "DemoAdapter", user: account_models.User, resource: status_models.Resource, task: str) -> task_models.TaskSubmitResponse:
         await DemoTaskQueue._process_tasks(self)
         return DemoTaskQueue._create_task(user, resource, task)
+
+    async def delete_task(self: "DemoAdapter", user: account_models.User, task_id: str) -> None:
+        await DemoTaskQueue._process_tasks(self)
+        for t in DemoTaskQueue.tasks:
+            if t.user.name == user.name and t.id == task_id:
+                t.status = task_models.TaskStatus.canceled
+                t.result = None
+                break
 
 
 class DemoTask(BaseModel):
@@ -914,7 +922,7 @@ class DemoTaskQueue:
         DemoTaskQueue.tasks = _tasks
 
     @staticmethod
-    def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> str:
+    def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
         DemoTaskQueue.tasks.append(DemoTask(id=task_id, task=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
-        return task_id
+        return task_models.TaskSubmitResponse(task_id=task_id)

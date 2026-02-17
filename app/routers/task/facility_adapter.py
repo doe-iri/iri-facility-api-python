@@ -22,7 +22,11 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def put_task(self: "FacilityAdapter", user: account_models.User, resource: status_models.Resource | None, task: task_models.TaskCommand) -> str:
+    async def put_task(self: "FacilityAdapter", user: account_models.User, resource: status_models.Resource | None, task: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
+        pass
+
+    @abstractmethod
+    async def delete_task(self: "FacilityAdapter", user: account_models.User, task_id: str) -> None:
         pass
 
     @staticmethod
