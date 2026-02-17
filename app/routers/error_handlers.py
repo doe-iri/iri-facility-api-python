@@ -89,6 +89,9 @@ def install_error_handlers(app: FastAPI):
     # FASTAPI HTTP EXCEPTIONS
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
+        err_msg = ""
+        if hasattr(exc, "detail") and exc.detail:
+            err_msg = exc.detail
 
         if exc.status_code == 304:
             return JSONResponse(status_code=304, content=None, headers=exc.headers or {})
@@ -98,7 +101,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=401,
                 title="Unauthorized",
-                detail="Bearer token is missing or invalid.",
+                detail=err_msg or "Bearer token is missing or invalid.",
                 problem_type="unauthorized",
                 extra_headers={"WWW-Authenticate": "Bearer"},
             )
@@ -108,7 +111,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=403,
                 title="Forbidden",
-                detail="Caller is authenticated but lacks required role.",
+                detail=err_msg or "Caller is authenticated but lacks required role.",
                 problem_type="forbidden",
             )
 
@@ -117,7 +120,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=404,
                 title="Not Found",
-                detail=exc.detail or "Invalid resource identifier.",
+                detail=err_msg or "Invalid resource identifier.",
                 problem_type="not-found",
             )
 
@@ -126,7 +129,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=405,
                 title="Method Not Allowed",
-                detail="HTTP method is not allowed for this resource.",
+                detail=err_msg or "HTTP method is not allowed for this resource.",
                 problem_type="method-not-allowed",
                 extra_headers={"Allow": "GET, HEAD"},
             )
@@ -136,7 +139,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=409,
                 title="Conflict",
-                detail=exc.detail or "Conflict occurred.",
+                detail=err_msg or "Conflict occurred.",
                 problem_type="conflict",
             )
 
@@ -144,21 +147,23 @@ def install_error_handlers(app: FastAPI):
         return problem_response(
             request=request,
             status=exc.status_code,
-            title=exc.detail or "Error",
-            detail=exc.detail or "An error occurred.",
+            title=err_msg or "Error",
+            detail=err_msg or "An error occurred.",
             problem_type="generic-error",
         )
 
     # STARLETTE HTTP EXCEPTIONS
     @app.exception_handler(StarletteHTTPException)
     async def starlette_handler(request: Request, exc: StarletteHTTPException):
-
+        err_msg = ""
+        if hasattr(exc, "detail") and exc.detail:
+            err_msg = exc.detail
         if exc.status_code == 404:
             return problem_response(
                 request=request,
                 status=404,
                 title="Not Found",
-                detail="Invalid resource identifier.",
+                detail=err_msg or "Invalid resource identifier.",
                 problem_type="not-found",
             )
 
@@ -167,7 +172,7 @@ def install_error_handlers(app: FastAPI):
                 request=request,
                 status=405,
                 title="Method Not Allowed",
-                detail="HTTP method is not allowed for this resource.",
+                detail=err_msg or "HTTP method is not allowed for this resource.",
                 problem_type="method-not-allowed",
                 extra_headers={"Allow": "GET, HEAD"},
             )
@@ -175,8 +180,8 @@ def install_error_handlers(app: FastAPI):
         return problem_response(
             request=request,
             status=exc.status_code,
-            title=exc.detail or "Error",
-            detail=exc.detail or "An error occurred.",
+            title=err_msg or "Error",
+            detail=err_msg or "An error occurred.",
             problem_type="generic-error",
         )
 
