@@ -5,11 +5,29 @@ Default problem schema and example responses for various HTTP status codes.
 
 import logging
 from urllib.parse import urlsplit, urlunsplit, quote
+
+from typing import Optional, List
+from pydantic import BaseModel, constr
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+class InvalidParam(BaseModel):
+    name: str
+    reason: str
+
+class Problem(BaseModel):
+    type: constr(min_length=1)
+    title: Optional[str] = None
+    status: int
+    detail: Optional[str] = None
+    instance: Optional[str] = None
+    invalid_params: Optional[List[InvalidParam]] = None
+
+    class Config:
+        extra = "allow"
 
 def get_url_base(request: Request) -> str:
     """Return the base URL for the API."""
@@ -158,6 +176,7 @@ def install_error_handlers(app: FastAPI):
         err_msg = ""
         if hasattr(exc, "detail") and exc.detail:
             err_msg = exc.detail
+
         if exc.status_code == 404:
             return problem_response(
                 request=request,
@@ -196,30 +215,6 @@ def install_error_handlers(app: FastAPI):
             detail="An unexpected error occurred.",
             problem_type="internal-error",
         )
-
-
-DEFAULT_PROBLEM_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string"},
-        "title": {"type": "string"},
-        "status": {"type": "integer"},
-        "detail": {"type": "string"},
-        "instance": {"type": "string"},
-        "invalid_params": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "reason": {"type": "string"},
-                },
-                "required": ["name", "reason"],
-            },
-        },
-    },
-    "required": ["type", "title", "status", "detail", "instance"],
-}
 
 EXAMPLE_400 = {
     "type": "https://iri.example.com/problems/invalid-parameter",
@@ -308,15 +303,16 @@ EXAMPLE_504 = {
 DEFAULT_RESPONSES = {
     400: {
         "description": "Invalid request parameters",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_400,
             }
         },
     },
     401: {
         "description": "Unauthorized",
+        "model": Problem,
         "headers": {
             "WWW-Authenticate": {
                 "description": "Bearer authentication challenge",
@@ -325,31 +321,31 @@ DEFAULT_RESPONSES = {
         },
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_401,
             }
         },
     },
     403: {
         "description": "Forbidden",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_403,
             }
         },
     },
     404: {
         "description": "Not Found",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_404,
             }
         },
     },
     405: {
         "description": "Method Not Allowed",
+        "model": Problem,
         "headers": {
             "Allow": {
                 "description": "Allowed HTTP methods",
@@ -358,61 +354,60 @@ DEFAULT_RESPONSES = {
         },
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_405,
             }
         },
     },
     409: {
         "description": "Conflict",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_409,
             }
         },
     },
     422: {
         "description": "Unprocessable Entity",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_422,
             }
         },
     },
     500: {
         "description": "Internal Server Error",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_500,
             }
         },
     },
     501: {
         "description": "Not Implemented",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_501,
             }
         },
     },
     503: {
         "description": "Service Unavailable",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_503,
             }
         },
     },
     504: {
         "description": "Gateway Timeout",
+        "model": Problem,
         "content": {
             "application/problem+json": {
-                "schema": DEFAULT_PROBLEM_SCHEMA,
                 "example": EXAMPLE_504,
             }
         },
