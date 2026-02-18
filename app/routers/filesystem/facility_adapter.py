@@ -43,11 +43,11 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def head(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int, lines: int, skip_trailing: bool) -> Tuple[Any, int]:
+    async def head(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int, lines: int, skip_trailing: bool) -> filesystem_models.GetFileHeadResponse:
         pass
 
     @abstractmethod
-    async def tail(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int | None, lines: int | None, skip_trailing: bool) -> Tuple[Any, int]:
+    async def tail(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int | None, lines: int | None, skip_trailing: bool) -> filesystem_models.GetFileTailResponse:
         pass
 
     @abstractmethod
@@ -67,7 +67,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def rm(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str):
+    async def rm(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.RemoveResponse:
         pass
 
     @abstractmethod
@@ -84,11 +84,11 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def download(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> Any:
+    async def download(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileDownloadResponse:
         pass
 
     @abstractmethod
-    async def upload(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, content: str) -> None:
+    async def upload(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, content: str) -> filesystem_models.PutFileUploadResponse:
         pass
 
     @abstractmethod

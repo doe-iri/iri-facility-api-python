@@ -89,10 +89,12 @@ class GetDirectoryLsResponse(CamelModel):
 
 class GetFileHeadResponse(CamelModel):
     output: Optional[FileContent]
+    offset: Optional[int] = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content")
 
 
 class GetFileTailResponse(CamelModel):
     output: Optional[FileContent]
+    offset: Optional[int] = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content")
 
 
 class GetFileChecksumResponse(CamelModel):
@@ -106,6 +108,9 @@ class GetFileTypeResponse(CamelModel):
 class GetFileStatResponse(CamelModel):
     output: Optional[FileStat]
 
+
+class GetFileDownloadResponse(CamelModel):
+    output: Optional[str]
 
 class PatchFileMetadataResponse(CamelModel):
     output: Optional[PatchFile]
@@ -143,6 +148,8 @@ class PutFileChownRequest(FilesystemRequestBase):
 class PutFileChownResponse(CamelModel):
     output: Optional[File]
 
+class PutFileUploadResponse(CamelModel):
+    output: Optional[str]
 
 class PostMakeDirRequest(FilesystemRequestBase):
     parent: Optional[bool] = Field(
@@ -261,3 +268,6 @@ class PostMoveRequest(FilesystemRequestBase):
 
 class PostMoveResponse(CamelModel):
     output: Optional[File]
+
+class RemoveResponse(CamelModel):
+    output: Optional[str]

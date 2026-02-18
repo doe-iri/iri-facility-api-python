@@ -1,5 +1,6 @@
 import enum
 from pydantic import BaseModel, computed_field
+from typing import Any
 
 from ... import config
 
@@ -31,5 +32,5 @@ class TaskCommand(BaseModel):
 class Task(BaseModel):
     id: str
     status: TaskStatus = TaskStatus.pending
-    result: str | None = None
+    result: Any | None = None
     command: TaskCommand | None = None

@@ -33,8 +33,9 @@ dev: deps
 	IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
+	DEMO_QUEUE_UPDATE_SECS=2 \
 	OPENTELEMETRY_ENABLED=true \
-	API_URL_ROOT='http://127.0.0.1:8000' fastapi dev
+	API_URL_ROOT='http://localhost:8000' fastapi dev
 
 .PHONY: clean
 clean:
