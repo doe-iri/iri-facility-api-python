@@ -5,5 +5,6 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.100.0",
     "uvicorn[standard]>=0.22.0",
-    "humps>=0.2.2"
+    "humps>=0.2.2",
+    "gql[httpx]>=3.5.0",
 ]

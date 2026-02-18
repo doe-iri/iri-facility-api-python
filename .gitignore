@@ -4,3 +4,8 @@ iri_api_python.egg-info
 docker-build.sh
 iri_sandbox
 .env
+uv.lock
+docs/
+Makefile
+pyproject.toml
+.DS_Store
