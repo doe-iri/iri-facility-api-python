@@ -229,12 +229,14 @@ class DemoAdapter(
                 name="Staff research project",
                 description="Compute and storage allocation for staff research use",
                 user_ids=["gtorok"],
+                last_modified=day_ago,
             ),
             account_models.Project(
                 id=demo_uuid("project", "test_project"),
                 name="Test project",
                 description="Compute and storage allocation for testing use",
                 user_ids=["gtorok"],
+                last_modified=day_ago,
             ),
         ]
 

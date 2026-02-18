@@ -31,15 +31,6 @@ class IRIBaseModel(BaseModel):
         """Get an extra field value that is not defined in the model. Returns default if not found."""
         return getattr(self, "__pydantic_extra__", {}).get(key, default)
 
-
-class NamedObject(IRIBaseModel):
-    """Base model for named objects."""
-
-    id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
-
-    def _self_path(self) -> str:
-        raise NotImplementedError
-
     @classmethod
     def normalize_dt(cls, dt: datetime | None) -> datetime | None:
         """Normalize datetime to UTC-aware."""
@@ -51,6 +42,15 @@ class NamedObject(IRIBaseModel):
         if dt.tzinfo is None:
             return dt.replace(tzinfo=datetime.timezone.utc)
         return dt
+
+
+class NamedObject(IRIBaseModel):
+    """Base model for named objects."""
+
+    id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
+
+    def _self_path(self) -> str:
+        raise NotImplementedError
 
     @field_validator("last_modified", mode="before")
     @classmethod
