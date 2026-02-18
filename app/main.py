@@ -41,7 +41,7 @@ if config.OPENTELEMETRY_ENABLED:
     tracer = trace.get_tracer(__name__)
 # ------------------------------------------------------------------
 
-APP = FastAPI(**config.API_CONFIG)
+APP = FastAPI(servers=[{"url": config.API_URL_ROOT}], **config.API_CONFIG)
 
 if config.OPENTELEMETRY_ENABLED:
     FastAPIInstrumentor.instrument_app(APP)
