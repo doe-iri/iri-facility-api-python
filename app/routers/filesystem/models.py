@@ -7,7 +7,7 @@
 
 from enum import Enum
 from typing import Optional
-from humps.camel import case
+from humps import camelize
 from pydantic import Field, AliasChoices, ConfigDict, BaseModel
 
 
@@ -22,10 +22,12 @@ class ContentUnit(str, Enum):
     lines = "lines"
     bytes = "bytes"
 
-
+# TODO: consider using a common base model with camelCase aliasing (or snake_case) for all the models in the API
+# Right now that is an issue for the worker to accept both (as client can pass either camelCase or snake_case).abs
+# There is a function in Task to decamelize the args, but that is not ideal (back and forth...)
 class CamelModel(BaseModel):
     model_config = ConfigDict(
-        alias_generator=case,
+        alias_generator=camelize,
         arbitrary_types_allowed=True,
         populate_by_name=True,
         validate_assignment=True,
@@ -160,7 +162,7 @@ class PostMakeDirRequest(FilesystemRequestBase):
 
 
 class PostFileSymlinkRequest(FilesystemRequestBase):
-    link_path: str = Field(..., description="Path to the new symlink")
+    link_path: str = Field(validation_alias=AliasChoices("linkPath", "link_path"), description="Path to the new symlink")
     model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir", "link_path": "/home/user/newlink"}]}}
 
 
@@ -181,7 +183,7 @@ class PostCompressResponse(CamelModel):
 
 
 class PostCompressRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Path to the compressed file")
+    target_path: str = Field(validation_alias=AliasChoices("targetPath", "target_path"), description="Path to the compressed file")
     match_pattern: Optional[str] = Field(default=None, description="Regex pattern to filter files to compress")
     dereference: Optional[bool] = Field(
         default=False,
@@ -211,7 +213,7 @@ class PostExtractResponse(CamelModel):
 
 
 class PostExtractRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Path to the directory where to extract the compressed file")
+    target_path: str = Field(validation_alias=AliasChoices("targetPath", "target_path"), description="Path to the directory where to extract the compressed file")
     compression: Optional[CompressionType] = Field(
         default="gzip",
         description="Defines the type of compression to be used. By default gzip is used.",
@@ -230,7 +232,7 @@ class PostExtractRequest(FilesystemRequestBase):
 
 
 class PostCopyRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Target path of the copy operation")
+    target_path: str = Field(validation_alias=AliasChoices("targetPath", "target_path"), description="Target path of the copy operation")
     dereference: Optional[bool] = Field(
         default=False,
         description=("If set to `true`, it follows symbolic links and copies the files they point to instead of the links themselves."),
@@ -253,7 +255,7 @@ class PostCopyResponse(CamelModel):
 
 
 class PostMoveRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Target path of the move operation")
+    target_path: str = Field(validation_alias=AliasChoices("targetPath", "target_path"), description="Target path of the move operation")
     model_config = {
         "json_schema_extra": {
             "examples": [

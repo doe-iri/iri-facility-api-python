@@ -2,9 +2,10 @@
 """
 IRI Filesystem API smoke test via async tasks.
 """
-
+import os
 import sys
 import time
+import random
 import datetime as dt
 import requests
 
@@ -14,14 +15,44 @@ import requests
 # =========================
 
 BASE_URL = "http://localhost:8000/api/v1"
-TOKEN = "12345"
-RESOURCE_ID = "bcc15dde-0ab6-5d31-9f20-7336adb60968"
+TOKEN = os.environ.get("IRI_API_TOKEN", "12345")
 # =========================
 
 HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
 
 POLL_INTERVAL = 2
 TIMEOUT = 180
+
+
+def getAnyStorageResource():
+    """Get the ID of any storage resource available in the facility by looking at the project allocations and resource capabilities."""
+    projects = requests.get(f"{BASE_URL}/account/projects", headers=HEADERS, timeout=TIMEOUT).json()
+    caps = requests.get(f"{BASE_URL}/account/capabilities", headers=HEADERS, timeout=TIMEOUT).json()
+    storageCaps = {c["self_uri"] for c in caps if c["name"] == "storage"}
+    if not storageCaps:
+        raise RuntimeError("No storage capabilities defined")
+
+    projectStorageCaps = set()
+    for p in projects:
+        allocs = requests.get(f"{BASE_URL}/account/projects/{p['id']}/project_allocations", headers=HEADERS, timeout=TIMEOUT).json()
+        for a in allocs:
+            if a["capability_uri"] in storageCaps:
+                projectStorageCaps.add(a["capability_uri"])
+
+    if not projectStorageCaps:
+        raise RuntimeError("No storage allocations found in any project")
+
+    resources = requests.get(f"{BASE_URL}/status/resources?offset=0&limit=100", headers=HEADERS, timeout=TIMEOUT).json()
+    matchingResources = [r["id"] for r in resources if any(cap in r["capability_uris"] for cap in projectStorageCaps)]
+    if not matchingResources:
+        raise RuntimeError("No storage resources found")
+
+    return random.choice(matchingResources)
+
+
+RESOURCE_ID = getAnyStorageResource()
+print("Chosen storage resource ID:", RESOURCE_ID)
+
 
 
 def die(msg):
@@ -32,6 +63,7 @@ def die(msg):
 
 def submit(method, path, **kwargs):
     """Submit a task and return its ID."""
+    print(f"Submitting {method} {path} with {kwargs}")
     url = f"{BASE_URL}{path}"
     r = requests.request(method, url, headers=HEADERS, timeout=TIMEOUT, **kwargs)
 
@@ -63,6 +95,7 @@ def wait_task(task):
         print(f"   Task {task['task_id']}: {status}")
 
         if status == "completed":
+            print(f"   Task result: {t.get('result')}")
             return t.get("result")
 
         if status in ("failed", "canceled"):
@@ -145,18 +178,19 @@ print("\n" + "="*40)
 print("=== VIEW ===")
 
 task = submit("GET", f"/filesystem/view/{RESOURCE_ID}", params={"path": file_path, "size": 4096, "offset": 0})
-print(wait_task(task))
+wait_task(task)
 
 print("\n" + "="*40)
 print("=== CHECKSUM ===")
 
 task = submit("GET", f"/filesystem/checksum/{RESOURCE_ID}", params={"path": file_path})
-print(wait_task(task))
+wait_task(task)
 
 print("\n" + "="*40)
 print("=== COPY FILE ===")
 
-task = submit("POST", f"/filesystem/cp/{RESOURCE_ID}", json={"sourcePath": file_path, "targetPath": copy_path})
+# Keep this as source_path. Server accepts both, so making sure it works.
+task = submit("POST", f"/filesystem/cp/{RESOURCE_ID}", json={"source_path": file_path, "targetPath": copy_path})
 wait_task(task)
 
 print("\n" + "="*40)
@@ -187,7 +221,7 @@ print("\n" + "="*40)
 print("=== DOWNLOAD FILE ===")
 
 task = submit("GET", f"/filesystem/download/{RESOURCE_ID}", params={"path": moved_path})
-print(wait_task(task))
+wait_task(task)
 
 print("\n" + "="*40)
 print("=== CLEANUP ===")
