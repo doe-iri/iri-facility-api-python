@@ -10,7 +10,7 @@ from typing import Optional, List
 from pydantic import BaseModel, constr
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -19,9 +19,9 @@ class InvalidParam(BaseModel):
     reason: str
 
 class Problem(BaseModel):
-    type: constr(min_length=1)
+    type: str = "about:blank"
     title: Optional[str] = None
-    status: int
+    status: Optional[int] = None
     detail: Optional[str] = None
     instance: Optional[str] = None
     invalid_params: Optional[List[InvalidParam]] = None
@@ -32,8 +32,8 @@ class Problem(BaseModel):
 def get_url_base(request: Request) -> str:
     """Return the base URL for the API."""
     # If behind a proxy (and x-forwarded-* headers present), use the forwarded host and protocol
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = (request.headers.get("x-forwarded-host") or request.headers.get("host", "")).split(",")[0].strip()
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme).split(",")[0].strip()
     return f"{proto}://{host}/problems"
 
 
@@ -57,7 +57,13 @@ def problem_response(*, request: Request, status: int, title, detail, problem_ty
     # Normalize title and detail to strings (Official spec says they must be strings)
     # but fastapi validation errors may provide lists/dicts
     if not isinstance(title, str):
-        title = "Error"
+        if status >= 500:
+            title = "Internal Server Error"
+        elif status >= 400:
+            title = "Bad Request"
+        else:
+            title = "Error"
+
 
     if not isinstance(detail, str):
         if isinstance(detail, list):
@@ -112,7 +118,7 @@ def install_error_handlers(app: FastAPI):
             err_msg = exc.detail
 
         if exc.status_code == 304:
-            return JSONResponse(status_code=304, content=None, headers=exc.headers or {})
+            return Response(status_code=304, headers=exc.headers or {})
 
         if exc.status_code == 401:
             return problem_response(
@@ -165,7 +171,7 @@ def install_error_handlers(app: FastAPI):
         return problem_response(
             request=request,
             status=exc.status_code,
-            title=err_msg or "Error",
+            title="Error",
             detail=err_msg or "An error occurred.",
             problem_type="generic-error",
         )
@@ -199,7 +205,7 @@ def install_error_handlers(app: FastAPI):
         return problem_response(
             request=request,
             status=exc.status_code,
-            title=err_msg or "Error",
+            title="Error",
             detail=err_msg or "An error occurred.",
             problem_type="generic-error",
         )
@@ -215,6 +221,7 @@ def install_error_handlers(app: FastAPI):
             detail="An unexpected error occurred.",
             problem_type="internal-error",
         )
+
 
 EXAMPLE_400 = {
     "type": "https://iri.example.com/problems/invalid-parameter",
@@ -304,113 +311,59 @@ DEFAULT_RESPONSES = {
     400: {
         "description": "Invalid request parameters",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_400,
-            }
-        },
     },
     401: {
         "description": "Unauthorized",
-        "model": Problem,
         "headers": {
             "WWW-Authenticate": {
                 "description": "Bearer authentication challenge",
                 "schema": {"type": "string"},
             }
         },
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_401,
-            }
-        },
+        "model": Problem,
+
     },
     403: {
         "description": "Forbidden",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_403,
-            }
-        },
     },
     404: {
         "description": "Not Found",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_404,
-            }
-        },
     },
     405: {
         "description": "Method Not Allowed",
-        "model": Problem,
         "headers": {
             "Allow": {
                 "description": "Allowed HTTP methods",
                 "schema": {"type": "string"},
             }
         },
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_405,
-            }
-        },
+        "model": Problem,
     },
     409: {
         "description": "Conflict",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_409,
-            }
-        },
     },
     422: {
         "description": "Unprocessable Entity",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_422,
-            }
-        },
     },
     500: {
         "description": "Internal Server Error",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_500,
-            }
-        },
     },
     501: {
         "description": "Not Implemented",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_501,
-            }
-        },
     },
     503: {
         "description": "Service Unavailable",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_503,
-            }
-        },
     },
     504: {
         "description": "Gateway Timeout",
         "model": Problem,
-        "content": {
-            "application/problem+json": {
-                "example": EXAMPLE_504,
-            }
-        },
     },
     304: {"description": "Not Modified"},
 }
