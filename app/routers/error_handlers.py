@@ -6,28 +6,22 @@ Default problem schema and example responses for various HTTP status codes.
 import logging
 from urllib.parse import urlsplit, urlunsplit, quote
 
-from typing import Optional, List
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, Field, ConfigDict
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-class InvalidParam(BaseModel):
-    name: str
-    reason: str
 
 class Problem(BaseModel):
-    type: str = "about:blank"
-    title: Optional[str] = None
-    status: Optional[int] = None
-    detail: Optional[str] = None
-    instance: Optional[str] = None
-    invalid_params: Optional[List[InvalidParam]] = None
+    model_config = ConfigDict(extra="allow", json_schema_extra={"description": 'Error structure for REST interface based on RFC 9457, "Problem Details for HTTP APIs."'})
+    type: str = Field(..., description="A URI reference that identifies the problem type.", example="https://example.com/notFound", json_schema_extra={"format": "uri", "default": "about:blank"})
+    status: int = Field(..., ge=100, le=599, description="The HTTP status code for this occurrence.", example=404)
+    title: str = Field(default=None, description="Short human-readable summary.", example="Not Found")
+    detail: str = Field(default=None, description="Human-readable explanation.", example="Descriptive text.")
+    instance: str = Field(..., description="A URI reference identifying this occurrence.", example="http://localhost/api/v1/resource/123")
 
-    class Config:
-        extra = "allow"
 
 def get_url_base(request: Request) -> str:
     """Return the base URL for the API."""
@@ -83,7 +77,7 @@ def problem_response(*, request: Request, status: int, title, detail, problem_ty
         body["invalid_params"] = invalid_params
 
     headers = extra_headers or {}
-    return JSONResponse(status_code=status, content=body, headers=headers, media_type="application/problem+json")
+    return JSONResponse(status_code=status, content=Problem(**body).model_dump(), headers=headers, media_type="application/problem+json")
 
 
 def install_error_handlers(app: FastAPI):
