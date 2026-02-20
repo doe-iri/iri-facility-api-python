@@ -28,7 +28,7 @@ def getAnyStorageResource():
     """Get the ID of any storage resource available in the facility by looking at the project allocations and resource capabilities."""
     projects = requests.get(f"{BASE_URL}/account/projects", headers=HEADERS, timeout=TIMEOUT).json()
     caps = requests.get(f"{BASE_URL}/account/capabilities", headers=HEADERS, timeout=TIMEOUT).json()
-    storageCaps = {c["self_uri"] for c in caps if c["name"] == "storage"}
+    storageCaps = {c["self_uri"] for c in caps if c["name"] == "GPFS Storage"}
     if not storageCaps:
         raise RuntimeError("No storage capabilities defined")
 
@@ -190,31 +190,31 @@ print("\n" + "="*40)
 print("=== COPY FILE ===")
 
 # Keep this as source_path. Server accepts both, so making sure it works.
-task = submit("POST", f"/filesystem/cp/{RESOURCE_ID}", json={"source_path": file_path, "targetPath": copy_path})
+task = submit("POST", f"/filesystem/cp/{RESOURCE_ID}", json={"source_path": file_path, "target_path": copy_path})
 wait_task(task)
 
 print("\n" + "="*40)
 print("=== MOVE FILE ===")
 
-task = submit("POST", f"/filesystem/mv/{RESOURCE_ID}", json={"sourcePath": copy_path, "targetPath": moved_path})
+task = submit("POST", f"/filesystem/mv/{RESOURCE_ID}", json={"source_path": copy_path, "target_path": moved_path})
 wait_task(task)
 
 print("\n" + "="*40)
 print("=== CREATE SYMLINK ===")
 
-task = submit("POST", f"/filesystem/symlink/{RESOURCE_ID}", json={"path": moved_path, "linkPath": link_path})
+task = submit("POST", f"/filesystem/symlink/{RESOURCE_ID}", json={"path": moved_path, "link_path": link_path})
 wait_task(task)
 
 print("\n" + "="*40)
 print("=== COMPRESS DIRECTORY ===")
 
-task = submit("POST", f"/filesystem/compress/{RESOURCE_ID}", json={"sourcePath": base_dir, "targetPath": archive_path, "compression": "gzip"})
+task = submit("POST", f"/filesystem/compress/{RESOURCE_ID}", json={"source_path": base_dir, "target_path": archive_path, "compression": "gzip"})
 wait_task(task)
 
 print("\n" + "="*40)
 print("=== EXTRACT ARCHIVE ===")
 
-task = submit("POST", f"/filesystem/extract/{RESOURCE_ID}", json={"sourcePath": archive_path, "targetPath": extract_dir, "compression": "gzip"})
+task = submit("POST", f"/filesystem/extract/{RESOURCE_ID}", json={"source_path": archive_path, "target_path": extract_dir, "compression": "gzip"})
 wait_task(task)
 
 print("\n" + "="*40)

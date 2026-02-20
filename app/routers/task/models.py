@@ -1,8 +1,7 @@
 import enum
-from pydantic import BaseModel, computed_field, field_validator
 from typing import Any
+from pydantic import BaseModel, computed_field
 
-from humps import decamelize
 
 from ... import config
 
@@ -29,23 +28,6 @@ class TaskCommand(BaseModel):
     router: str
     command: str
     args: dict
-
-    @field_validator("args", mode="before")
-    @classmethod
-    def normalize_args(cls, v):
-        if v is None or not isinstance(v, dict):
-            return v
-
-        v = v.copy()
-        rm = v.get("request_model")
-
-        if hasattr(rm, "model_dump"):
-            v["request_model"] = rm.model_dump(by_alias=False)
-        elif isinstance(rm, dict):
-            v["request_model"] = decamelize(rm)
-
-
-        return v
 
 
 class Task(BaseModel):
