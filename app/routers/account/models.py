@@ -1,4 +1,6 @@
-from pydantic import Field, computed_field
+import datetime
+
+from pydantic import Field, computed_field, field_validator
 
 from ... import config
 from ...types.base import IRIBaseModel
@@ -23,6 +25,17 @@ class Project(IRIBaseModel):
     description: str
     user_ids: list[str]
 
+    @field_validator("last_modified", mode="before")
+    @classmethod
+    def _norm_dt_field(cls, v):
+        return cls.normalize_dt(v)
+
+    last_modified: datetime.datetime
+
+    @computed_field(description="URI to this project resource")
+    @property
+    def self_uri(self) -> str:
+        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.id}"
 
 class AllocationEntry(IRIBaseModel):
     """Base class for allocations."""

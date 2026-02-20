@@ -7,8 +7,7 @@
 
 from enum import Enum
 from typing import Optional
-from humps.camel import case
-from pydantic import Field, AliasChoices, ConfigDict, BaseModel
+from pydantic import Field, AliasChoices, BaseModel
 
 
 class CompressionType(str, Enum):
@@ -23,16 +22,7 @@ class ContentUnit(str, Enum):
     bytes = "bytes"
 
 
-class CamelModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=case,
-        arbitrary_types_allowed=True,
-        populate_by_name=True,
-        validate_assignment=True,
-    )
-
-
-class File(CamelModel):
+class File(BaseModel):
     name: str
     type: str
     link_target: Optional[str]
@@ -43,19 +33,19 @@ class File(CamelModel):
     size: str
 
 
-class FileContent(CamelModel):
+class FileContent(BaseModel):
     content: str
     content_type: ContentUnit
     start_position: int
     end_position: int
 
 
-class FileChecksum(CamelModel):
+class FileChecksum(BaseModel):
     algorithm: str = "SHA-256"
     checksum: str
 
 
-class FileStat(CamelModel):
+class FileStat(BaseModel):
     # message: str
     mode: int
     ino: int
@@ -70,49 +60,55 @@ class FileStat(CamelModel):
     # birthtime: int
 
 
-class PatchFile(CamelModel):
+class PatchFile(BaseModel):
     message: str
     new_filepath: str
     new_permissions: str
     new_owner: str
 
 
-class PatchFileMetadataRequest(CamelModel):
+class PatchFileMetadataRequest(BaseModel):
     new_filename: Optional[str] = None
     new_permissions: Optional[str] = None
     new_owner: Optional[str] = None
 
 
-class GetDirectoryLsResponse(CamelModel):
+class GetDirectoryLsResponse(BaseModel):
     output: Optional[list[File]]
 
 
-class GetFileHeadResponse(CamelModel):
+class GetFileHeadResponse(BaseModel):
     output: Optional[FileContent]
+    offset: Optional[int] = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content")
 
 
-class GetFileTailResponse(CamelModel):
+class GetFileTailResponse(BaseModel):
     output: Optional[FileContent]
+    offset: Optional[int] = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content")
 
 
-class GetFileChecksumResponse(CamelModel):
+class GetFileChecksumResponse(BaseModel):
     output: Optional[FileChecksum]
 
 
-class GetFileTypeResponse(CamelModel):
+class GetFileTypeResponse(BaseModel):
     output: Optional[str] = Field(example="directory")
 
 
-class GetFileStatResponse(CamelModel):
+class GetFileStatResponse(BaseModel):
     output: Optional[FileStat]
 
 
-class PatchFileMetadataResponse(CamelModel):
+class GetFileDownloadResponse(BaseModel):
+    output: Optional[str]
+
+class PatchFileMetadataResponse(BaseModel):
     output: Optional[PatchFile]
 
 
-class FilesystemRequestBase(CamelModel):
-    path: Optional[str] = Field(validation_alias=AliasChoices("sourcePath", "source_path"), example="/home/user/dir")
+class FilesystemRequestBase(BaseModel):
+    # Should we allow both: path and source_path? Or just one of them?
+    path: Optional[str] = Field(validation_alias=AliasChoices("path", "source_path"), example="/home/user/dir")
 
 
 class PutFileChmodRequest(FilesystemRequestBase):
@@ -120,7 +116,7 @@ class PutFileChmodRequest(FilesystemRequestBase):
     model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir/file.out", "mode": "777"}]}}
 
 
-class PutFileChmodResponse(CamelModel):
+class PutFileChmodResponse(BaseModel):
     output: Optional[File]
 
 
@@ -140,9 +136,11 @@ class PutFileChownRequest(FilesystemRequestBase):
     }
 
 
-class PutFileChownResponse(CamelModel):
+class PutFileChownResponse(BaseModel):
     output: Optional[File]
 
+class PutFileUploadResponse(BaseModel):
+    output: Optional[str]
 
 class PostMakeDirRequest(FilesystemRequestBase):
     parent: Optional[bool] = Field(
@@ -153,28 +151,28 @@ class PostMakeDirRequest(FilesystemRequestBase):
 
 
 class PostFileSymlinkRequest(FilesystemRequestBase):
-    link_path: str = Field(..., description="Path to the new symlink")
+    link_path: str = Field(description="Path to the new symlink")
     model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/dir", "link_path": "/home/user/newlink"}]}}
 
 
-class PostFileSymlinkResponse(CamelModel):
+class PostFileSymlinkResponse(BaseModel):
     output: Optional[File]
 
 
-class GetViewFileResponse(CamelModel):
+class GetViewFileResponse(BaseModel):
     output: Optional[str]
 
 
-class PostMkdirResponse(CamelModel):
+class PostMkdirResponse(BaseModel):
     output: Optional[File]
 
 
-class PostCompressResponse(CamelModel):
+class PostCompressResponse(BaseModel):
     output: Optional[File]
 
 
 class PostCompressRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Path to the compressed file")
+    target_path: str = Field(description="Path to the compressed file")
     match_pattern: Optional[str] = Field(default=None, description="Regex pattern to filter files to compress")
     dereference: Optional[bool] = Field(
         default=False,
@@ -188,9 +186,9 @@ class PostCompressRequest(FilesystemRequestBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "sourcePath": "/home/user/dir",
-                    "targetPath": "/home/user/file.tar.gz",
-                    "matchPattern": "*./[ab].*\\.txt",
+                    "source_path": "/home/user/dir",
+                    "target_path": "/home/user/file.tar.gz",
+                    "match_pattern": "*./[ab].*\\.txt",
                     "dereference": "true",
                     "compression": "none",
                 }
@@ -199,12 +197,12 @@ class PostCompressRequest(FilesystemRequestBase):
     }
 
 
-class PostExtractResponse(CamelModel):
+class PostExtractResponse(BaseModel):
     output: Optional[File]
 
 
 class PostExtractRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Path to the directory where to extract the compressed file")
+    target_path: str = Field(description="Path to the directory where to extract the compressed file")
     compression: Optional[CompressionType] = Field(
         default="gzip",
         description="Defines the type of compression to be used. By default gzip is used.",
@@ -213,8 +211,8 @@ class PostExtractRequest(FilesystemRequestBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "sourcePath": "/home/user/dir/file.tar.gz",
-                    "targetPath": "/home/user/dir",
+                    "source_path": "/home/user/dir/file.tar.gz",
+                    "target_path": "/home/user/dir",
                     "compression": "none",
                 }
             ]
@@ -223,7 +221,7 @@ class PostExtractRequest(FilesystemRequestBase):
 
 
 class PostCopyRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Target path of the copy operation")
+    target_path: str = Field(description="Target path of the copy operation")
     dereference: Optional[bool] = Field(
         default=False,
         description=("If set to `true`, it follows symbolic links and copies the files they point to instead of the links themselves."),
@@ -232,8 +230,8 @@ class PostCopyRequest(FilesystemRequestBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "sourcePath": "/home/user/dir/file.orig",
-                    "targetPath": "/home/user/dir/file.new",
+                    "source_path": "/home/user/dir/file.orig",
+                    "target_path": "/home/user/dir/file.new",
                     "dereference": "true",
                 }
             ]
@@ -241,23 +239,26 @@ class PostCopyRequest(FilesystemRequestBase):
     }
 
 
-class PostCopyResponse(CamelModel):
+class PostCopyResponse(BaseModel):
     output: Optional[File]
 
 
 class PostMoveRequest(FilesystemRequestBase):
-    target_path: str = Field(..., description="Target path of the move operation")
+    target_path: str = Field(description="Target path of the move operation")
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "sourcePath": "/home/user/dir/file.orig",
-                    "targetPath": "/home/user/dir/file.new",
+                    "source_path": "/home/user/dir/file.orig",
+                    "target_path": "/home/user/dir/file.new",
                 }
             ]
         }
     }
 
 
-class PostMoveResponse(CamelModel):
+class PostMoveResponse(BaseModel):
     output: Optional[File]
+
+class RemoveResponse(BaseModel):
+    output: Optional[str]

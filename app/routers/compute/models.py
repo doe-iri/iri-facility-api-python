@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import Enum
 from typing import Annotated
 
 from pydantic import ConfigDict, Field, StrictBool, field_serializer
@@ -84,7 +84,7 @@ class CommandResult(IRIBaseModel):
     result: str | None = None
 
 
-class JobState(IntEnum):
+class JobState(str, Enum):
     """
     from: https://exaworks.org/psij-python/docs/v/0.9.11/_modules/psij/job_state.html#JobState
 
@@ -93,29 +93,29 @@ class JobState(IntEnum):
     The possible states are: `NEW`, `QUEUED`, `ACTIVE`, `COMPLETED`, `FAILED`, and `CANCELED`.
     """
 
-    NEW = 0
+    NEW = "new"
     """
     This is the state of a job immediately after the :class:`~psij.Job` object is created and
     before being submitted to a :class:`~psij.JobExecutor`.
     """
-    QUEUED = 1
+    QUEUED = "queued"
     """
     This is the state of the job after being accepted by a backend for execution, but before the
     execution of the job begins.
     """
-    ACTIVE = 2
+    ACTIVE = "active"
     """This state represents an actively running job."""
-    COMPLETED = 3
+    COMPLETED = "completed"
     """
     This state represents a job that has completed *successfully* (i.e., with a zero exit code).
     In other words, a job with the executable set to `/bin/false` cannot enter this state.
     """
-    FAILED = 4
+    FAILED = "failed"
     """
     Represents a job that has either completed unsuccessfully (with a non-zero exit code) or a job
     whose handling and/or execution by the backend has failed in some way.
     """
-    CANCELED = 5
+    CANCELED = "canceled"
     """Represents a job that was canceled by a call to :func:`~psij.Job.cancel()`."""
 
 
@@ -125,10 +125,6 @@ class JobStatus(IRIBaseModel):
     message: str | None = None
     exit_code: int | None = None
     meta_data: dict[str, object] | None = None
-
-    @field_serializer("state")
-    def serialize_state(self, state: JobState):
-        return state.name
 
 
 class Job(IRIBaseModel):

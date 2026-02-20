@@ -136,6 +136,8 @@ async def get_project_allocation(
         raise HTTPException(status_code=404, detail="User not found")
     projects = await router.adapter.get_projects(user=user)
     project = next((p for p in projects if p.id == project_id), None)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     pas = await router.adapter.get_project_allocations(project=project, user=user)
     pa = next((pa for pa in pas if pa.id == project_allocation_id), None)
     if not pa:
