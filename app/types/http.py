@@ -30,10 +30,7 @@ def modifiedSinceDatetime(modified_since: str | None, header_modified_since: str
             dt = StrictDateTime.validate(modified_since)
             parsed_times.append(dt)
         except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid modified_since query param: {exc}",
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid modified_since query param: {exc}") from exc
 
     # Header (RFC 1123)
     if header_modified_since is not None:
@@ -45,10 +42,7 @@ def modifiedSinceDatetime(modified_since: str | None, header_modified_since: str
                 dt = dt.replace(tzinfo=datetime.timezone.utc)
             parsed_times.append(dt.astimezone(datetime.timezone.utc))
         except Exception as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid If-Modified-Since header format (must be RFC1123)",
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid If-Modified-Since header format (must be RFC1123)") from exc
 
     if not parsed_times:
         return None
@@ -76,9 +70,9 @@ def forbidExtraQueryParams(*allowedParams: str, multiParams: set[str] | None = N
 
         for key, values in parsed.items():
             if key not in allowed:
-                raise HTTPException(status_code=422, detail=[{"type": "extra_forbidden", "loc": ["query", key], "msg": f"Unexpected query parameter: {key}"}])
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[{"type": "extra_forbidden", "loc": ["query", key], "msg": f"Unexpected query parameter: {key}"}])
 
             if len(values) > 1 and key not in multiParams:
-                raise HTTPException(status_code=422, detail=[{"type": "duplicate_forbidden", "loc": ["query", key], "msg": f"Duplicate query parameter: {key}"}])
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[{"type": "duplicate_forbidden", "loc": ["query", key], "msg": f"Duplicate query parameter: {key}"}])
 
     return checker

@@ -17,10 +17,6 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def submit_job_script(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_script_path: str, args: list[str] = []) -> compute_models.Job:
-        pass
-
-    @abstractmethod
     async def update_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_spec: compute_models.JobSpec, job_id: str) -> compute_models.Job:
         pass
 
