@@ -1,18 +1,15 @@
+"""Models for the status API."""
 import datetime
 import enum
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator
 
 from ... import config
 from ...types.base import NamedObject
 
 
-class Link(BaseModel):
-    rel: str
-    href: str
-
-
 class Status(enum.Enum):
+    """Represents the status of a resource."""
     up = "up"
     down = "down"
     degraded = "degraded"
@@ -20,6 +17,7 @@ class Status(enum.Enum):
 
 
 class ResourceType(enum.Enum):
+    """Represents the type of a resource."""
     website = "website"
     service = "service"
     compute = "compute"
@@ -30,15 +28,16 @@ class ResourceType(enum.Enum):
 
 
 class Resource(NamedObject):
+    """Represents a resource in the system."""
     def _self_path(self) -> str:
         """Return the API path for this resource."""
         return f"/status/resources/{self.id}"
 
-    site_id: str = Field(..., description="The site identifier this resource is located at", exclude=True)
+    site_id: str = Field(..., description="The site identifier this resource is located at", exclude=True, example="site-1")
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
-    group: str | None
-    current_status: Status | None = Field(default=None, description="The current status comes from the status of the last event for this resource")
-    resource_type: ResourceType
+    group: str = Field(default=None, description="Logical grouping of the resource", example="frontend")
+    current_status: Status = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
+    resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
 
     @computed_field(description="URI of the site where this resource is located")
     @property
@@ -71,6 +70,7 @@ class Resource(NamedObject):
 
 
 class Event(NamedObject):
+    """Represents an event that occurred to a resource, which may be part of an incident."""
     def _self_path(self) -> str:
         """Return the API path for this event."""
         return f"/status/incidents/{self.incident_id}/events/{self.id}"
@@ -80,10 +80,10 @@ class Event(NamedObject):
     def _norm_dt_field(cls, v):
         return cls.normalize_dt(v)
 
-    occurred_at: datetime.datetime
-    status: Status
-    resource_id: str = Field(exclude=True)
-    incident_id: str | None = Field(exclude=True, default=None)
+    occurred_at: datetime.datetime = Field(..., description="Timestamp when the event occurred", example="2026-02-21T12:00:00Z")
+    status: Status = Field(..., description="Status of the resource at the time of the event", example="down")
+    resource_id: str = Field(..., exclude=True, description="Identifier of the affected resource", example="res-1")
+    incident_id: str = Field(default=None, exclude=True, description="Identifier of the related incident", example="inc-1")
 
     @computed_field(description="The resource belonging to this event")
     @property
@@ -122,12 +122,14 @@ class Event(NamedObject):
 
 
 class IncidentType(enum.Enum):
+    """Represents the type of an incident."""
     planned = "planned"
     unplanned = "unplanned"
     reservation = "reservation"
 
 
 class Resolution(enum.Enum):
+    """Represents the resolution status of an incident."""
     unresolved = "unresolved"
     cancelled = "cancelled"
     completed = "completed"
@@ -136,6 +138,7 @@ class Resolution(enum.Enum):
 
 
 class Incident(NamedObject):
+    """Represents an incident that may impact one or more resources."""
     def _self_path(self) -> str:
         """Return the API path for this incident."""
         return f"/status/incidents/{self.id}"
@@ -145,13 +148,13 @@ class Incident(NamedObject):
     def _norm_dt_field(cls, v):
         return cls.normalize_dt(v)
 
-    status: Status
+    status: Status = Field(..., description="Current status of the incident", example="degraded")
     resource_ids: list[str] = Field(default_factory=list, exclude=True)
     event_ids: list[str] = Field(default_factory=list, exclude=True)
-    start: datetime.datetime
-    end: datetime.datetime | None
-    type: IncidentType
-    resolution: Resolution
+    start: datetime.datetime = Field(..., description="Incident start time", example="2026-02-21T12:00:00Z")
+    end: datetime.datetime = Field(default=None, description="Incident end time", example="2026-02-21T14:00:00Z")
+    type: IncidentType = Field(..., description="Type of incident", example="planned")
+    resolution: Resolution = Field(..., description="Resolution status of the incident", example="pending")
 
     @computed_field(description="The list of past events in this incident")
     @property

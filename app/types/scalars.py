@@ -6,10 +6,9 @@ import enum
 
 from pydantic_core import core_schema
 
+
 # -----------------------------------------------------------------------
 # StrictHTTPBool: a strict boolean type
-
-
 class StrictHTTPBool:
     """Strict boolean:
     - Accepts: real booleans, 'true', 'false'
@@ -36,13 +35,11 @@ class StrictHTTPBool:
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema, handler):
-        return {"type": "boolean", "description": "Strict boolean. Only true/false allowed (bool or string)."}
+        return {"type": "boolean", "description": "Strict boolean. Only true/false allowed (bool or string).", "example": True}
 
 
 # -----------------------------------------------------------------------
 # StrictDateTime: a strict ISO8601 datetime type
-
-
 class StrictDateTime:
     """
     Strict ISO8601 datetime:
@@ -82,13 +79,11 @@ class StrictDateTime:
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema, handler):
-        return {"type": "string", "format": "date-time", "description": "Strict ISO8601 datetime. Only valid ISO8601 datetime strings are accepted."}
+        return {"type": "string", "format": "date-time", "description": "Strict ISO8601 datetime. Only valid ISO8601 datetime strings are accepted.", "example": "2026-02-21T12:00:00Z"}
 
 
 # -----------------------------------------------------------------------
 # AllocationUnit: an enum for allocation units
-
-
 class AllocationUnit(enum.Enum):
     """Units for allocation"""
 

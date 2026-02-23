@@ -1,3 +1,7 @@
+"""
+A demo adapter for the IRI Facility API that returns hardcoded data.
+This is useful for testing and development of the API without needing to connect to real resources
+"""
 import base64
 import datetime
 import glob
@@ -29,6 +33,10 @@ from .routers.task import facility_adapter as task_adapter
 from .routers.task import models as task_models
 from .types.models import Capability
 from .types.scalars import AllocationUnit
+from .apilogger import get_stream_logger
+from .config import LOG_LEVEL
+
+logger = get_stream_logger(__name__, LOG_LEVEL)
 
 DEMO_QUEUE_UPDATE_SECS = int(os.environ.get("DEMO_QUEUE_UPDATE_SECS", 5))
 
@@ -41,12 +49,25 @@ def paginate_list(items, offset: int | None, limit: int | None):
         items = items[:limit]
     return items
 
+class CommandError(RuntimeError):
+    """Raised when an external subprocess command fails."""
+
+    def __init__(self, cmd, returncode=None, stdout=None, stderr=None):
+        self.cmd = cmd
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+        super().__init__(f"Command failed: {cmd} (rc={returncode})")
+
 
 class PathSandbox:
+    """A simple sandbox for file operations."""
     _base_temp_dir = None
 
     @classmethod
     def get_base_temp_dir(cls):
+        """Get the base temporary directory for the sandbox."""
         if cls._base_temp_dir is None:
             # Create in system temp with a fixed name
             cls._base_temp_dir = os.path.join(os.getcwd(), "iri_sandbox")
@@ -55,10 +76,12 @@ class PathSandbox:
             # create a test file
             with open(f"{cls._base_temp_dir}/test.txt", encoding="utf-8", mode="w") as f:
                 f.write("hello world")
+            logger.info(f"Created test file in sandbox: {cls._base_temp_dir}/test.txt")
         return cls._base_temp_dir
 
 
 def demo_uuid(kind: str, name: str) -> str:
+    """Generate a deterministic UUID based on the kind and name."""
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"demo:{kind}:{name}"))
 
 
@@ -75,6 +98,7 @@ def utc_timestamp() -> int:
 class DemoAdapter(
     status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter, task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter
 ):
+    """A demo implementation of the FacilityAdapter that returns hardcoded data."""
     def __init__(self):
         self.resources = []
         self.incidents = []
@@ -331,7 +355,7 @@ class DemoAdapter(
         sites = self.sites
 
         if name:
-            sites = [s for s in sites if name.lower() in s.name.lower()]
+            sites = [s for s in sites if name.lower() in s.name.lower()]  # pylint: disable=no-member
 
         if short_name:
             sites = [s for s in sites if s.short_name == short_name]
@@ -509,25 +533,7 @@ class DemoAdapter(
                 state=compute_models.JobState.NEW,
                 time=utc_timestamp(),
                 message="job submitted",
-                exit_code=None,
-                meta_data={"account": "account1"},
-            ),
-        )
-
-    async def submit_job_script(
-        self: "DemoAdapter",
-        resource: status_models.Resource,
-        user: account_models.User,
-        job_script_path: str,
-        args: list[str] = [],
-    ) -> compute_models.Job:
-        return compute_models.Job(
-            id="job_123",
-            status=compute_models.JobStatus(
-                state=compute_models.JobState.NEW,
-                time=utc_timestamp(),
-                message="job submitted",
-                exit_code=None,
+                exit_code=0,
                 meta_data={"account": "account1"},
             ),
         )
@@ -545,7 +551,7 @@ class DemoAdapter(
                 state=compute_models.JobState.ACTIVE,
                 time=utc_timestamp(),
                 message="job updated",
-                exit_code=None,
+                exit_code=0,
                 meta_data={"account": "account1"},
             ),
         )
@@ -603,6 +609,7 @@ class DemoAdapter(
         return True
 
     def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
+        """Validate that the given path is within the sandbox base directory and optionally check for symlinks."""
         basedir = PathSandbox.get_base_temp_dir()
         real_path = os.path.realpath(os.path.join(basedir, path))
 
@@ -617,6 +624,27 @@ class DemoAdapter(
                 raise HTTPException(status_code=400, detail=f"Absolute symlink not allowed: {path}")
 
         return real_path
+
+# ----------------------------------------------
+# Filesystem API
+# ----------------------------------------------
+    def _run(self, args, *, shell: bool = False, timeout: int | None = 3600, text: bool = True) -> subprocess.CompletedProcess:
+        """
+        Run a subprocess command and catch exceptions.
+        Raises CommandError on failure with captured diagnostics.
+        """
+        try:
+            return subprocess.run(args, shell=shell, capture_output=True, text=text, check=True, timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            logger.warning(f"Command timed out: {args} (after {timeout} seconds)")
+            raise CommandError(cmd=args, returncode=None, stdout=exc.stdout, stderr=exc.stderr) from exc
+        except subprocess.CalledProcessError as exc:
+            logger.warning(f"Command failed: {args} (rc={exc.returncode})\nstdout: {exc.stdout}\nstderr: {exc.stderr}")
+            raise CommandError(cmd=args, returncode=exc.returncode, stdout=exc.stdout, stderr=exc.stderr) from exc
+        except OSError as exc:
+            logger.warning(f"OS error running command: {args}\nError: {exc}")
+            raise CommandError(cmd=args, returncode=None, stdout=None, stderr=str(exc)) from exc
+
 
     def _file(self, path: str) -> filesystem_models.File:
         # Get file stats (follows symlinks by default)
@@ -650,8 +678,21 @@ class DemoAdapter(
 
         # Get size
         size = str(file_stat.st_size)
+        data = dict(
+            name=os.path.basename(rp),
+            type=file_type,
+            user=user,
+            group=group,
+            permissions=permissions,
+            last_modified=last_modified,
+            size=size,
+        )
 
-        return filesystem_models.File(name=os.path.basename(rp), type=file_type, link_target=link_target, user=user, group=group, permissions=permissions, last_modified=last_modified, size=size)
+        if link_target is not None:
+            data["link_target"] = link_target
+
+        return filesystem_models.File(**data)
+
 
     async def chmod(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PutFileChmodRequest) -> filesystem_models.PutFileChmodResponse:
         rp = self.validate_path(request_model.path)
@@ -666,7 +707,7 @@ class DemoAdapter(
     ) -> filesystem_models.PutFileChownResponse:
         rp = self.validate_path(request_model.path)
         os.chown(rp, request_model.owner, request_model.group)
-        return filesystem_models.PutFileChmodResponse(output=self._file(rp))
+        return filesystem_models.PutFileChownResponse(output=self._file(rp))
 
     async def ls(
         self: "DemoAdapter",
@@ -689,6 +730,7 @@ class DemoAdapter(
         file_bytes: int | None,
         lines: int | None,
         skip_heading: bool = False,
+        skip_trailing: bool = False,
     ) -> Tuple[Any, int]:
         args = [cmd]
 
@@ -697,6 +739,11 @@ class DemoAdapter(
                 args.extend(["-c", f"+{file_bytes + 1}"])
             elif lines is not None:
                 args.extend(["-n", f"+{lines + 1}"])
+        if cmd == "head" and skip_trailing:
+            if file_bytes is not None:
+                args.extend(["-c", f"-{file_bytes}"])
+            elif lines is not None:
+                args.extend(["-n", f"-{lines}"])
         else:
             if file_bytes is not None:
                 args.extend(["-c", str(file_bytes)])
@@ -706,7 +753,7 @@ class DemoAdapter(
         rp = self.validate_path(path)
         args.append(rp)
 
-        result = subprocess.run(args, capture_output=True, text=True)
+        result = self._run(args)
         content = result.stdout
         return content, len(content)
 
@@ -717,9 +764,9 @@ class DemoAdapter(
         path: str,
         file_bytes: int | None,
         lines: int | None,
-        skip_trailing: bool,
+        skip_trailing: bool = False,
     ) -> filesystem_models.GetFileHeadResponse:
-        content, offset = self._headtail("head", path, file_bytes, lines)
+        content, offset = self._headtail("head", path, file_bytes, lines, skip_trailing=skip_trailing)
 
         fc = filesystem_models.FileContent(
             content=content,
@@ -738,7 +785,7 @@ class DemoAdapter(
         path: str,
         file_bytes: int | None,
         lines: int | None,
-        skip_heading: bool,
+        skip_heading: bool = False,
     ) -> filesystem_models.GetFileTailResponse:
 
         content, offset = self._headtail("tail", path, file_bytes, lines, skip_heading=skip_heading)
@@ -757,7 +804,7 @@ class DemoAdapter(
 
     async def view(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, path: str, size: int, offset: int) -> filesystem_models.GetViewFileResponse:
         rp = self.validate_path(path)
-        result = subprocess.run(f"tail -c +{offset + 1} {rp} | head -c {size}", shell=True, capture_output=True, text=True)
+        result = self._run(f"tail -c +{offset + 1} {rp} | head -c {size}", shell=True)
         content = result.stdout
         return filesystem_models.GetViewFileResponse(
             output=content,
@@ -765,7 +812,7 @@ class DemoAdapter(
 
     async def checksum(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileChecksumResponse:
         rp = self.validate_path(path)
-        result = subprocess.run(["sha256sum", rp], capture_output=True, text=True)
+        result = self._run(["sha256sum", rp])
         checksum = result.stdout.split()[0]
         return filesystem_models.GetFileChecksumResponse(
             output=filesystem_models.FileChecksum(
@@ -775,7 +822,7 @@ class DemoAdapter(
 
     async def file(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileTypeResponse:
         rp = self.validate_path(path)
-        result = subprocess.run(["file", "-b", rp], capture_output=True, text=True)
+        result = self._run(["file", "-b", rp])
         return filesystem_models.GetFileTypeResponse(
             output=result.stdout.strip(),
         )
@@ -810,7 +857,7 @@ class DemoAdapter(
         rp = self.validate_path(path)
         if rp == PathSandbox.get_base_temp_dir():
             raise HTTPException(status_code=400, detail="Cannot delete sandbox")
-        subprocess.run(["rm", "-rf", rp], check=True)
+        self._run(["rm", "-rf", rp])
         return filesystem_models.RemoveResponse(output=f"Removed {rp}")
 
     async def mkdir(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, request_model: filesystem_models.PostMakeDirRequest) -> filesystem_models.PostMkdirResponse:
@@ -819,7 +866,7 @@ class DemoAdapter(
         if request_model.parent:
             args.append("-p")
         args.append(rp)
-        subprocess.run(args, check=True)
+        self._run(args)
         return filesystem_models.PostMkdirResponse(output=self._file(rp))
 
     async def symlink(
@@ -827,7 +874,7 @@ class DemoAdapter(
     ) -> filesystem_models.PostFileSymlinkResponse:
         rp_src = self.validate_path(request_model.path)
         rp_dst = self.validate_path(request_model.link_path)
-        subprocess.run(["ln", "-s", rp_src, rp_dst], check=True)
+        self._run(["ln", "-s", rp_src, rp_dst])
         return filesystem_models.PostFileSymlinkResponse(output=self._file(rp_dst))
 
     async def download(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileDownloadResponse:
@@ -923,19 +970,19 @@ class DemoAdapter(
         return filesystem_models.PostCopyResponse(output=self._file(dst_rp))
 
     async def get_task(self: "DemoAdapter", user: account_models.User, task_id: str) -> task_models.Task | None:
-        await DemoTaskQueue._process_tasks(self)
+        await DemoTaskQueue.process_tasks(self)
         return next((t for t in DemoTaskQueue.tasks if t.user.name == user.name and t.id == task_id), None)
 
     async def get_tasks(self: "DemoAdapter", user: account_models.User) -> list[task_models.Task]:
-        await DemoTaskQueue._process_tasks(self)
+        await DemoTaskQueue.process_tasks(self)
         return [t for t in DemoTaskQueue.tasks if t.user.name == user.name]
 
     async def put_task(self: "DemoAdapter", user: account_models.User, resource: status_models.Resource, task: str) -> task_models.TaskSubmitResponse:
-        await DemoTaskQueue._process_tasks(self)
-        return DemoTaskQueue._create_task(user, resource, task)
+        await DemoTaskQueue.process_tasks(self)
+        return DemoTaskQueue.create_task(user, resource, task)
 
     async def delete_task(self: "DemoAdapter", user: account_models.User, task_id: str) -> None:
-        await DemoTaskQueue._process_tasks(self)
+        await DemoTaskQueue.process_tasks(self)
         for t in DemoTaskQueue.tasks:
             if t.user.name == user.name and t.id == task_id:
                 t.status = task_models.TaskStatus.canceled
@@ -944,6 +991,7 @@ class DemoAdapter(
 
 
 class DemoTask(BaseModel):
+    """A simple in-memory task queue for demonstration purposes."""
     id: str
     task: str
     resource: status_models.Resource
@@ -954,10 +1002,12 @@ class DemoTask(BaseModel):
 
 
 class DemoTaskQueue:
+    """A simple in-memory task queue for demonstration purposes."""
     tasks = []
 
     @staticmethod
-    async def _process_tasks(da: DemoAdapter):
+    async def process_tasks(da: DemoAdapter):
+        """Process tasks in the queue, simulating task execution and completion."""
         now = utc_timestamp()
         _tasks = []
         for t in DemoTaskQueue.tasks:
@@ -976,7 +1026,9 @@ class DemoTaskQueue:
         DemoTaskQueue.tasks = _tasks
 
     @staticmethod
-    def _create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
+    def create_task(user: account_models.User, resource: status_models.Resource, command: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
+        """Create a new task in the queue."""
         task_id = f"task_{len(DemoTaskQueue.tasks)}"
         DemoTaskQueue.tasks.append(DemoTask(id=task_id, task=command.model_dump_json(), user=user, resource=resource, start=utc_timestamp()))
+        logger.info(f"Created task: {task_id}")
         return task_models.TaskSubmitResponse(task_id=task_id)

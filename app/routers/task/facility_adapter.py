@@ -1,3 +1,4 @@
+import traceback
 from abc import abstractmethod
 from . import models as task_models
 from ..account import models as account_models
@@ -5,6 +6,9 @@ from ..status import models as status_models
 from ..filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 from ..iri_router import AuthenticatedAdapter, IriRouter
 
+from ...apilogger import get_stream_logger
+
+logger = get_stream_logger(__name__)
 
 class FacilityAdapter(AuthenticatedAdapter):
     """
@@ -33,16 +37,22 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def on_task(resource: status_models.Resource, user: account_models.User, task: task_models.TaskCommand) -> tuple[str, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
+        def _extractNull(ind):
+            data = {k: v for k, v in ind.items() if v is not None}
+            return data
         try:
             r = None
+            logger.info(f"Received task: {task.router}:{task.command} with args: {task.args}")
             if task.router == "filesystem":
                 fs_adapter = IriRouter.create_adapter(task.router, filesystem_adapter.FacilityAdapter)
                 if task.command == "chmod":
-                    request_model = filesystem_models.PutFileChmodRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PutFileChmodRequest.model_validate(data)
                     o = await fs_adapter.chmod(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "chown":
-                    request_model = filesystem_models.PutFileChownRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PutFileChownRequest.model_validate(data)
                     o = await fs_adapter.chown(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "file":
@@ -52,11 +62,13 @@ class FacilityAdapter(AuthenticatedAdapter):
                     o = await fs_adapter.stat(resource, user, **task.args)
                     r = o.model_dump_json()
                 elif task.command == "mkdir":
-                    request_model = filesystem_models.PostMakeDirRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostMakeDirRequest.model_validate(data)
                     o = await fs_adapter.mkdir(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "symlink":
-                    request_model = filesystem_models.PostFileSymlinkRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostFileSymlinkRequest.model_validate(data)
                     o = await fs_adapter.symlink(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "ls":
@@ -78,19 +90,23 @@ class FacilityAdapter(AuthenticatedAdapter):
                     o = await fs_adapter.rm(resource, user, **task.args)
                     r = o.model_dump_json()
                 elif task.command == "compress":
-                    request_model = filesystem_models.PostCompressRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostCompressRequest.model_validate(data)
                     o = await fs_adapter.compress(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "extract":
-                    request_model = filesystem_models.PostExtractRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostExtractRequest.model_validate(data)
                     o = await fs_adapter.extract(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "mv":
-                    request_model = filesystem_models.PostMoveRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostMoveRequest.model_validate(data)
                     o = await fs_adapter.mv(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "cp":
-                    request_model = filesystem_models.PostCopyRequest.model_validate(task.args["request_model"])
+                    data = _extractNull(task.args["request_model"])
+                    request_model = filesystem_models.PostCopyRequest.model_validate(data)
                     o = await fs_adapter.cp(resource, user, request_model)
                     r = o.model_dump_json()
                 elif task.command == "download":
@@ -103,4 +119,7 @@ class FacilityAdapter(AuthenticatedAdapter):
             else:
                 return (f"Task was cancelled due to unknown router/command: {task.router}:{task.command}", task_models.TaskStatus.failed)
         except Exception as exc:
+            traceback_str = traceback.format_exc()
+            logger.warning(f"Error handling task {task.router}:{task.command} with args: {task.args}\nError: {exc}")
+            logger.debug(f"Traceback:\n{traceback_str}")
             return (f"Error: {exc}", task_models.TaskStatus.failed)

@@ -1,8 +1,6 @@
 """Default models used by multiple routers."""
-
 import datetime
 from collections.abc import Iterable
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_serializer
 
@@ -47,7 +45,7 @@ class IRIBaseModel(BaseModel):
 class NamedObject(IRIBaseModel):
     """Base model for named objects."""
 
-    id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.")
+    id: str = Field(..., description="The unique identifier for the object. Typically a UUID or URN.", example="urn:iri:object:1234")
 
     def _self_path(self) -> str:
         raise NotImplementedError
@@ -63,9 +61,9 @@ class NamedObject(IRIBaseModel):
         """Computed self URI property."""
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}{self._self_path()}"
 
-    name: Optional[str] = Field(None, description="The long name of the object.")
-    description: Optional[str] = Field(None, description="Human-readable description of the object.")
-    last_modified: StrictDateTime = Field(..., description="ISO 8601 timestamp when this object was last modified.")
+    name: str = Field(default=None, description="The long name of the object.", example="Perlmutter GPU")
+    description: str = Field(default=None, description="Human-readable description of the object.", example="High-performance GPU compute resource")
+    last_modified: StrictDateTime = Field(..., description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
 
     @classmethod
     def find_by_id(cls, items, id_, allow_name: bool = False):
