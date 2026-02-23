@@ -32,7 +32,7 @@ class IRIBaseModel(BaseModel):
         return getattr(self, "__pydantic_extra__", {}).get(key, default)
 
     @classmethod
-    def normalize_dt(cls, dt: datetime | None) -> datetime | None:
+    def normalize_dt(cls, dt: datetime) -> datetime:
         """Normalize datetime to UTC-aware."""
         # Convert naive datetimes into UTC-aware versions
         if dt is None:
