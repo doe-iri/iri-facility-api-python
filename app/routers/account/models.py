@@ -1,6 +1,5 @@
 """Models for account-related API endpoints, including users, projects, and allocations."""
 import datetime
-
 from pydantic import Field, computed_field, field_validator
 
 from ... import config
