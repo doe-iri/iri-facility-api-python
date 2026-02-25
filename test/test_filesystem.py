@@ -5,7 +5,6 @@ IRI Filesystem API smoke test via async tasks.
 import os
 import sys
 import time
-import random
 import datetime as dt
 import requests
 
@@ -14,45 +13,113 @@ import requests
 # CONFIG — EDIT THESE AS NEEDED
 # =========================
 
-BASE_URL = "http://localhost:8000/api/v1"
+#BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "https://api.iri.nersc.gov/api/v1"
+#BASE_URL = "https://iri-dev.ppg.es.net/api/v1"
 TOKEN = os.environ.get("IRI_API_TOKEN", "12345")
 # =========================
-
-HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
-
+HEADERS = {"Authorization": f"{TOKEN}", "Accept": "application/json"}
 POLL_INTERVAL = 2
 TIMEOUT = 180
 
 
-def getAnyStorageResource():
-    """Get the ID of any storage resource available in the facility by looking at the project allocations and resource capabilities."""
-    projects = requests.get(f"{BASE_URL}/account/projects", headers=HEADERS, timeout=TIMEOUT).json()
-    caps = requests.get(f"{BASE_URL}/account/capabilities", headers=HEADERS, timeout=TIMEOUT).json()
-    storageCaps = {c["self_uri"] for c in caps if c["name"] == "GPFS Storage"}
-    if not storageCaps:
-        raise RuntimeError("No storage capabilities defined")
+def print_table(headers, rows):
+    """Pretty-print a table with dynamic column width."""
+    widths = [len(h) for h in headers]
 
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(str(cell)))
+
+    fmt = " | ".join(f"{{:<{w}}}" for w in widths)
+    sep = "-+-".join("-" * w for w in widths)
+
+    print(fmt.format(*headers))
+    print(sep)
+    for row in rows:
+        print(fmt.format(*[str(c) for c in row]))
+    print()
+
+def cap_name(allcaps, uri):
+    """Get capability name from URI, or return URI if not found."""
+    c = allcaps.get(uri)
+    return c.get("name") if c else uri
+
+def getAllResources():
+    """Get and print all storage resources available to the user, along with their capabilities."""
+    print("\n" + "="*40)
+    print("=== DISCOVERING RESOURCES AND CAPABILITIES ===")
+    # -----------------------------
+    # Projects
+    # -----------------------------
+    projects = requests.get(f"{BASE_URL}/account/projects", headers=HEADERS, timeout=TIMEOUT).json()
+    project_rows = [[p.get("id"), p.get("name", ""), p.get("description", "")] for p in projects]
+
+    print("\n=== PROJECTS ===")
+    print_table(["Project ID", "Name", "Description"], project_rows)
+
+    # -----------------------------
+    # Capabilities
+    # -----------------------------
+    caps = requests.get(f"{BASE_URL}/account/capabilities", headers=HEADERS, timeout=TIMEOUT).json()
+
+    cap_rows = [[c.get("self_uri"), c.get("name"), c.get("description", "")] for c in caps]
+    cap_by_uri = {c["self_uri"]: c for c in caps}
+
+    print("\n=== CAPABILITIES ===")
+    print_table(["Capability URI", "Name", "Description"], cap_rows)
+
+
+    # -----------------------------
+    # Allocations per project
+    # -----------------------------
+    alloc_rows = []
     projectStorageCaps = set()
-    for p in projects:
-        allocs = requests.get(f"{BASE_URL}/account/projects/{p['id']}/project_allocations", headers=HEADERS, timeout=TIMEOUT).json()
+
+    for pr in projects:
+        allocs = requests.get(f"{BASE_URL}/account/projects/{pr['id']}/project_allocations", headers=HEADERS, timeout=TIMEOUT).json()
+
         for a in allocs:
-            if a["capability_uri"] in storageCaps:
+            alloc_rows.append([pr["id"], a.get("id"), cap_name(cap_by_uri, a.get("capability_uri"))])
+
+            if a.get("capability_uri") in cap_by_uri:
                 projectStorageCaps.add(a["capability_uri"])
 
+    print("\n=== PROJECT ALLOCATIONS ===")
+    print_table(["Project ID", "Allocation ID", "Capability URI"], alloc_rows)
+
     if not projectStorageCaps:
-        raise RuntimeError("No storage allocations found in any project")
+        die("No storage allocations found")
 
+    # -----------------------------
+    # Resources
+    # -----------------------------
     resources = requests.get(f"{BASE_URL}/status/resources?offset=0&limit=100", headers=HEADERS, timeout=TIMEOUT).json()
-    matchingResources = [r["id"] for r in resources if any(cap in r["capability_uris"] for cap in projectStorageCaps)]
-    if not matchingResources:
-        raise RuntimeError("No storage resources found")
 
-    return random.choice(matchingResources)
+    resource_rows = []
+    matching = []
 
+    for r in resources:
+        caps = r.get("capability_uris", [])
+        cap_names = [cap_name(cap_by_uri, c) for c in caps]
 
-RESOURCE_ID = getAnyStorageResource()
+        match = any(cap in caps for cap in projectStorageCaps)
+
+        if match:
+            resource_rows.append([r.get("id"), r.get("name", ""), r.get("resource_type", ""),
+                                  r.get("description", ""), ", ".join(cap_names), r.get("current_status", "")])
+            matching.append(r["id"])
+
+    print("\n=== RESOURCES ===")
+    print_table(["Resource ID", "Name", "Type", "Description", "Capability URIs", "Current Status"], resource_rows)
+
+    if not matching:
+        die("No storage resources found")
+
+getAllResources()
+print("\n" + "="*40)
+RESOURCE_ID = input("Enter the ID of the storage resource to test against: \n").strip()
 print("Chosen storage resource ID:", RESOURCE_ID)
-
 
 
 def die(msg):
@@ -79,12 +146,12 @@ def submit(method, path, **kwargs):
     return data
 
 
-def wait_task(task):
+def wait_task(taskin):
     """Wait for a task to complete and return its result."""
     deadline = time.time() + TIMEOUT
 
     while time.time() < deadline:
-        r = requests.get(task["task_uri"], headers=HEADERS, timeout=TIMEOUT)
+        r = requests.get(taskin["task_uri"], headers=HEADERS, timeout=TIMEOUT)
 
         if not r.ok:
             die(f"Task query failed: {r.status_code} {r.text}")
@@ -92,25 +159,24 @@ def wait_task(task):
         t = r.json()
         status = t["status"]
 
-        print(f"   Task {task['task_id']}: {status}")
+        print(f"   Task {taskin['task_id']}: {status}")
 
         if status == "completed":
             print(f"   Task result: {t.get('result')}")
             return t.get("result")
 
         if status in ("failed", "canceled"):
-            die(f"Task {task['task_id']} ended with status {status}: {t}")
+            die(f"Task {taskin['task_id']} ended with status {status}: {t}")
 
         time.sleep(POLL_INTERVAL)
 
-    die(f"Task {task['task_id']} timed out")
+    die(f"Task {taskin['task_id']} timed out")
 
 
 # ============================================================
 # Sandbox setup
 # ============================================================
-
-timestamp = dt.datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+timestamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
 
 # NOTE/TODO: /Users/jbalcas/work/amsc/iri/iri-facility-api-python/iri_sandbox/
 # While we can use absolute paths, there is a need to return relative paths from the API
