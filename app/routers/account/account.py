@@ -24,8 +24,8 @@ router = iri_router.IriRouter(
 )
 async def get_capabilities(
     request: Request,
-    name: str = Query(default=None, min_length=1),
-    modified_since: StrictDateTime = Query(default=None),
+    name: str|None = Query(default=None, min_length=1),
+    modified_since: StrictDateTime|None = Query(default=None),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
     _forbid=Depends(forbidExtraQueryParams("name", "modified_since", "offset", "limit")),
@@ -43,7 +43,7 @@ async def get_capabilities(
 async def get_capability(
     capability_id: str,
     request: Request,
-    modified_since: StrictDateTime = Query(default=None),
+    modified_since: StrictDateTime|None = Query(default=None),
     _forbid=Depends(forbidExtraQueryParams("modified_since")),
 ) -> Capability:
     caps = await router.adapter.get_capabilities(name=None, modified_since=modified_since, offset=0, limit=100)

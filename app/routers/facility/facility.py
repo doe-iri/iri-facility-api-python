@@ -26,11 +26,11 @@ async def get_facility(
 @router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True,)
 async def list_sites(
     request: Request,
-    modified_since: StrictDateTime = Query(default=None),
-    name: str = Query(default=None, min_length=1),
+    modified_since: StrictDateTime|None = Query(default=None),
+    name: str|None = Query(default=None, min_length=1),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
-    short_name: str = Query(default=None, min_length=1),
+    short_name: str|None = Query(default=None, min_length=1),
     _forbid=Depends(forbidExtraQueryParams("modified_since", "name", "offset", "limit", "short_name")),
 ) -> list[models.Site]:
     """List sites"""
@@ -41,7 +41,7 @@ async def list_sites(
 async def get_site(
     request: Request,
     site_id: str,
-    modified_since: StrictDateTime = Query(default=None),
+    modified_since: StrictDateTime|None = Query(default=None),
     _forbid=Depends(forbidExtraQueryParams("modified_since")),
 ) -> models.Site:
     """Get site by ID"""

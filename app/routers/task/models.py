@@ -37,5 +37,5 @@ class Task(BaseModel):
     """Represents a task in the system."""
     id: str = Field(..., description="Unique identifier of the task", example="task-123")
     status: TaskStatus = Field(default=TaskStatus.pending, description="Current status of the task", example="pending")
-    result: Any = Field(default=None, description="Result of the task execution, if available")
-    command: TaskCommand = Field(default=None, description="Command associated with this task")
+    result: Any|None = Field(default=None, description="Result of the task execution, if available")
+    command: TaskCommand|None = Field(default=None, description="Command associated with this task")

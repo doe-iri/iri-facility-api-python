@@ -23,8 +23,8 @@ class FacilityAdapter(ABC):
         description: str | None = None,
         group: str | None = None,
         modified_since: datetime.datetime | None = None,
-        resource_type: status_models.ResourceType = Query(default=None),
-        current_status: status_models.Status = Query(default=None),
+        resource_type: status_models.ResourceType|None = Query(default=None),
+        current_status: status_models.Status|None = Query(default=None),
         capability: Capability | None = None,
         site_id: str | None = None,
     ) -> list[status_models.Resource]:

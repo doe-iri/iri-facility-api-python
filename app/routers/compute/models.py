@@ -121,14 +121,14 @@ class JobState(str, Enum):
 class JobStatus(IRIBaseModel):
     """Represents the status of a job."""
     state: JobState = Field(..., description="Current state of the job", example="queued")
-    time: float = Field(default=None, description="Timestamp associated with the status (seconds since epoch)", example=1708531200.0)
-    message: str = Field(default=None, description="Human-readable status message", example="Job is waiting in queue")
-    exit_code: int = Field(default=None, description="Process exit code if the job has finished", example=0)
-    meta_data: dict[str, object] = Field(default=None, description="Backend-specific metadata associated with the job status")
+    time: float|None = Field(default=None, description="Timestamp associated with the status (seconds since epoch)", example=1708531200.0)
+    message: str|None = Field(default=None, description="Human-readable status message", example="Job is waiting in queue")
+    exit_code: int|None = Field(default=None, description="Process exit code if the job has finished", example=0)
+    meta_data: dict[str, object]|None = Field(default=None, description="Backend-specific metadata associated with the job status")
 
 
 class Job(IRIBaseModel):
     """Represents a job in the system."""
     id: str = Field(..., description="Unique identifier of the job", example="job-12345")
-    status: JobStatus = Field(default=None, description="Current status of the job")
-    job_spec: JobSpec = Field(default=None, description="Specification used to create the job")
+    status: JobStatus|None = Field(default=None, description="Current status of the job")
+    job_spec: JobSpec|None = Field(default=None, description="Specification used to create the job")

@@ -35,8 +35,8 @@ class Resource(NamedObject):
 
     site_id: str = Field(..., description="The site identifier this resource is located at", exclude=True, example="site-1")
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
-    group: str = Field(default=None, description="Logical grouping of the resource", example="frontend")
-    current_status: Status = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
+    group: str|None = Field(default=None, description="Logical grouping of the resource", example="frontend")
+    current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
 
     @computed_field(description="URI of the site where this resource is located")
@@ -83,7 +83,7 @@ class Event(NamedObject):
     occurred_at: datetime.datetime = Field(..., description="Timestamp when the event occurred", example="2026-02-21T12:00:00Z")
     status: Status = Field(..., description="Status of the resource at the time of the event", example="down")
     resource_id: str = Field(..., exclude=True, description="Identifier of the affected resource", example="res-1")
-    incident_id: str = Field(default=None, exclude=True, description="Identifier of the related incident", example="inc-1")
+    incident_id: str|None = Field(default=None, exclude=True, description="Identifier of the related incident", example="inc-1")
 
     @computed_field(description="The resource belonging to this event")
     @property
@@ -152,7 +152,7 @@ class Incident(NamedObject):
     resource_ids: list[str] = Field(default_factory=list, exclude=True)
     event_ids: list[str] = Field(default_factory=list, exclude=True)
     start: datetime.datetime = Field(..., description="Incident start time", example="2026-02-21T12:00:00Z")
-    end: datetime.datetime = Field(default=None, description="Incident end time", example="2026-02-21T14:00:00Z")
+    end: datetime.datetime|None = Field(default=None, description="Incident end time", example="2026-02-21T14:00:00Z")
     type: IncidentType = Field(..., description="Type of incident", example="planned")
     resolution: Resolution = Field(..., description="Resolution status of the incident", example="pending")
 
