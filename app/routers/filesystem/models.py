@@ -89,13 +89,11 @@ class GetDirectoryLsResponse(BaseModel):
 class GetFileHeadResponse(BaseModel):
     """Represents the response for reading the beginning of a file."""
     output: FileContent = Field(default=None, description="File content from the beginning")
-    offset: int = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content", example=0)
 
 
 class GetFileTailResponse(BaseModel):
     """Represents the response for reading the end of a file."""
     output: FileContent = Field(default=None, description="File content from the end")
-    offset: int = Field(default=0, description="Offset in bytes from the beginning of the file where to start reading the content", example=0)
 
 
 class GetFileChecksumResponse(BaseModel):

@@ -731,7 +731,7 @@ class DemoAdapter(
         lines: int | None,
         skip_heading: bool = False,
         skip_trailing: bool = False,
-    ) -> Tuple[Any, int]:
+    ) -> Any:
         args = [cmd]
 
         if cmd == "tail" and skip_heading:
@@ -754,8 +754,7 @@ class DemoAdapter(
         args.append(rp)
 
         result = self._run(args)
-        content = result.stdout
-        return content, len(content)
+        return result.stdout
 
     async def head(
         self: "DemoAdapter",
@@ -766,7 +765,7 @@ class DemoAdapter(
         lines: int | None,
         skip_trailing: bool = False,
     ) -> filesystem_models.GetFileHeadResponse:
-        content, offset = self._headtail("head", path, file_bytes, lines, skip_trailing=skip_trailing)
+        content = self._headtail("head", path, file_bytes, lines, skip_trailing=skip_trailing)
 
         fc = filesystem_models.FileContent(
             content=content,
@@ -776,7 +775,7 @@ class DemoAdapter(
             start_position=0,
             end_position=len(content))
 
-        return filesystem_models.GetFileHeadResponse(output=fc, offset=offset)
+        return filesystem_models.GetFileHeadResponse(output=fc)
 
     async def tail(
         self: "DemoAdapter",
@@ -788,7 +787,7 @@ class DemoAdapter(
         skip_heading: bool = False,
     ) -> filesystem_models.GetFileTailResponse:
 
-        content, offset = self._headtail("tail", path, file_bytes, lines, skip_heading=skip_heading)
+        content = self._headtail("tail", path, file_bytes, lines, skip_heading=skip_heading)
 
         fc = filesystem_models.FileContent(
             content=content,
@@ -798,7 +797,7 @@ class DemoAdapter(
             start_position=0,
             end_position=len(content))
 
-        return filesystem_models.GetFileTailResponse(output=fc, offset=offset)
+        return filesystem_models.GetFileTailResponse(output=fc)
 
 
 
