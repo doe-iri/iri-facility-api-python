@@ -28,7 +28,7 @@ class File(BaseModel):
     """Represents a file or directory in the filesystem."""
     name: str = Field(..., description="File name", example="file.txt")
     type: str = Field(..., description="File type", example="file")
-    link_target: str = Field(default=None, description="Target path if the file is a symbolic link", example="/data/file.txt")
+    link_target: str|None = Field(default=None, description="Target path if the file is a symbolic link", example="/data/file.txt")
     user: str = Field(..., description="Owner username", example="user")
     group: str = Field(..., description="Owner group", example="users")
     permissions: str = Field(..., description="POSIX permission string", example="rwxr-xr-x")
@@ -76,55 +76,55 @@ class PatchFile(BaseModel):
 
 class PatchFileMetadataRequest(BaseModel):
     """Represents a request to update file metadata."""
-    new_filename: str = Field(default=None, description="New file name", example="file.new")
-    new_permissions: str = Field(default=None, description="New permissions", example="755")
-    new_owner: str = Field(default=None, description="New owner", example="user")
+    new_filename: str|None = Field(default=None, description="New file name", example="file.new")
+    new_permissions: str|None = Field(default=None, description="New permissions", example="755")
+    new_owner: str|None = Field(default=None, description="New owner", example="user")
 
 
 class GetDirectoryLsResponse(BaseModel):
     """Represents the response for a directory listing."""
-    output: list[File] = Field(default=None, description="Directory listing")
+    output: list[File]|None = Field(default=None, description="Directory listing")
 
 
 class GetFileHeadResponse(BaseModel):
     """Represents the response for reading the beginning of a file."""
-    output: FileContent = Field(default=None, description="File content from the beginning")
+    output: FileContent|None = Field(default=None, description="File content from the beginning")
 
 
 class GetFileTailResponse(BaseModel):
     """Represents the response for reading the end of a file."""
-    output: FileContent = Field(default=None, description="File content from the end")
+    output: FileContent|None = Field(default=None, description="File content from the end")
 
 
 class GetFileChecksumResponse(BaseModel):
     """Represents the response for getting file checksum information."""
-    output: FileChecksum = Field(default=None, description="File checksum information")
+    output: FileChecksum|None = Field(default=None, description="File checksum information")
 
 
 class GetFileTypeResponse(BaseModel):
     """Represents the response for getting the type of a file."""
-    output: str = Field(default=None, description="Type of the file", example="directory")
+    output: str|None = Field(default=None, description="Type of the file", example="directory")
 
 
 class GetFileStatResponse(BaseModel):
     """Represents the response for getting file metadata information."""
-    output: FileStat = Field(default=None, description="File stat information")
+    output: FileStat|None = Field(default=None, description="File stat information")
 
 
 class GetFileDownloadResponse(BaseModel):
     """Represents the response for downloading a file."""
-    output: str = Field(default=None, description="Download URL or identifier", example="https://example.com/download/file")
+    output: str|None = Field(default=None, description="Download URL or identifier", example="https://example.com/download/file")
 
 
 class PatchFileMetadataResponse(BaseModel):
     """Represents the response for updating file metadata."""
-    output: PatchFile = Field(default=None, description="Updated file metadata")
+    output: PatchFile|None = Field(default=None, description="Updated file metadata")
 
 
 class FilesystemRequestBase(BaseModel):
     """Base class for filesystem operation requests."""
     # Should we allow both: path and source_path? Or just one of them?
-    path: str = Field(default=None, validation_alias=AliasChoices("path", "source_path"), description="Source file or directory path", example="/home/user/dir")
+    path: str|None = Field(default=None, validation_alias=AliasChoices("path", "source_path"), description="Source file or directory path", example="/home/user/dir")
 
 
 class PutFileChmodRequest(FilesystemRequestBase):
@@ -135,7 +135,7 @@ class PutFileChmodRequest(FilesystemRequestBase):
 
 class PutFileChmodResponse(BaseModel):
     """Represents the response for changing file permissions."""
-    output: File = Field(default=None, description="Updated file metadata")
+    output: File|None = Field(default=None, description="Updated file metadata")
 
 
 class PutFileChownRequest(FilesystemRequestBase):
@@ -157,12 +157,12 @@ class PutFileChownRequest(FilesystemRequestBase):
 
 class PutFileChownResponse(BaseModel):
     """Represents the response for changing file ownership."""
-    output: File = Field(default=None, description="Updated file metadata")
+    output: File|None = Field(default=None, description="Updated file metadata")
 
 
 class PutFileUploadResponse(BaseModel):
     """Represents the response for uploading a file."""
-    output: str = Field(default=None, description="Upload result or identifier")
+    output: str|None = Field(default=None, description="Upload result or identifier")
 
 
 class PostMakeDirRequest(FilesystemRequestBase):
@@ -179,28 +179,28 @@ class PostFileSymlinkRequest(FilesystemRequestBase):
 
 class PostFileSymlinkResponse(BaseModel):
     """Represents the response for creating a symbolic link."""
-    output: File = Field(default=None, description="Created symlink metadata")
+    output: File|None = Field(default=None, description="Created symlink metadata")
 
 
 class GetViewFileResponse(BaseModel):
     """Represents the response for viewing a file."""
-    output: str = Field(default=None, description="File content")
+    output: str|None = Field(default=None, description="File content")
 
 
 class PostMkdirResponse(BaseModel):
     """Represents the response for creating a directory."""
-    output: File = Field(default=None, description="Created directory metadata")
+    output: File|None = Field(default=None, description="Created directory metadata")
 
 
 class PostCompressResponse(BaseModel):
     """Represents the response for compressing a file."""
-    output: File = Field(default=None, description="Compressed file metadata")
+    output: File|None = Field(default=None, description="Compressed file metadata")
 
 
 class PostCompressRequest(FilesystemRequestBase):
     """Represents a request to compress a file."""
     target_path: str = Field(..., description="Path to the compressed file", example="/home/user/file.tar.gz")
-    match_pattern: str = Field(default=None, description="Regex pattern to filter files to compress", example=".*\\.txt$")
+    match_pattern: str|None = Field(default=None, description="Regex pattern to filter files to compress", example=".*\\.txt$")
     dereference: bool = Field(default=False, description="If set to `true`, it follows symbolic links and archive the files they point to instead of the links themselves.", example=True)
     compression: CompressionType = Field(default="gzip", description="Defines the type of compression to be used. By default gzip is used.", example="gzip")
     model_config = {
@@ -220,7 +220,7 @@ class PostCompressRequest(FilesystemRequestBase):
 
 class PostExtractResponse(BaseModel):
     """Represents the response for extracting a compressed file."""
-    output: File = Field(default=None, description="Extracted file metadata")
+    output: File|None = Field(default=None, description="Extracted file metadata")
 
 
 class PostExtractRequest(FilesystemRequestBase):
@@ -259,7 +259,7 @@ class PostCopyRequest(FilesystemRequestBase):
 
 class PostCopyResponse(BaseModel):
     """Represents the response for copying a file."""
-    output: File = Field(default=None, description="Copied file metadata")
+    output: File|None = Field(default=None, description="Copied file metadata")
 
 
 class PostMoveRequest(FilesystemRequestBase):
@@ -279,9 +279,9 @@ class PostMoveRequest(FilesystemRequestBase):
 
 class PostMoveResponse(BaseModel):
     """Represents the response for moving a file."""
-    output: File = Field(default=None, description="Moved file metadata")
+    output: File|None = Field(default=None, description="Moved file metadata")
 
 
 class RemoveResponse(BaseModel):
     """Represents the response for removing a file or directory."""
-    output: str = Field(default=None, description="Removal result message")
+    output: str|None = Field(default=None, description="Removal result message")

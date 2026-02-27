@@ -18,6 +18,6 @@ class Capability(NamedObject):
     def _self_path(self) -> str:
         return f"/account/capabilities/{self.id}"
 
-    last_modified: StrictDateTime = Field(default=None, description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
+    last_modified: StrictDateTime|None = Field(default=None, description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
 
     units: list[AllocationUnit] = Field(..., description="Allocation units supported by this capability", example=["node_hours"])

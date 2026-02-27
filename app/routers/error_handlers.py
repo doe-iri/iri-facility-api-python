@@ -18,8 +18,8 @@ class Problem(BaseModel):
     model_config = ConfigDict(extra="allow", json_schema_extra={"description": 'Error structure for REST interface based on RFC 9457, "Problem Details for HTTP APIs."'})
     type: str = Field(..., description="A URI reference that identifies the problem type.", example="https://example.com/notFound", json_schema_extra={"format": "uri", "default": "about:blank"})
     status: int = Field(..., ge=100, le=599, description="The HTTP status code for this occurrence.", example=404)
-    title: str = Field(default=None, description="Short human-readable summary.", example="Not Found")
-    detail: str = Field(default=None, description="Human-readable explanation.", example="Descriptive text.")
+    title: str|None = Field(default=None, description="Short human-readable summary.", example="Not Found")
+    detail: str|None = Field(default=None, description="Human-readable explanation.", example="Descriptive text.")
     instance: str = Field(..., description="A URI reference identifying this occurrence.", example="http://localhost/api/v1/resource/123")
 
 

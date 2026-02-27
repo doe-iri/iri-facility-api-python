@@ -10,16 +10,16 @@ class Site(NamedObject):
     def _self_path(self) -> str:
         return f"/facility/sites/{self.id}"
 
-    short_name: str = Field(default=None, description="Common or short name of the Site.", example="NERSC")
-    operating_organization: str = Field(..., description="Organization operating the Site.", example="Lawrence Berkeley National Laboratory")
-    country_name: str = Field(default=None, description="Country name of the Location.", example="United States")
-    locality_name: str = Field(default=None, description="City or locality name of the Location.", example="Berkeley")
-    state_or_province_name: str = Field(default=None, description="State or province name of the Location.", example="California")
-    street_address: str = Field(default=None, description="Street address of the Location.", example="1 Cyclotron Rd")
-    unlocode: str = Field(default=None, description="United Nations trade and transport location code.", example="USOAK")
-    altitude: float = Field(default=None, description="Altitude of the Location.", example=52.0)
-    latitude: float = Field(default=None, description="Latitude of the Location.", example=37.8762)
-    longitude: float = Field(default=None, description="Longitude of the Location.", example=-122.2506)
+    short_name: str|None = Field(default=None, description="Common or short name of the Site.", example="NERSC")
+    operating_organization: str|None = Field(..., description="Organization operating the Site.", example="Lawrence Berkeley National Laboratory")
+    country_name: str|None = Field(default=None, description="Country name of the Location.", example="United States")
+    locality_name: str|None = Field(default=None, description="City or locality name of the Location.", example="Berkeley")
+    state_or_province_name: str|None = Field(default=None, description="State or province name of the Location.", example="California")
+    street_address: str|None = Field(default=None, description="Street address of the Location.", example="1 Cyclotron Rd")
+    unlocode: str|None = Field(default=None, description="United Nations trade and transport location code.", example="USOAK")
+    altitude: float|None = Field(default=None, description="Altitude of the Location.", example=52.0)
+    latitude: float|None = Field(default=None, description="Latitude of the Location.", example=37.8762)
+    longitude: float|None = Field(default=None, description="Longitude of the Location.", example=-122.2506)
     resource_ids: list[str] = Field(default_factory=list, exclude=True)
 
     @computed_field(description="URIs of Resources hosted at this Site.")
@@ -44,9 +44,9 @@ class Facility(NamedObject):
     def _self_path(self) -> str:
         return "/facility"
 
-    short_name: str = Field(default=None, description="Common or short name of the Facility.", example="ESnet")
-    organization_name: str = Field(default=None, description="Operating organization's name.", example="Energy Sciences Network")
-    support_uri: HttpUrl = Field(default=None, description="Link to facility support portal.", example="https://support.es.net")
+    short_name: str|None = Field(default=None, description="Common or short name of the Facility.", example="ESnet")
+    organization_name: str|None = Field(default=None, description="Operating organization's name.", example="Energy Sciences Network")
+    support_uri: HttpUrl|None = Field(default=None, description="Link to facility support portal.", example="https://support.es.net")
     site_ids: list[str] = Field(default_factory=list, exclude=True)
 
     @computed_field(description="URIs of associated Sites.")
