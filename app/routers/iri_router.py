@@ -4,11 +4,11 @@ import os
 import logging
 import importlib
 from fastapi import Request, Depends, HTTPException, APIRouter
-from fastapi.security import APIKeyHeader
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .account.models import User
 
 
-bearer_token = APIKeyHeader(name="Authorization")
+bearer_scheme = HTTPBearer()
 
 
 def get_client_ip(request: Request) -> str | None:
@@ -76,11 +76,13 @@ class IriRouter(APIRouter):
     async def current_user(
         self,
         request: Request,
-        api_key: str = Depends(bearer_token),
+        credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     ):
+        token = credentials.credentials
+
         user_id = None
         try:
-            user_id = await self.adapter.get_current_user(api_key, get_client_ip(request))
+            user_id = await self.adapter.get_current_user(token, get_client_ip(request))
         except Exception as exc:
             logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
             traceback.print_exc()
@@ -88,7 +90,7 @@ class IriRouter(APIRouter):
         if not user_id:
             raise HTTPException(status_code=403, detail="Unauthorized access")
         request.state.current_user_id = user_id
-        request.state.api_key = api_key
+        request.state.api_key = token
 
 
 class AuthenticatedAdapter(ABC):
