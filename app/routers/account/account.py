@@ -24,7 +24,7 @@ router = iri_router.IriRouter(
 )
 async def get_capabilities(
     request: Request,
-    name: str = Query(default=None, min_length=1),
+    name: str | None = Query(default=None, min_length=1),
     modified_since: StrictDateTime = Query(default=None),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),

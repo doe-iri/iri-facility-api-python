@@ -67,15 +67,15 @@ async def get_resource(
 )
 async def get_incidents(
     request: Request,
-    name: str = Query(default=None, min_length=1),
-    description: str = Query(default=None, min_length=1),
+    name: str | None = Query(default=None, min_length=1),
+    description: str | None = Query(default=None, min_length=1),
     status: models.Status = Query(default=None),
     type_: models.IncidentType = Query(alias="type", default=None),
     from_: StrictDateTime = Query(alias="from", default=None),
     time_: StrictDateTime = Query(alias="time", default=None),
     to: StrictDateTime = Query(default=None),
     modified_since: StrictDateTime = Query(default=None),
-    resource_id: str = Query(default=None, min_length=1),
+    resource_id: str | None = Query(default=None, min_length=1),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
     resolution: models.Resolution = Query(default=None),
@@ -99,7 +99,7 @@ async def get_incidents(
         )
     ),
 ) -> list[models.Incident]:
-    return await router.adapter.get_incidents(
+    incidents = await router.adapter.get_incidents(
         offset=offset,
         limit=limit,
         name=name,
@@ -113,7 +113,9 @@ async def get_incidents(
         resource_id=resource_id,
         resolution=resolution,
     )
-
+    if not incidents:
+        raise HTTPException(status_code=404, detail="No incidents found")
+    return incidents
 
 @router.get(
     "/incidents/{incident_id}",
@@ -139,9 +141,9 @@ async def get_incident(request: Request, incident_id: str) -> models.Incident:
 async def get_events(
     request: Request,
     incident_id: str,
-    resource_id: str = Query(default=None, min_length=1),
-    name: str = Query(default=None, min_length=1),
-    description: str = Query(default=None, min_length=1),
+    resource_id: str | None = Query(default=None, min_length=1),
+    name: str | None = Query(default=None, min_length=1),
+    description: str | None = Query(default=None, min_length=1),
     status: models.Status = Query(default=None),
     from_: StrictDateTime = Query(alias="from", default=None),
     time_: StrictDateTime = Query(alias="time", default=None),
@@ -151,9 +153,12 @@ async def get_events(
     limit: int = Query(default=100, ge=0, le=1000),
     _forbid=Depends(forbidExtraQueryParams("resource_id", "name", "description", "status", "from", "to", "time", "modified_since", "offset", "limit")),
 ) -> list[models.Event]:
-    return await router.adapter.get_events(
+    events = await router.adapter.get_events(
         incident_id, offset=offset, limit=limit, resource_id=resource_id, name=name, description=description, status=status, from_=from_, to=to, time_=time_, modified_since=modified_since
     )
+    if not events:
+        raise HTTPException(status_code=404, detail="No events found")
+    return events
 
 
 @router.get(
