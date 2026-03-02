@@ -13,7 +13,6 @@ import random
 import stat
 import subprocess
 import uuid
-from typing import Any, Tuple
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -731,7 +730,7 @@ class DemoAdapter(
         lines: int | None,
         skip_heading: bool = False,
         skip_trailing: bool = False,
-    ) -> Any:
+    ) -> str:
         args = [cmd]
 
         if cmd == "tail" and skip_heading:
@@ -997,7 +996,7 @@ class DemoTask(BaseModel):
     user: account_models.User
     start: float
     status: task_models.TaskStatus = task_models.TaskStatus.pending
-    result: Any | None = None
+    result: dict | None = None
 
 
 class DemoTaskQueue:
