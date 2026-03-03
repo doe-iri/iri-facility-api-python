@@ -1018,7 +1018,12 @@ class DemoTaskQueue:
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 cmd = task_models.TaskCommand.model_validate_json(t.task)
                 (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd)
-                t.result = jsonable_encoder(result)
+                if isinstance(result, BaseModel):
+                    t.result = result.model_dump()
+                elif isinstance(result, dict):
+                    t.result = result
+                else:
+                    t.result = {"output": result}
                 t.status = status
             _tasks.append(t)
         DemoTaskQueue.tasks = _tasks
