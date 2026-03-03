@@ -184,7 +184,7 @@ class PostFileSymlinkResponse(BaseModel):
 
 class GetViewFileResponse(BaseModel):
     """Represents the response for viewing a file."""
-    output: str|None = Field(default=None, description="File content")
+    output: FileContent|None = Field(default=None, description="File content")
 
 
 class PostMkdirResponse(BaseModel):
