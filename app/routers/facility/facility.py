@@ -27,14 +27,17 @@ async def get_facility(
 async def list_sites(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
-    name: str = Query(default=None, min_length=1),
+    name: str | None = Query(default=None, min_length=1),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
-    short_name: str = Query(default=None, min_length=1),
+    short_name: str | None = Query(default=None, min_length=1),
     _forbid=Depends(forbidExtraQueryParams("modified_since", "name", "offset", "limit", "short_name")),
 ) -> list[models.Site]:
     """List sites"""
-    return await router.adapter.list_sites(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name)
+    sites = await router.adapter.list_sites(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name)
+    if not sites:
+        raise HTTPException(status_code=404, detail="No sites found")
+    return sites
 
 
 @router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite", response_model_exclude_none=True,)

@@ -134,8 +134,8 @@ async def get_job_status(
     resource_id: str,
     job_id: str,
     request: Request,
-    historical: StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
-    include_spec: StrictHTTPBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
+    historical: StrictHTTPBool | None = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    include_spec: StrictHTTPBool | None = Query(default=False, description="Whether to include the job specification. Defaults to false"),
     _forbid=Depends(forbidExtraQueryParams("historical", "include_spec")),
 ):
     """Get a job's status"""
@@ -166,8 +166,8 @@ async def get_job_statuses(
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
     filters: dict[str, object] | None = None,
-    historical: StrictHTTPBool = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
-    include_spec: StrictHTTPBool = Query(default=False, description="Whether to include the job specification. Defaults to false"),
+    historical: StrictHTTPBool | None = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    include_spec: StrictHTTPBool | None = Query(default=False, description="Whether to include the job specification. Defaults to false"),
     _forbid=Depends(forbidExtraQueryParams("offset", "limit", "filters", "historical", "include_spec")),
 ):
     """Get multiple jobs' statuses"""
