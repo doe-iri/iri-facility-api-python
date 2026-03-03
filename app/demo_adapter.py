@@ -806,7 +806,12 @@ class DemoAdapter(
         result = self._run(f"tail -c +{offset + 1} {rp} | head -c {size}", shell=True)
         content = result.stdout
         return filesystem_models.GetViewFileResponse(
-            output=content,
+            output=filesystem_models.FileContent(
+                content=content,
+                content_type=filesystem_models.ContentUnit.bytes,
+                start_position=offset,
+                end_position=offset + len(content)
+            ),
         )
 
     async def checksum(self: "DemoAdapter", resource: status_models.Resource, user: account_models.User, path: str) -> filesystem_models.GetFileChecksumResponse:
