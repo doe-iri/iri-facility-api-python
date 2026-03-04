@@ -34,7 +34,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @staticmethod
-    async def on_task(resource: status_models.Resource, user: account_models.User, task: task_models.TaskCommand) -> tuple[object, task_models.TaskStatus]:
+    async def on_task(resource: status_models.Resource, user: account_models.User, task: task_models.TaskCommand) -> tuple[dict, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         def _extractNull(ind):
