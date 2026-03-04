@@ -13,7 +13,6 @@ import random
 import stat
 import subprocess
 import uuid
-from typing import Any, Tuple
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -731,7 +730,7 @@ class DemoAdapter(
         lines: int | None,
         skip_heading: bool = False,
         skip_trailing: bool = False,
-    ) -> Any:
+    ) -> str:
         args = [cmd]
 
         if cmd == "tail" and skip_heading:
@@ -1002,7 +1001,7 @@ class DemoTask(BaseModel):
     user: account_models.User
     start: float
     status: task_models.TaskStatus = task_models.TaskStatus.pending
-    result: Any | None = None
+    result: dict | None = None
 
 
 class DemoTaskQueue:
@@ -1024,7 +1023,12 @@ class DemoTaskQueue:
             elif t.status == task_models.TaskStatus.active and now - t.start > DEMO_QUEUE_UPDATE_SECS:
                 cmd = task_models.TaskCommand.model_validate_json(t.task)
                 (result, status) = await DemoAdapter.on_task(t.resource, t.user, cmd)
-                t.result = jsonable_encoder(result)
+                if isinstance(result, BaseModel):
+                    t.result = result.model_dump()
+                elif isinstance(result, dict):
+                    t.result = result
+                else:
+                    t.result = {"output": result}
                 t.status = status
             _tasks.append(t)
         DemoTaskQueue.tasks = _tasks

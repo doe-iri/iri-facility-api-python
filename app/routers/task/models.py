@@ -1,6 +1,5 @@
 """ Task models for the IRI Facility API """
 import enum
-from typing import Any
 from pydantic import BaseModel, Field, computed_field
 
 from ... import config
@@ -37,5 +36,5 @@ class Task(BaseModel):
     """Represents a task in the system."""
     id: str = Field(..., description="Unique identifier of the task", example="task-123")
     status: TaskStatus = Field(default=TaskStatus.pending, description="Current status of the task", example="pending")
-    result: Any|None = Field(default=None, description="Result of the task execution, if available")
+    result: dict | None = Field(default=None, description="Result of the task execution, if available")
     command: TaskCommand|None = Field(default=None, description="Command associated with this task")
