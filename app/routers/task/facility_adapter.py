@@ -38,7 +38,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         def _extractNull(ind):
-            data = {k: v for k, v in ind.items() if v is not None}
+            data = {k: v for k, v in ind.model_dump().items() if v is not None}
             return data
         try:
             r = None
