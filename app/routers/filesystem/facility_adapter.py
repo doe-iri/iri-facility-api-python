@@ -47,7 +47,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def tail(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int | None, lines: int | None, skip_trailing: bool) -> filesystem_models.GetFileTailResponse:
+    async def tail(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, path: str, file_bytes: int | None, lines: int | None, skip_heading: bool) -> filesystem_models.GetFileTailResponse:
         pass
 
     @abstractmethod
