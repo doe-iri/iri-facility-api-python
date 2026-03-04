@@ -38,8 +38,11 @@ class FacilityAdapter(AuthenticatedAdapter):
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         def _extractNull(ind):
-            data = {k: v for k, v in ind.model_dump().items() if v is not None}
-            return data
+            if hasattr(ind, "model_dump"):
+                data = ind.model_dump()
+            else:
+                data = ind
+            return {k: v for k, v in data.items() if v is not None}
         try:
             r = None
             logger.info(f"Received task: {task.router}:{task.command} with args: {task.args}")
