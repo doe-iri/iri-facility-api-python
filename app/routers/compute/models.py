@@ -30,7 +30,7 @@ class JobAttributes(IRIBaseModel):
     queue_name: str|None = Field(default=None, min_length=1, description="Name of the queue or partition to submit the job to", example="debug")
     account: str|None = Field(default=None, min_length=1, description="Account or project to charge for resource usage", example="proj123")
     reservation_id: str|None = Field(default=None, min_length=1, description="ID of a reservation to use for the job", example="resv-42")
-    custom_attributes: dict[str, str] = Field(default={}, description="Custom scheduler-specific attributes as key-value pairs", example={"constraint": "gpu"})
+    custom_attributes: dict[str, str] = Field(default_factory=dict, description="Custom scheduler-specific attributes as key-value pairs", example={"constraint": "gpu"})
 
 
 class VolumeMount(IRIBaseModel):
@@ -54,7 +54,7 @@ class Container(IRIBaseModel):
     """
 
     image: str = Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')", example="docker.io/library/ubuntu:latest")
-    volume_mounts: list[VolumeMount] = Field(default=[], description="List of volume mounts for the container")
+    volume_mounts: list[VolumeMount] = Field(default_factory=list, description="List of volume mounts for the container")
 
 
 class JobSpec(IRIBaseModel):
@@ -68,11 +68,11 @@ class JobSpec(IRIBaseModel):
                                  description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.",
                                  example="/usr/bin/python")
     container: Container|None = Field(default=None, description="Container specification for containerized execution")
-    arguments: list[str] = Field(default=[], description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
+    arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
     directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
     name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
     inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
-    environment: dict[str, str] = Field(default={},
+    environment: dict[str, str] = Field(default_factory=dict,
                                         description="Environment variables to set for the job. If container is specified, these will be set inside the container.",
                                         example={"OMP_NUM_THREADS": "4"})
     stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
