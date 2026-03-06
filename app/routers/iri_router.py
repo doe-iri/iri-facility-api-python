@@ -25,8 +25,12 @@ def get_client_ip(request: Request) -> str | None:
 
 
 class IriRouter(APIRouter):
-    def __init__(self, router_adapter=None, task_router_adapter=None, **kwargs):
+    def __init__(self, router_adapter=None, task_router_adapter=None, maturity=None, implementation_level=None, required_if=None, **kwargs):
         super().__init__(**kwargs)
+        self.default_openapi_extra = None
+        if maturity or implementation_level or required_if:
+            self.default_openapi_extra = self.gen_openapi_extra(maturity=maturity, implementation_level=implementation_level, required_if=required_if)
+
         router_name = self.get_router_name()
         self.adapter = IriRouter.create_adapter(router_name, router_adapter)
         if self.adapter:
@@ -91,6 +95,58 @@ class IriRouter(APIRouter):
             raise HTTPException(status_code=403, detail="Unauthorized access")
         request.state.current_user_id = user_id
         request.state.api_key = token
+
+    @staticmethod
+    def gen_openapi_extra(
+        maturity: str | None = None,
+        implementation_level: str | None = None,
+        required_if: str | None = None,
+    ) -> dict:
+        """
+        Generate the IRI OpenAPI extension for API maturity and implementation level. See the DOE IRI API design docs for details on what these mean.
+        x-iri:
+        maturity: ...
+        implementation:
+            level: ...
+            required_if_capability: ...
+        """
+        out_obj = {}
+
+        if maturity is not None:
+            out_obj["maturity"] = maturity
+
+        if implementation_level is not None:
+            out_obj.setdefault("implementation", {})["level"] = implementation_level
+
+        if required_if is not None:
+            out_obj.setdefault("implementation", {})["required_if_capability"] = required_if
+
+        if not out_obj:
+            return {}
+        return {"x-iri": out_obj}
+
+    def _apply_openapi_extra(self, kwargs):
+        # If route explicitly defines openapi_extra, use it. This allows us to override the router default for specific routes when needed.
+        if "openapi_extra" in kwargs:
+            return kwargs
+
+        # Otherwise, apply router default
+        if self.default_openapi_extra:
+            kwargs["openapi_extra"] = self.default_openapi_extra
+
+        return kwargs
+
+    def get(self, path: str, **kwargs):
+        return super().get(path, **self._apply_openapi_extra(kwargs))
+
+    def post(self, path: str, **kwargs):
+        return super().post(path, **self._apply_openapi_extra(kwargs))
+
+    def put(self, path: str, **kwargs):
+        return super().put(path, **self._apply_openapi_extra(kwargs))
+
+    def delete(self, path: str, **kwargs):
+        return super().delete(path, **self._apply_openapi_extra(kwargs))
 
 
 class AuthenticatedAdapter(ABC):

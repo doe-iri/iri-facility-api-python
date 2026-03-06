@@ -7,6 +7,8 @@ router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/task",
     tags=["task"],
+    maturity="incubator",
+    implementation_level="required",
 )
 
 
