@@ -12,13 +12,13 @@ class ResourceSpec(IRIBaseModel):
     Specification of computational resources required for a job.
     """
 
-    node_count: Annotated[int, Field(ge=1, description="Number of compute nodes to allocate", example=2)] = None
-    process_count: Annotated[int, Field(ge=1, description="Total number of processes to launch", example=64)] = None
-    processes_per_node: Annotated[int, Field(ge=1, description="Number of processes to launch per node", example=32)] = None
-    cpu_cores_per_process: Annotated[int, Field(ge=1, description="Number of CPU cores to allocate per process", example=2)] = None
-    gpu_cores_per_process: Annotated[int, Field(ge=1, description="Number of GPU cores to allocate per process", example=1)] = None
-    exclusive_node_use: Annotated[StrictBool, Field(description="Whether to request exclusive use of allocated nodes", example=True)] = True
-    memory: Annotated[int, Field(ge=1, description="Amount of memory to allocate in bytes", example=17179869184)] = None
+    node_count: int|None = Field(default=None, ge=1, description="Number of compute nodes to allocate", example=2)
+    process_count: int|None = Field(default=None, ge=1, description="Total number of processes to launch", example=64)
+    processes_per_node: int|None = Field(default=None, ge=1, description="Number of processes to launch per node", example=32)
+    cpu_cores_per_process: int|None = Field(default=None, ge=1, description="Number of CPU cores to allocate per process", example=2)
+    gpu_cores_per_process: int|None = Field(default=None, ge=1, description="Number of GPU cores to allocate per process", example=1)
+    exclusive_node_use: StrictBool = Field(default=True, description="Whether to request exclusive use of allocated nodes", example=True)
+    memory: int|None = Field(default=None, ge=1, description="Amount of memory to allocate in bytes", example=17179869184)
 
 
 class JobAttributes(IRIBaseModel):
@@ -26,11 +26,11 @@ class JobAttributes(IRIBaseModel):
     Additional attributes and scheduling parameters for a job.
     """
 
-    duration: Annotated[int, Field(description="Duration in seconds", ge=1, examples=[30, 60, 120])] = None
-    queue_name: Annotated[str, Field(min_length=1, description="Name of the queue or partition to submit the job to", example="debug")] = None
-    account: Annotated[str, Field(min_length=1, description="Account or project to charge for resource usage", example="proj123")] = None
-    reservation_id: Annotated[str, Field(min_length=1, description="ID of a reservation to use for the job", example="resv-42")] = None
-    custom_attributes: Annotated[dict[str, str], Field(description="Custom scheduler-specific attributes as key-value pairs", example={"constraint": "gpu"})] = {}
+    duration: int|None = Field(default=None, description="Duration in seconds", ge=1, examples=[30, 60, 120])
+    queue_name: str|None = Field(default=None, min_length=1, description="Name of the queue or partition to submit the job to", example="debug")
+    account: str|None = Field(default=None, min_length=1, description="Account or project to charge for resource usage", example="proj123")
+    reservation_id: str|None = Field(default=None, min_length=1, description="ID of a reservation to use for the job", example="resv-42")
+    custom_attributes: dict[str, str] = Field(default_factory=dict, description="Custom scheduler-specific attributes as key-value pairs", example={"constraint": "gpu"})
 
 
 class VolumeMount(IRIBaseModel):
@@ -38,9 +38,9 @@ class VolumeMount(IRIBaseModel):
     Represents a volume mount for a container.
     """
 
-    source: Annotated[str, Field(min_length=1, description="The source path on the host system to mount", example="/data/project")]
-    target: Annotated[str, Field(min_length=1, description="The target path inside the container where the volume will be mounted", example="/mnt/data")]
-    read_only: Annotated[StrictBool, Field(description="Whether the mount should be read-only", example=True)] = True
+    source: str = Field(min_length=1, description="The source path on the host system to mount", example="/data/project")
+    target: str = Field(min_length=1, description="The target path inside the container where the volume will be mounted", example="/mnt/data")
+    read_only: StrictBool = Field(default=True, description="Whether the mount should be read-only", example=True)
 
 
 class Container(IRIBaseModel):
@@ -53,8 +53,8 @@ class Container(IRIBaseModel):
     host networking.
     """
 
-    image: Annotated[str, Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')", example="docker.io/library/ubuntu:latest")]
-    volume_mounts: Annotated[list[VolumeMount], Field(description="List of volume mounts for the container")] = []
+    image: str = Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')", example="docker.io/library/ubuntu:latest")
+    volume_mounts: list[VolumeMount] = Field(default_factory=list, description="List of volume mounts for the container")
 
 
 class JobSpec(IRIBaseModel):
@@ -63,24 +63,26 @@ class JobSpec(IRIBaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-    executable: Annotated[str, Field(min_length=1,
-                                     description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.",
-                                     example="/usr/bin/python")] = None
-    container: Annotated[Container, Field(description="Container specification for containerized execution")] = None
-    arguments: Annotated[list[str], Field(description="Command-line arguments to pass to the executable or container", example=["-n", "100"])] = []
-    directory: Annotated[str, Field(min_length=1, description="Working directory for the job", example="/home/user/work")] = None
-    name: Annotated[str, Field(min_length=1, description="Name of the job", example="my-job")] = None
-    inherit_environment: Annotated[StrictBool, Field(description="Whether to inherit the environment variables from the submission environment", example=True)] = True
-    environment: Annotated[dict[str, str], Field(description="Environment variables to set for the job. If container is specified, these will be set inside the container.",
-                                                 example={"OMP_NUM_THREADS": "4"})] = {}
-    stdin_path: Annotated[str, Field(min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")] = None
-    stdout_path: Annotated[str, Field(min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")] = None
-    stderr_path: Annotated[str, Field(min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")] = None
-    resources: Annotated[ResourceSpec, Field(description="Resource requirements for the job")] = None
-    attributes: Annotated[JobAttributes, Field(description="Additional job attributes such as duration, queue, and account")] = None
-    pre_launch: Annotated[str, Field(min_length=1, description="Script or commands to run before launching the job", example="module load cuda")] = None
-    post_launch: Annotated[str, Field(min_length=1, description="Script or commands to run after the job completes", example="echo done")] = None
-    launcher: Annotated[str, Field(min_length=1, description="Job launcher to use (e.g., 'mpirun', 'srun')", example="srun")] = None
+    executable: str|None = Field(default=None,
+                                 min_length=1,
+                                 description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.",
+                                 example="/usr/bin/python")
+    container: Container|None = Field(default=None, description="Container specification for containerized execution")
+    arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
+    directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
+    name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
+    inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
+    environment: dict[str, str] = Field(default_factory=dict,
+                                        description="Environment variables to set for the job. If container is specified, these will be set inside the container.",
+                                        example={"OMP_NUM_THREADS": "4"})
+    stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
+    stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
+    stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
+    resources: ResourceSpec|None = Field(default=None, description="Resource requirements for the job")
+    attributes: JobAttributes|None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
+    pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
+    post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job completes", example="echo done")
+    launcher: str|None = Field(default=None, min_length=1, description="Job launcher to use (e.g., 'mpirun', 'srun')", example="srun")
 
 
 class JobState(str, Enum):
