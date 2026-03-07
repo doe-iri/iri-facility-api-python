@@ -6,7 +6,13 @@ from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from . import facility_adapter, models
 
-router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facility", tags=["facility"])
+router = iri_router.IriRouter(
+    facility_adapter.FacilityAdapter,
+    prefix="/facility",
+    tags=["facility"],
+    maturity="graduated",
+    implementation_level="required",
+)
 
 
 @router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility", response_model_exclude_none=True,)

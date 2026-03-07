@@ -12,6 +12,8 @@ router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/status",
     tags=["status"],
+    maturity="graduated",
+    implementation_level="required",
 )
 
 

@@ -13,6 +13,8 @@ router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/compute",
     tags=["compute"],
+    maturity="incubator",
+    implementation_level="required",
 )
 
 

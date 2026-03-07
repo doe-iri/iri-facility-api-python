@@ -11,8 +11,9 @@ router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/account",
     tags=["account"],
+    maturity="graduated",
+    implementation_level="required",
 )
-
 
 @router.get(
     "/capabilities",

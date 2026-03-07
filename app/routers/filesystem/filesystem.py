@@ -20,6 +20,8 @@ router = iri_router.IriRouter(
     task_facility_adapter.FacilityAdapter,
     prefix="/filesystem",
     tags=["filesystem"],
+    maturity="incubator",
+    implementation_level="required",
 )
 
 
