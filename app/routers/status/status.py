@@ -132,15 +132,15 @@ async def get_incident(request: Request, incident_id: str) -> models.Incident:
 
 
 @router.get(
-    "/incidents/{incident_id}/events",
-    summary="Get all events for an incident",
-    description="Get a list of all events in this incident.  You can optionally filter the returned list by specifying attribtes.",
+    "/events",
+    summary="Get all events",
+    description="Get a list of all events.  You can optionally filter the returned list by specifying attribtes.",
     responses=DEFAULT_RESPONSES,
     operation_id="getEventsByIncident",
 )
 async def get_events(
     request: Request,
-    incident_id: str,
+    incident_id: str | None = Query(default=None, min_length=1),
     resource_id: str | None = Query(default=None, min_length=1),
     name: str | None = Query(default=None, min_length=1),
     description: str | None = Query(default=None, min_length=1),
@@ -151,10 +151,10 @@ async def get_events(
     modified_since: StrictDateTime = Query(default=None),
     offset: int = Query(default=0, ge=0, le=1000),
     limit: int = Query(default=100, ge=0, le=1000),
-    _forbid=Depends(forbidExtraQueryParams("resource_id", "name", "description", "status", "from", "to", "time", "modified_since", "offset", "limit")),
+    _forbid=Depends(forbidExtraQueryParams("incident_id", "resource_id", "name", "description", "status", "from", "to", "time", "modified_since", "offset", "limit")),
 ) -> list[models.Event]:
     events = await router.adapter.get_events(
-        incident_id, offset=offset, limit=limit, resource_id=resource_id, name=name, description=description, status=status, from_=from_, to=to, time_=time_, modified_since=modified_since
+        incident_id=incident_id, offset=offset, limit=limit, resource_id=resource_id, name=name, description=description, status=status, from_=from_, to=to, time_=time_, modified_since=modified_since
     )
     if not events:
         raise HTTPException(status_code=404, detail="No events found")
@@ -162,14 +162,14 @@ async def get_events(
 
 
 @router.get(
-    "/incidents/{incident_id}/events/{event_id}",
+    "/events/{event_id}",
     summary="Get a specific event",
     description="Get a specific event for a given id",
     responses=DEFAULT_RESPONSES,
     operation_id="getEventByIncident",
 )
-async def get_event(request: Request, incident_id: str, event_id: str) -> models.Event:
-    item = await router.adapter.get_event(incident_id, event_id)
+async def get_event(request: Request, event_id: str) -> models.Event:
+    item = await router.adapter.get_event(event_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item

@@ -414,9 +414,9 @@ class DemoAdapter(
 
     async def get_events(
         self: "DemoAdapter",
-        incident_id: str,
         offset: int,
         limit: int,
+        incident_id: str | None = None,
         resource_id: str | None = None,
         name: str | None = None,
         description: str | None = None,
@@ -427,7 +427,8 @@ class DemoAdapter(
         modified_since: datetime.datetime | None = None,
     ) -> list[status_models.Event]:
         events = status_models.Event.find(
-            [e for e in self.events if e.incident_id == incident_id],
+            self.events,
+            incident_id=incident_id,
             resource_id=resource_id,
             name=name,
             description=description,
@@ -439,7 +440,7 @@ class DemoAdapter(
         )
         return paginate_list(events, offset, limit)
 
-    async def get_event(self: "DemoAdapter", incident_id: str, id_: str) -> status_models.Event:
+    async def get_event(self: "DemoAdapter", id_: str) -> status_models.Event:
         return status_models.Event.find_by_id(self.events, id_)
 
     async def get_incidents(

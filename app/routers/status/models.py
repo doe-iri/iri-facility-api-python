@@ -98,9 +98,11 @@ class Event(NamedObject):
         return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
 
     @classmethod
-    def find(cls, items, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
+    def find(cls, items, incident_id=None, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
 
+        if incident_id:
+            items = [e for e in items if e.incident_id == incident_id]
         if resource_id:
             items = [e for e in items if e.resource_id == resource_id]
         if status:

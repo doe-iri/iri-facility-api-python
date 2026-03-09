@@ -35,9 +35,9 @@ class FacilityAdapter(ABC):
     @abstractmethod
     async def get_events(
         self: "FacilityAdapter",
-        incident_id: str,
         offset: int,
         limit: int,
+        incident_id: str | None = None,
         resource_id: str | None = None,
         name: str | None = None,
         description: str | None = None,
@@ -50,7 +50,7 @@ class FacilityAdapter(ABC):
         pass
 
     @abstractmethod
-    async def get_event(self: "FacilityAdapter", incident_id: str, id_: str) -> status_models.Event:
+    async def get_event(self: "FacilityAdapter", id_: str) -> status_models.Event:
         pass
 
     @abstractmethod
