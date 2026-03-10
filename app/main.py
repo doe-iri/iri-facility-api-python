@@ -13,17 +13,17 @@ from app.routers.task import task
 from . import config
 
 
-APP = FastAPI(**config.API_CONFIG)
+app = FastAPI(**config.API_CONFIG)
 
-install_error_handlers(APP)
+install_error_handlers(app)
 
 api_prefix = f"{config.API_PREFIX}{config.API_URL}"
 
 # Attach routers under the prefix
-APP.include_router(status.router, prefix=api_prefix)
-APP.include_router(account.router, prefix=api_prefix)
-APP.include_router(compute.router, prefix=api_prefix)
-APP.include_router(filesystem.router, prefix=api_prefix)
-APP.include_router(task.router, prefix=api_prefix)
+app.include_router(status.router, prefix=api_prefix)
+app.include_router(account.router, prefix=api_prefix)
+app.include_router(compute.router, prefix=api_prefix)
+app.include_router(filesystem.router, prefix=api_prefix)
+app.include_router(task.router, prefix=api_prefix)
 
 logging.getLogger().info(f"API path: {api_prefix}")

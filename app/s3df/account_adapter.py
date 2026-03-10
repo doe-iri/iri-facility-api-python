@@ -18,33 +18,14 @@ from ..routers.account import models as account_models
 from ..routers.account import facility_adapter as account_adapter
 
 
+
 # =============================================================================
 # STATIC DUMMY DATA (simulating coact-api responses)
 # =============================================================================
-
-# Simulated coact Clusters (maps to IRI Capability)
-COACT_CLUSTERS = [
-    {
-        "name": "roma",
-        "nodecpucount": 128,
-        "nodegpucount": 0,
-        "nodememgb": 512,
-    },
-    {
-        "name": "milano",
-        "nodecpucount": 64,
-        "nodegpucount": 4,
-        "nodememgb": 256,
-        "nodegpumemgb": 80,
-    },
-    {
-        "name": "ampere",
-        "nodecpucount": 128,
-        "nodegpucount": 4,
-        "nodememgb": 1024,
-        "nodegpumemgb": 80,
-    },
-]
+from app.data import clusters as COACT_CLUSTERS
+from app.data import repos as COACT_REPOS
+from app.data import repo_compute_allocations as COACT_REPO_COMPUTE_ALLOCATIONS
+from app.data import repo_overall_compute_usage as COACT_REPO_OVERALL_COMPUTE_USAGE
 
 # Simulated coact Users
 COACT_USERS = {
@@ -65,96 +46,6 @@ COACT_USERS = {
         "uidnumber": 99999,
     },
 }
-
-# Simulated coact Repos (maps to IRI Project)
-COACT_REPOS = [
-    {
-        "_id": "repo_001",
-        "name": "lcls",
-        "facility": "s3df",
-        "description": "LCLS X-ray Science Research",
-        "principal": "amurthy",
-        "leaders": ["amurthy"],
-        "users": ["amurthy", "testuser"],
-        "currentComputeAllocations": [
-            {
-                "_id": "comp_alloc_001",
-                "repoid": "repo_001",
-                "clustername": "roma",
-                "allocated": 10.0,  # 10 nodes
-                "userAllocations": [
-                    {"username": "amurthy", "percent": 60.0},
-                    {"username": "testuser", "percent": 40.0},
-                ],
-                "usage": {"resourceHours": 1250.5},
-            },
-            {
-                "_id": "comp_alloc_002",
-                "repoid": "repo_001",
-                "clustername": "milano",
-                "allocated": 4.0,  # 4 GPU nodes
-                "userAllocations": [
-                    {"username": "amurthy", "percent": 70.0},
-                    {"username": "testuser", "percent": 30.0},
-                ],
-                "usage": {"resourceHours": 480.0},
-            },
-        ],
-        "currentStorageAllocations": [
-            {
-                "_id": "stor_alloc_001",
-                "repoid": "repo_001",
-                "storagename": "sdfdata",
-                "purpose": "data",
-                "rootfolder": "/sdf/data/lcls",
-                "gigabytes": 50000.0,  # 50 TB
-                "inodes": 10000000,
-                "usage": {"gigabytes": 32500.0, "inodes": 4500000},
-            },
-            {
-                "_id": "stor_alloc_002",
-                "repoid": "repo_001",
-                "storagename": "sdfgroup",
-                "purpose": "group",
-                "rootfolder": "/sdf/group/lcls",
-                "gigabytes": 5000.0,  # 5 TB
-                "inodes": 1000000,
-                "usage": {"gigabytes": 2100.0, "inodes": 350000},
-            },
-        ],
-    },
-    {
-        "_id": "repo_002",
-        "name": "rubin",
-        "facility": "s3df",
-        "description": "Rubin Observatory Data Processing",
-        "principal": "amurthy",
-        "leaders": ["amurthy"],
-        "users": ["amurthy"],
-        "currentComputeAllocations": [
-            {
-                "_id": "comp_alloc_003",
-                "repoid": "repo_002",
-                "clustername": "ampere",
-                "allocated": 16.0,
-                "userAllocations": [{"username": "amurthy", "percent": 100.0}],
-                "usage": {"resourceHours": 2800.0},
-            },
-        ],
-        "currentStorageAllocations": [
-            {
-                "_id": "stor_alloc_004",
-                "repoid": "repo_002",
-                "storagename": "sdfdata",
-                "purpose": "data",
-                "rootfolder": "/sdf/data/rubin",
-                "gigabytes": 500000.0,  # 500 TB
-                "inodes": 100000000,
-                "usage": {"gigabytes": 180000.0, "inodes": 45000000},
-            },
-        ],
-    },
-]
 
 
 class S3DFAccountAdapter(account_adapter.FacilityAdapter):
@@ -256,6 +147,8 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         
         return projects
     
+    
+
     async def get_project_allocations(
         self,
         project: account_models.Project,
@@ -273,49 +166,25 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         if not repo:
             return []
         
+        repo_allocations = [alloc for alloc in COACT_REPO_COMPUTE_ALLOCATIONS if alloc["repoid"] == project.id]
+        
         allocations = []
-        HOURS_PER_MONTH = 24 * 30  # 720 hours
         
         # Map compute allocations
-        for ca in repo.get("currentComputeAllocations", []):
+        for comp_alloc in repo_allocations:
+            comp_alloc_usage = [usage for usage in COACT_REPO_OVERALL_COMPUTE_USAGE if usage["allocation_id"] == comp_alloc["_id"]][0]
             allocations.append(account_models.ProjectAllocation(
-                id=ca["_id"],
+                id=comp_alloc["_id"],
                 project_id=project.id,
-                capability_id=ca["clustername"],
+                capability_id=comp_alloc["clustername"],
                 entries=[account_models.AllocationEntry(
-                    allocation=ca.get("allocated", 0) * HOURS_PER_MONTH,
-                    usage=ca.get("usage", {}).get("resourceHours", 0),
+                    allocation=comp_alloc.get("allocated", 0),
+                    usage= comp_alloc_usage.get("resourceHours", 0) if comp_alloc_usage else 0,
                     unit=account_models.AllocationUnit.node_hours
                 )]
             ))
         
         # Map storage allocations
-        for sa in repo.get("currentStorageAllocations", []):
-            usage = sa.get("usage", {})
-            entries = []
-            
-            if sa.get("gigabytes"):
-                entries.append(account_models.AllocationEntry(
-                    allocation=sa["gigabytes"] * 1e9,
-                    usage=usage.get("gigabytes", 0) * 1e9,
-                    unit=account_models.AllocationUnit.bytes
-                ))
-            
-            if sa.get("inodes"):
-                entries.append(account_models.AllocationEntry(
-                    allocation=float(sa["inodes"]),
-                    usage=float(usage.get("inodes", 0)),
-                    unit=account_models.AllocationUnit.inodes
-                ))
-            
-            if entries:
-                allocations.append(account_models.ProjectAllocation(
-                    id=sa["_id"],
-                    project_id=project.id,
-                    capability_id=f"sdf-{sa.get('purpose', 'data')}",
-                    entries=entries
-                ))
-        
         return allocations
     
     async def get_user_allocations(
@@ -327,37 +196,28 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         coact.UserAllocation (percent on compute) → IRI.UserAllocation
         
         For compute: applies user's percentage to project allocation
-        For storage: returns full allocation (coact doesn't track per-user storage)
+        For storage: returns full allocation 
         """
-        for repo in COACT_REPOS:
-            # Check compute allocations
-            for ca in repo.get("currentComputeAllocations", []):
-                if ca["_id"] == project_allocation.id:
-                    user_percent = next(
-                        (ua["percent"] for ua in ca.get("userAllocations", []) if ua["username"] == user.id),
-                        100.0
-                    )
-                    return [account_models.UserAllocation(
-                        id=f"{project_allocation.id}-{user.id}",
-                        project_id=project_allocation.project_id,
-                        project_allocation_id=project_allocation.id,
-                        user_id=user.id,
-                        entries=[account_models.AllocationEntry(
-                            allocation=e.allocation * (user_percent / 100.0),
-                            usage=e.usage * (user_percent / 100.0),
-                            unit=e.unit
-                        ) for e in project_allocation.entries]
-                    )]
-            
-            # Check storage allocations (no per-user breakdown)
-            for sa in repo.get("currentStorageAllocations", []):
-                if sa["_id"] == project_allocation.id:
-                    return [account_models.UserAllocation(
-                        id=f"{project_allocation.id}-{user.id}",
-                        project_id=project_allocation.project_id,
-                        project_allocation_id=project_allocation.id,
-                        user_id=user.id,
-                        entries=project_allocation.entries
-                    )]
+
+        # For this POC, we only have compute allocations with user percentages.
+
+        compute_alloc = next((ca for ca in COACT_REPO_COMPUTE_ALLOCATIONS if ca["_id"] == project_allocation.id), None)
         
-        return []
+        if not compute_alloc:
+            # return nothing 
+            return []
+
+
+        # Placeholder user percentage based on current understanding of coact data model and existing data in user_allocations collection. This is a simplification for the POC.
+        user_percent = 100
+        return [account_models.UserAllocation(
+            id=f"{project_allocation.id}-{user.id}",
+            project_id=project_allocation.project_id,
+            project_allocation_id=project_allocation.id,
+            user_id=user.id,
+            entries=[account_models.AllocationEntry(
+                allocation=e.allocation * (user_percent / 100.0),
+                usage=e.usage * (user_percent / 100.0),
+                unit=e.unit
+            ) for e in project_allocation.entries]
+        )]
