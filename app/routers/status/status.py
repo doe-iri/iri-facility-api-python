@@ -28,7 +28,7 @@ async def get_resources(
     name: str = Query(default=None, min_length=1),
     description: str = Query(default=None, min_length=1),
     group: str = Query(default=None, min_length=1),
-    offset: int = Query(default=0, ge=0, le=1000),
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     modified_since: StrictDateTime = Query(default=None),
     resource_type: models.ResourceType = Query(default=None),
@@ -76,7 +76,7 @@ async def get_incidents(
     to: StrictDateTime = Query(default=None),
     modified_since: StrictDateTime = Query(default=None),
     resource_id: str | None = Query(default=None, min_length=1),
-    offset: int = Query(default=0, ge=0, le=1000),
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     resolution: models.Resolution = Query(default=None),
     _forbid=Depends(
@@ -149,7 +149,7 @@ async def get_events(
     time_: StrictDateTime = Query(alias="time", default=None),
     to: StrictDateTime = Query(default=None),
     modified_since: StrictDateTime = Query(default=None),
-    offset: int = Query(default=0, ge=0, le=1000),
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     _forbid=Depends(forbidExtraQueryParams("incident_id", "resource_id", "name", "description", "status", "from", "to", "time", "modified_since", "offset", "limit")),
 ) -> list[models.Event]:
