@@ -104,6 +104,10 @@ class JobState(str, Enum):
     This is the state of the job after being accepted by a backend for execution, but before the
     execution of the job begins.
     """
+    HELD = "held"
+    """
+    This is the state of a job that is queued but ineligible to run.
+    """
     ACTIVE = "active"
     """This state represents an actively running job."""
     COMPLETED = "completed"
