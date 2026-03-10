@@ -28,7 +28,7 @@ async def list_sites(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
     name: str | None = Query(default=None, min_length=1),
-    offset: int = Query(default=0, ge=0, le=1000),
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     short_name: str | None = Query(default=None, min_length=1),
     _forbid=Depends(forbidExtraQueryParams("modified_since", "name", "offset", "limit", "short_name")),

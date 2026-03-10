@@ -163,7 +163,7 @@ async def get_job_status(
 async def get_job_statuses(
     resource_id: str,
     request: Request,
-    offset: int = Query(default=0, ge=0, le=1000),
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     filters: dict[str, object] | None = None,
     historical: StrictHTTPBool | None = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
