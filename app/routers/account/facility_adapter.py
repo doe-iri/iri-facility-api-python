@@ -17,6 +17,10 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
+    async def get_user(self: "FacilityAdapter", token: str) -> account_models.User:
+        pass
+
+    @abstractmethod
     async def get_projects(self: "FacilityAdapter", user: account_models.User) -> list[account_models.Project]:
         pass
 
