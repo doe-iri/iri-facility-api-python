@@ -103,7 +103,7 @@ class DemoAdapter(
         self.incidents = []
         self.events = []
         self.capabilities = {}
-        self.user = account_models.User(id="gtorok", name="Gabor Torok", api_key="12345", client_ip="1.2.3.4")
+        self.user = account_models.User(id="gtorok", local_username="gtorok", name="Gabor Torok", api_key="12345", client_ip="1.2.3.4")
         self.projects = []
         self.project_allocations = []
         self.user_allocations = []

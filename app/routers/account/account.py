@@ -52,6 +52,24 @@ async def get_capability(
         raise HTTPException(status_code=404, detail="Capability not found")
     return cc
 
+@router.get(
+    "/userinfo",
+    dependencies=[Depends(router.current_user)],
+    summary="Return information about the user",
+    description="Return the identity of the authenticated user and facility-specific account information.",
+    responses=DEFAULT_RESPONSES,
+    operation_id="getUserInfo",
+)
+async def get_userinfo(
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+) -> models.User:
+    """Get information about the authenticated user."""
+    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
 
 @router.get(
     "/projects",
