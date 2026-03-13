@@ -5,6 +5,7 @@ from ...types.models import Capability
 from ...types.scalars import StrictDateTime
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
+from ..iri_meta import iri_meta_dict
 from . import facility_adapter, models
 
 router = iri_router.IriRouter(
@@ -21,6 +22,7 @@ router = iri_router.IriRouter(
     responses=DEFAULT_RESPONSES,
     operation_id="getCapabilities",
     response_model_exclude_none=True,
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_capabilities(
     request: Request,
@@ -39,6 +41,7 @@ async def get_capabilities(
     description="Get a single capability at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getCapability",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_capability(
     capability_id: str,
@@ -60,6 +63,7 @@ async def get_capability(
     description="Get a list of projects for the currently authenticated user at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProjects",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_projects(
     request: Request,
@@ -78,6 +82,7 @@ async def get_projects(
     description="Get a single project at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProject",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_project(
     project_id: str,
@@ -101,6 +106,7 @@ async def get_project(
     description="Get a list of allocations for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProjectAllocationsByProject",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_project_allocations(
     project_id: str,
@@ -124,6 +130,7 @@ async def get_project_allocations(
     description="Get a single project allocation at this facility for this user.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProjectAllocationByProject",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_project_allocation(
     project_id: str,
@@ -152,6 +159,7 @@ async def get_project_allocation(
     description="Get a list of user allocations for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getUserAllocationsByProjectAllocation",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_user_allocations(
     project_id: str,
@@ -180,6 +188,7 @@ async def get_user_allocations(
     description="Get a user allocation for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getUserAllocationByProjectAllocation",
+    openapi_extra=iri_meta_dict("graduated", "required")
 )
 async def get_user_allocation(
     project_id: str,
