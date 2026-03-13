@@ -1,14 +1,19 @@
 from abc import ABC, abstractmethod
-import traceback
 import os
 import logging
 import importlib
+import globus_sdk
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .account.models import User
 
 
 bearer_scheme = HTTPBearer()
+
+
+GLOBUS_RS_ID = os.environ.get("GLOBUS_RS_ID")
+GLOBUS_RS_SECRET = os.environ.get("GLOBUS_RS_SECRET")
+GLOBUS_RS_SCOPE_SUFFIX = os.environ.get("GLOBUS_RS_SCOPE_SUFFIX")
 
 
 def get_client_ip(request: Request) -> str | None:
@@ -73,6 +78,38 @@ class IriRouter(APIRouter):
         # assign it
         return AdapterClass()
 
+
+    async def get_globus_info(self, api_key: str) -> tuple[list, dict]:
+        """Returns the linked identities and the session info objects"""
+        # Introspect the IRI API token using resource server credentials
+        globus_client = globus_sdk.ConfidentialAppAuthClient(GLOBUS_RS_ID, GLOBUS_RS_SECRET)
+        # grab identity_set_detail for linked identities and session_info to see how the user logged in
+        introspect = globus_client.oauth2_token_introspect(api_key, include="identity_set_detail,session_info")
+        logging.getLogger().info("IRI TOKEN INTROSPECTION:")
+        logging.getLogger().info(introspect)
+        if not introspect.get("active"):
+            raise Exception("Inactive token")
+
+        # Check if token has the required IRI scope
+        token_scope = introspect.get("scope", "")
+        GLOBUS_SCOPE = f"https://auth.globus.org/scopes/{GLOBUS_RS_ID}/{GLOBUS_RS_SCOPE_SUFFIX}"
+        if GLOBUS_SCOPE not in token_scope:
+            raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")
+
+        # Get linked identities from the introspection response
+        identity_set = introspect.get('identity_set_detail', [])
+
+        # If no identity_set_detail, fall back to primary identity
+        if not identity_set:
+            email = introspect.get('email')
+            username = introspect.get('username')
+            if email or username:
+                identity_set = [{'email': email, 'username': username}]
+
+        logging.getLogger().info(f"Found {len(identity_set)} linked identities")
+        return identity_set, introspect.get("session_info", {})
+
+
     async def current_user(
         self,
         request: Request,
@@ -82,10 +119,17 @@ class IriRouter(APIRouter):
 
         user_id = None
         try:
-            user_id = await self.adapter.get_current_user(token, get_client_ip(request))
+            ip_address = get_client_ip(request)
+            if GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
+                try:
+                    globus_linked_identities, globus_session_info = await self.get_globus_info(token)
+                    user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_linked_identities, globus_session_info)
+                except Exception as globus_exc:
+                    logging.getLogger().exception("Globus error:", exc_info=globus_exc)
+            if not user_id:
+                user_id = await self.adapter.get_current_user(token, ip_address)
         except Exception as exc:
-            logging.getLogger().error(f"Error parsing IRI_API_PARAMS: {exc}")
-            traceback.print_exc()
+            logging.getLogger().exception(f"Error parsing IRI_API_PARAMS: ", exc_info=exc)
             raise HTTPException(status_code=401, detail="Invalid or malformed Authorization parameters") from exc
         if not user_id:
             raise HTTPException(status_code=403, detail="Unauthorized access")
@@ -98,6 +142,15 @@ class AuthenticatedAdapter(ABC):
     async def get_current_user(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None) -> str:
         """
         Decode the api_key and return the authenticated user's id.
+        This method is not called directly, rather authorized endpoints "depend" on it.
+        (https://fastapi.tiangolo.com/tutorial/dependencies/)
+        """
+        pass
+
+    @abstractmethod
+    async def get_current_user_globus(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, globus_linked_identities: list | None, globus_session_info: dict | None) -> str:
+        """
+        Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
         This method is not called directly, rather authorized endpoints "depend" on it.
         (https://fastapi.tiangolo.com/tutorial/dependencies/)
         """

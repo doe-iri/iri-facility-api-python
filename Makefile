@@ -27,6 +27,7 @@ deps: $(STAMP_DEPS)
 
 dev: deps
 	@source $(BIN)/activate && \
+	[ -f local.env ] && source local.env || true && \
 	IRI_API_ADAPTER_facility=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_status=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
@@ -68,3 +69,13 @@ bandit: deps
 
 # Full validation bundle
 lint: clean format ruff pylint audit bandit
+
+globus: deps
+	@source local.env && $(BIN)/python ./tools/globus.py
+
+ARGS ?=
+
+# call it via: make manage-globus ARGS=scopes-show
+manage-globus: deps
+	@source local.env && $(BIN)/python ./tools/manage_globus.py $(ARGS)
+
