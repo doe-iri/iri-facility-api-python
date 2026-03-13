@@ -4,3 +4,4 @@ iri_api_python.egg-info
 docker-build.sh
 iri_sandbox
 .env
+local.env
