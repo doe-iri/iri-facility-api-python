@@ -131,7 +131,9 @@ You can optionally use globus for authorization. Steps to use globus:
 - to mint a token, run `make globus`, click the link and copy the code from the browser url bar back into the terminal
 - you can also run `make manage-globus` but be sure to not accidentally delete the `iri-api` scope. (Maybe it's better if you don't run this app)
 - now you can run `make` for the dev server and enjoy using your globus iri access tokens (in the demo adapter they will all resolve to the user `gtorok`)
-- for your facility, implement the `get_current_user_globus` method (see iri_adapter.py). Here you can look at the linked globus identities and session info to determine what the local username is
+- for your facility:
+   - implement the `get_current_user_globus` method (see iri_adapter.py). Here you can look at the linked globus identities and session info to determine what the local username is
+   - make sure the values in `local.env` are available in the deployed app
 
 ## Next steps
 
