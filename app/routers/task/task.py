@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException, Depends
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
+from ..iri_meta import iri_meta_dict
 from . import models, facility_adapter
 
 router = iri_router.IriRouter(
@@ -16,6 +17,7 @@ router = iri_router.IriRouter(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getTask",
+    openapi_extra=iri_meta_dict("incubator", "required")
 )
 async def get_task(
     request: Request,
@@ -31,7 +33,11 @@ async def get_task(
     return task
 
 
-@router.get("", dependencies=[Depends(router.current_user)], response_model_exclude_unset=True, responses=DEFAULT_RESPONSES, operation_id="getTasks")
+@router.get("",
+            dependencies=[Depends(router.current_user)],
+            response_model_exclude_unset=True, responses=DEFAULT_RESPONSES,
+            operation_id="getTasks",
+            openapi_extra=iri_meta_dict("incubator", "required"))
 @router.get("/", responses=DEFAULT_RESPONSES, operation_id="getTasksWithSlash", include_in_schema=False)
 
 async def get_tasks(
@@ -48,6 +54,7 @@ async def get_tasks(
     dependencies=[Depends(router.current_user)],
     responses=DEFAULT_RESPONSES,
     operation_id="deleteTask",
+    openapi_extra=iri_meta_dict("incubator", "required")
 )
 async def delete_task(
     request: Request,
