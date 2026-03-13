@@ -29,11 +29,11 @@ from app.data import repo_overall_compute_usage as COACT_REPO_OVERALL_COMPUTE_US
 
 # Simulated coact Users
 COACT_USERS = {
-    "amurthy": {
-        "username": "amurthy",
-        "eppns": ["amurthy@slac.stanford.edu"],
+    "amithm": {
+        "username": "amithm",
+        "eppns": ["amithm@slac.stanford.edu"],
         "fullname": "Amith Murthy",
-        "preferredemail": "amurthy@slac.stanford.edu",
+        "preferredemail": "amithm@slac.stanford.edu",
         "shell": "/bin/bash",
         "uidnumber": 12345,
     },
@@ -45,6 +45,7 @@ COACT_USERS = {
         "shell": "/bin/bash",
         "uidnumber": 99999,
     },
+
 }
 
 
