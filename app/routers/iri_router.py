@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import os
 import logging
 import importlib
+import time
 import globus_sdk
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -89,6 +90,16 @@ class IriRouter(APIRouter):
         logging.getLogger().info(introspect)
         if not introspect.get("active"):
             raise Exception("Inactive token")
+
+        # Check exp (expiration time) claim
+        exp = introspect.get("exp")
+        if exp and time.time() >= exp:
+            raise Exception("Token has expired")
+
+        # Check nbf (not before) claim
+        nbf = introspect.get("nbf")
+        if nbf and time.time() < nbf:
+            raise Exception("Token not yet valid")
 
         # Check if token has the required IRI scope
         token_scope = introspect.get("scope", "")
