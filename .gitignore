@@ -10,5 +10,4 @@ Makefile
 pyproject.toml
 .DS_Store
 data/
-probe_coact.py
-app/s3df/clients/
+app/s3df/clients/IMPLEMENTATION.md
