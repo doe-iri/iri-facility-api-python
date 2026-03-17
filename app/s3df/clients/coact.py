@@ -10,7 +10,7 @@ import base64
 from typing import List, Optional, Dict, Any
 
 from gql import gql, Client
-from gql.transport.httpx import HTTPXTransport
+from gql.transport.httpx import HTTPXAsyncTransport  
 from gql.transport.exceptions import TransportQueryError
 
 from app.s3df.config import settings
@@ -62,9 +62,8 @@ class CoactClient:
             if not self.service_password:
                 raise ValueError("service_password required when use_basic_auth=True")
             
-            credentials = base64.b64encode(
-                f"{self.service_user}:{self.service_password}".encode()
-            ).decode("ascii")
+            credentials = base64.b64encode(f"{self.service_user}:{self.service_password}".encode()).decode("ascii")
+            print(f"Calling uri: {self.api_url} as {self.service_user} with basic auth") 
             headers["Authorization"] = f"Basic {credentials}"
             
             LOG.debug(f"Using Basic auth as {self.service_user}")
@@ -76,7 +75,7 @@ class CoactClient:
             if username:
                 LOG.debug(f"Setting coactimp header for user: {username}")
 
-        transport = HTTPXTransport(
+        transport = HTTPXAsyncTransport(  # changed from HTTPXTransport
             url=self.api_url,
             headers=headers,
             timeout=30.0
@@ -212,7 +211,7 @@ class CoactClient:
         query = """
             query MyRepos {
                 myRepos {
-                    _id
+                    Id
                     name
                     facility
                     principal
@@ -537,7 +536,7 @@ class CoactClient:
         query = """
             query GetFacilities {
                 facilities {
-                    _id
+                    Id
                     name
                     description
                     resources
@@ -610,7 +609,7 @@ class CoactClient:
         """
         query = """
             query GetAllocationUsage($repoId: MongoId!, $allocationId: MongoId!) {
-                repo(_id: $repoId) {
+                repos(filter: {Id: $repoId}) {
                     computeAllocation(allocationid: $allocationId) {
                         usage {
                             repoid
@@ -632,13 +631,128 @@ class CoactClient:
                 variables={"repoId": repo_id, "allocationId": allocation_id},
                 username=username
             )
-            repo = result.get("repo")
-            if not repo:
+            repos = result.get("repos", [])
+            if not repos:
                 return None
-            return repo.get("computeAllocation")
+            return repos[0].get("currentComputeAllocations")
         except Exception as e:
             LOG.error(f"Failed to get usage for allocation {allocation_id}: {e}")
             return None
+    
+    async def get_repo_compute_allocation(self, repo_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific compute allocation by ID.
+
+        Args:
+            repo_id: Repo (project) ID
+
+        Returns:
+            RepoComputeAllocation object
+        """
+        query = """
+            query GetRepoComputeAllocation($repoId: MongoId!) {
+                repos(filter: {Id: $repoId}) {
+                    currentComputeAllocations {
+                        Id
+                        repoid
+                        clustername
+                        start
+                        end
+                        percentOfFacility
+                        burstPercentOfFacility
+                        allocated
+                        burstAllocated
+                        usage {
+                            resourceHours
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.execute_query(
+                query,
+                variables={"repoId": repo_id},
+                username=self.service_user  # Use service user for this query
+            )
+            repo_allocations = result.get("repos", [])
+            if not repo_allocations:
+                return None
+            return repo_allocations[0].get("currentComputeAllocations")
+        except Exception as e:
+            LOG.error(f"Failed to get compute allocation for repo {repo_id}: {e}")
+            return None
+
+
+ 
+    async def get_all_repos(self) -> List[Dict[str, Any]]:
+        """
+        Get all repos.
+
+        Returns:
+            List of repo objects
+        """
+
+        query = """
+            query {
+                repos(filter: {}) {
+                    Id
+                    name
+                    facility
+                    principal
+                    users
+                    leaders
+                }
+            }
+        """
+
+        try:
+            result = await self.execute_query(
+                query,
+                username=self.service_user
+            )
+            return result.get("repos", [])
+        except Exception as e:  
+            LOG.error(f"Failed to get repos for user {self.service_user}: {e}")
+            return []
+
+    async def get_user_repos(self, username: str) -> List[Dict[str, Any]]:
+        """
+        Get repos for a user.
+
+        Args:
+            username: Username to query repos for
+        
+        Returns:
+            List of repo objects
+        """
+        repos = await self.get_all_repos()
+        user_repos = [repo for repo in repos if username in repo.get("users", []) or username in repo.get("leaders", []) or username == repo.get("principal")]
+
+        return user_repos
+
+    async def get_all_repos_and_facility(self) -> List[Dict[str, Any]]:
+        """
+        Get all repos in the collection (admin-level query).
+
+        Returns:
+            List of repo objects
+        """
+        query = """
+            query AllReposAndFacility {
+                allreposandfacility {
+                    name
+                    facility
+                }
+            }
+        """
+        try:            
+            result = await self.execute_query(query, username=self.service_user)
+            return result.get("allreposandfacility", [])
+        except Exception as e:
+            LOG.error(f"Failed to get all repos: {e}")
+            return []
 
 
 # Singleton instance for convenience
