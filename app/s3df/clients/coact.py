@@ -355,76 +355,95 @@ class CoactClient:
     # Allocation Queries
     # =========================================================================
 
-    async def get_repo_compute_allocations(
-        self,
-        repo_id: str,
-        username: str,
-        current_only: bool = True
-    ) -> List[Dict[str, Any]]:
+
+    async def get_repo_compute_allocations(self, repo_id: str) -> Optional[Dict[str, Any]]:
         """
-        Get compute allocations for a repo.
+        Get allocations by repo ID.
 
         Args:
             repo_id: Repo (project) ID
-            username: Username making the request
-            current_only: If True, only return current allocations
 
         Returns:
             List of RepoComputeAllocation objects
         """
-        # Query for current allocations uses the currentComputeAllocations field
-        if current_only:
-            query = """
-                query GetRepoComputeAllocations($repoId: MongoId!) {
-                    repo(_id: $repoId) {
-                        currentComputeAllocations {
-                            _id
-                            repoid
-                            clustername
-                            start
-                            end
-                            percent_of_facility
-                            burst_percent_of_facility
-                            allocated
-                            burst_allocated
+        query = """
+            query GetRepoComputeAllocation($repoId: MongoId!) {
+                repos(filter: {Id: $repoId}) {
+                    currentComputeAllocations {
+                        Id
+                        repoid
+                        clustername
+                        start
+                        end
+                        percentOfFacility
+                        burstPercentOfFacility
+                        allocated
+                        burstAllocated
+                        usage {
+                            resourceHours
                         }
                     }
                 }
-            """
-        else:
-            # For all allocations, we'd need a different query
-            # This would require direct collection access
-            query = """
-                query GetRepoComputeAllocations($repoId: MongoId!) {
-                    repo(_id: $repoId) {
-                        currentComputeAllocations {
-                            _id
-                            repoid
-                            clustername
-                            start
-                            end
-                            percent_of_facility
-                            burst_percent_of_facility
-                            allocated
-                            burst_allocated
-                        }
-                    }
-                }
-            """
-
+            }
+        """
+        
         try:
             result = await self.execute_query(
                 query,
                 variables={"repoId": repo_id},
-                username=username
+                username=self.service_user  # Use service user for this query
             )
-            repo = result.get("repo")
-            if not repo:
-                return []
-            return repo.get("currentComputeAllocations", [])
+            repo_allocations = result.get("repos", [])
+            if not repo_allocations:
+                return None
+            return repo_allocations[0].get("currentComputeAllocations")
         except Exception as e:
-            LOG.error(f"Failed to get compute allocations for repo {repo_id}: {e}")
-            return []
+            LOG.error(f"Failed to get compute allocation for repo {repo_id}: {e}")
+            return None
+
+    # async def get_user_compute_allocation(self, repo_id: str, allocation_id: str) -> Optional[float]:
+    #     """
+    #     Get a specific user's compute allocation within a repo.
+
+    #     Args:
+    #         repo_id: Repo (project) ID
+    #         allocation_id: RepoComputeAllocation ID
+
+    #     Returns:
+    #         User's compute allocation percentage
+    #     """
+    #     query = """
+    #         query GetRepoComputeAllocation($repoId: MongoId!, $allocationId: MongoId!) {
+    #             repos(filter: {Id: $repoId}) {
+    #                 computeAllocation(allocationid: $allocationId) {
+    #                     userAllocations {
+    #                         username
+    #                         percent
+    #                     }
+    #                 }
+    #             }
+    #         }
+    #     """
+
+    #     try:
+    #         result = await self.execute_query(
+    #             query,
+    #             variables={"repoId": repo_id, "allocationId": allocation_id},
+    #             username=self.service_user
+    #         )
+    #         repo = result.get("repo")
+    #         if not repo:
+    #             return None
+    #         allocation = repo.get("computeAllocation")
+    #         if not allocation:
+    #             return None
+    #         user_allocations = allocation.get("userAllocations", [])
+    #         if not user_allocations:
+    #             return None
+    #         return user_allocations[0].get("percent")
+    #     except Exception as e:
+    #         LOG.error(f"Failed to get user compute allocation for allocation {allocation_id}: {e}")
+    #         return None
 
     async def get_repo_storage_allocations(
         self,
@@ -475,11 +494,10 @@ class CoactClient:
             LOG.error(f"Failed to get storage allocations for repo {repo_id}: {e}")
             return []
 
-    async def get_user_allocations(
+    async def get_user_allocation(
         self,
         repo_id: str,
         allocation_id: str,
-        username: str
     ) -> List[Dict[str, Any]]:
         """
         Get user allocations within a compute allocation.
@@ -487,14 +505,13 @@ class CoactClient:
         Args:
             repo_id: Repo (project) ID
             allocation_id: RepoComputeAllocation ID
-            username: Username making the request
 
         Returns:
             List of UserAllocation objects
         """
         query = """
             query GetUserAllocations($repoId: MongoId!, $allocationId: MongoId!) {
-                repo(_id: $repoId) {
+                repos(filter: {Id: $repoId}) {
                     computeAllocation(allocationid: $allocationId) {
                         userAllocations {
                             username
@@ -509,15 +526,15 @@ class CoactClient:
             result = await self.execute_query(
                 query,
                 variables={"repoId": repo_id, "allocationId": allocation_id},
-                username=username
+                username=self.service_user
             )
-            repo = result.get("repo")
+            repo = result.get("repos")
             if not repo:
                 return []
-            allocation = repo.get("computeAllocation")
-            if not allocation:
+            user_allocation = repo[0].get("computeAllocation", {}).get("userAllocations", [])
+            if not user_allocation:
                 return []
-            return allocation.get("userAllocations", [])
+            return user_allocation
         except Exception as e:
             LOG.error(f"Failed to get user allocations for allocation {allocation_id}: {e}")
             return []
@@ -639,52 +656,7 @@ class CoactClient:
             LOG.error(f"Failed to get usage for allocation {allocation_id}: {e}")
             return None
     
-    async def get_repo_compute_allocation(self, repo_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get a specific compute allocation by ID.
-
-        Args:
-            repo_id: Repo (project) ID
-
-        Returns:
-            RepoComputeAllocation object
-        """
-        query = """
-            query GetRepoComputeAllocation($repoId: MongoId!) {
-                repos(filter: {Id: $repoId}) {
-                    currentComputeAllocations {
-                        Id
-                        repoid
-                        clustername
-                        start
-                        end
-                        percentOfFacility
-                        burstPercentOfFacility
-                        allocated
-                        burstAllocated
-                        usage {
-                            resourceHours
-                        }
-                    }
-                }
-            }
-        """
-
-        try:
-            result = await self.execute_query(
-                query,
-                variables={"repoId": repo_id},
-                username=self.service_user  # Use service user for this query
-            )
-            repo_allocations = result.get("repos", [])
-            if not repo_allocations:
-                return None
-            return repo_allocations[0].get("currentComputeAllocations")
-        except Exception as e:
-            LOG.error(f"Failed to get compute allocation for repo {repo_id}: {e}")
-            return None
-
-
+    
  
     async def get_all_repos(self) -> List[Dict[str, Any]]:
         """
@@ -774,7 +746,7 @@ def get_coact_client() -> CoactClient:
             api_url=settings.coact_api_url,
             service_user=settings.coact_service_user,
             service_password=settings.coact_service_password,
-            use_basic_auth=settings.coact_use_basic_auth,
+            use_basic_auth=True,
         )
     
     return _default_client

@@ -206,16 +206,15 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         """
 
         # For this POC, we only have compute allocations with user percentages.
-
-        compute_alloc = next((ca for ca in COACT_REPO_COMPUTE_ALLOCATIONS if ca["_id"] == project_allocation.id), None)
         
+        compute_alloc = await self.coact_client.get_repo_compute_allocation(repo_id=project_allocation.project_id)
         if not compute_alloc:
             # return nothing 
             return []
 
 
         # Placeholder user percentage based on current understanding of coact data model and existing data in user_allocations collection. This is a simplification for the POC.
-        user_percent = 100
+        user_percent = await self.coact_client.get_user_allocation(repo_id=project_allocation.project_id, allocation_id=project_allocation.id) or 100
         return [account_models.UserAllocation(
             id=f"{project_allocation.id}-{user.id}",
             project_id=project_allocation.project_id,
