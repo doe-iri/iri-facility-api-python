@@ -1,14 +1,15 @@
-FROM python:3
+FROM python:3.13-slim
 
 RUN mkdir /app
 COPY . /app
 WORKDIR /app
 
-RUN pip install -U pip
-RUN pip install -U wheel
-RUN pip install -U setuptools
-RUN pip install uv
-RUN uv pip install --system -r /app/pyproject.toml
+RUN pip install -U pip wheel setuptools uv && \
+    uv pip install --system .
+
 ENV IRI_API_ADAPTER_account="app.s3df.account_adapter.S3DFAccountAdapter"
+ENV IRI_SHOW_MISSING_ROUTES="true"
+
 
 CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
+

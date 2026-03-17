@@ -139,7 +139,7 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         repos = await self.coact_client.get_user_repos(user)
 
         for repo in repos:
-            # all_users = set(repo.get("users", []) + repo.get("leaders", []) + [repo.get("principal", "")])
+            all_users = set(repo.get("users", []) + repo.get("leaders", []) + [repo.get("principal", "")])
             # if user.id in all_users:
 
             projects.append(account_models.Project(
