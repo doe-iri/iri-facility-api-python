@@ -102,7 +102,7 @@ class IriRouter(APIRouter):
             raise Exception("Token not yet valid")
 
         # Check if token has the required IRI scope
-        token_scope = introspect.get("scope", "")
+        token_scope = introspect.get("scope", "").split()
         GLOBUS_SCOPE = f"https://auth.globus.org/scopes/{GLOBUS_RS_ID}/{GLOBUS_RS_SCOPE_SUFFIX}"
         if GLOBUS_SCOPE not in token_scope:
             raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")

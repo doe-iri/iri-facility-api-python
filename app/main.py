@@ -21,6 +21,11 @@ from app.routers.task import task
 
 from . import config
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+
 # ------------------------------------------------------------------
 # OpenTelemetry Tracing Configuration
 # ------------------------------------------------------------------
