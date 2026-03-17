@@ -109,15 +109,8 @@ class IriRouter(APIRouter):
 
         # Get linked identities from the introspection response
         identity_set = introspect.get('identity_set_detail', [])
-
-        # If no identity_set_detail, fall back to primary identity
-        if not identity_set:
-            email = introspect.get('email')
-            username = introspect.get('username')
-            if email or username:
-                identity_set = [{'email': email, 'username': username}]
-
         logging.getLogger().info(f"Found {len(identity_set)} linked identities")
+
         return identity_set, introspect.get("session_info", {})
 
 
