@@ -24,7 +24,7 @@ router = iri_router.IriRouter(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="launchJob",
-    openapi_extra=iri_meta_dict("incubator", "required")
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def submit_job(
     resource_id: str,
@@ -96,7 +96,7 @@ async def submit_job(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="updateJob",
-    openapi_extra=iri_meta_dict("incubator", "required")
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def update_job(
     resource_id: str,
@@ -132,7 +132,7 @@ async def update_job(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJob",
-    openapi_extra=iri_meta_dict("incubator", "required")
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_job_status(
     resource_id: str,
@@ -163,7 +163,7 @@ async def get_job_status(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJobs",
-    openapi_extra=iri_meta_dict("incubator", "required")
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_job_statuses(
     resource_id: str,
@@ -197,7 +197,7 @@ async def get_job_statuses(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="cancelJob",
-    openapi_extra=iri_meta_dict("incubator", "required")
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def cancel_job(
     resource_id: str,
