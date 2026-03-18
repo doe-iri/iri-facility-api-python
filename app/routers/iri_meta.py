@@ -4,7 +4,7 @@ Utility for generating the IRI OpenAPI extension metadata.
 It generates:
 {
     "x-iri": {
-        "maturity": "graduated",
+        "maturity": "production",
         "implementation": {
             "level": "required",
             "required_if_capability": "dpu"
