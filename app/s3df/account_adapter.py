@@ -18,15 +18,6 @@ from ..routers.account import models as account_models
 from ..routers.account import facility_adapter as account_adapter
 from app.s3df.clients import get_coact_client
 
-
-# =============================================================================
-# STATIC DUMMY DATA (simulating coact-api responses)
-# =============================================================================
-from app.data import clusters as COACT_CLUSTERS
-from app.data import repos as COACT_REPOS
-from app.data import repo_compute_allocations as COACT_REPO_COMPUTE_ALLOCATIONS
-from app.data import repo_overall_compute_usage as COACT_REPO_OVERALL_COMPUTE_USAGE
-
 # Simulated coact Users
 COACT_USERS = {
     "amithm": {
@@ -166,11 +157,7 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         - allocated * 720 (hours/month) → node_hours allocation
         - gigabytes * 1e9 → bytes allocation
         """
-        repo = next((r for r in COACT_REPOS if r["_id"] == project.id), None)
-        if not repo:
-            return []
         
-        # repo_allocations = [alloc for alloc in COACT_REPO_COMPUTE_ALLOCATIONS if alloc["repoid"] == project.id]
         repo_allocations = await self.coact_client.get_repo_compute_allocation(repo_id=project.id)
 
         allocations = []
