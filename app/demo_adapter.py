@@ -488,6 +488,21 @@ class DemoAdapter(
         In a real deployment, this would decode the api_key jwt and return the current user's id.
         This method is not async.
         """
+        if api_key != self.user.api_key:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        return "gtorok"
+
+    async def get_current_user_globus(
+            self: "DemoAdapter",
+            api_key: str,
+            client_ip: str,
+            globus_introspect: dict | None,
+        ) -> str:
+        """
+        Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
+        This method is not called directly, rather authorized endpoints "depend" on it.
+        (https://fastapi.tiangolo.com/tutorial/dependencies/)
+        """
         return "gtorok"
 
     async def get_user(
@@ -500,8 +515,6 @@ class DemoAdapter(
             raise HTTPException(status_code=403, detail="User not found")
         if api_key.startswith("Bearer "):
             api_key = api_key[len("Bearer ") :]
-        if api_key != self.user.api_key:
-            raise HTTPException(status_code=401, detail="Invalid API key")
         return self.user
 
     async def get_projects(self: "DemoAdapter", user: account_models.User) -> list[account_models.Project]:
