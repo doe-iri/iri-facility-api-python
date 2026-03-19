@@ -11,8 +11,7 @@ dev : .venv
 dev-s3df : .venv
 	@source ./.venv/bin/activate && \
 		IRI_API_ADAPTER_account=app.s3df.account_adapter.S3DFAccountAdapter \
-		COACT_API_URL='https://coact.slac.stanford.edu/graphql' \
-		S3DF_AUTH_MODE='bypass' \
+		COACT_API_URL='https://coact-dev.slac.stanford.edu/graphql-service-dev' \
 		IRI_SHOW_MISSING_ROUTES='true' \
 		API_URL_ROOT='http://127.0.0.1:8000' fastapi dev
 
