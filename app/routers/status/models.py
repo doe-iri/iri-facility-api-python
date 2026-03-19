@@ -73,7 +73,7 @@ class Event(NamedObject):
     """Represents an event that occurred to a resource, which may be part of an incident."""
     def _self_path(self) -> str:
         """Return the API path for this event."""
-        return f"/status/incidents/{self.incident_id}/events/{self.id}"
+        return f"/status/events/{self.id}"
 
     @field_validator("occurred_at", mode="before")
     @classmethod
@@ -162,7 +162,7 @@ class Incident(NamedObject):
     @property
     def event_uris(self) -> list[str]:
         """Return the list of event URIs for this incident."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
+        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/events/{e}" for e in self.event_ids]
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
