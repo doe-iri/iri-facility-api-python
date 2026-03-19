@@ -14,29 +14,16 @@ Data Model Mapping (coact → IRI):
 - UserAllocation (percent) → UserAllocation (calculated from project allocation)
 """
 
+
+
+from fastapi import HTTPException
+
 from ..routers.account import models as account_models
 from ..routers.account import facility_adapter as account_adapter
 from app.s3df.clients import get_coact_client
-
-# Simulated coact Users
-COACT_USERS = {
-    "amithm": {
-        "username": "amithm",
-        "eppns": ["amithm@slac.stanford.edu"],
-        "fullname": "Amith Murthy",
-        "preferredemail": "amithm@slac.stanford.edu",
-        "shell": "/bin/bash",
-        "uidnumber": 12345,
-    },
-    "testuser": {
-        "username": "testuser",
-        "eppns": ["testuser@slac.stanford.edu"],
-        "fullname": "Test User",
-        "preferredemail": "testuser@slac.stanford.edu",
-        "shell": "/bin/bash",
-        "uidnumber": 99999,
-    },
-}
+from app.s3df.clients.coact import CoactClient
+from app.s3df.auth.auth_provider import S3DFAuthProvider
+from app.s3df.auth.coact_auth import CoactAuthProvider
 
 
 class S3DFAccountAdapter(account_adapter.FacilityAdapter):
@@ -45,20 +32,18 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
     Returns static dummy data for testing data model mappings.
     """
     
-    def __init__(self):
-        self.coact_client = get_coact_client()
+    def __init__(self, coact_client: CoactClient | None = None, auth_provider: S3DFAuthProvider | None = None):
+        self.coact_client = coact_client or get_coact_client()
+        self.auth_provider = auth_provider or CoactAuthProvider(self.coact_client)
     
     # -------------------------------------------------------------------------
     # AuthenticatedAdapter methods
     # -------------------------------------------------------------------------
     
     async def get_current_user(self, api_key: str, client_ip: str) -> str:
-        """
-            Production: Would introspect amsc token.
-        """
-        if api_key.startswith("Bearer "):
-            return api_key[7:]
-        return api_key
+        user_id = api_key[7:] if api_key.startswith("Bearer ") else api_key
+        await self.auth_provider.validate_user(user_id)
+        return user_id
     
     async def get_user(self, user_id: str, api_key: str, client_ip: str | None) -> account_models.User:
         """
@@ -67,9 +52,11 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         - fullname → name
         """
         coact_user = await self.coact_client.get_user(user_id)
+        if not coact_user:
+            raise HTTPException(status_code=403, detail="User not authorized")
         return account_models.User(
-            id=coact_user["username"] if coact_user else user_id,
-            name=coact_user.get("fullname", user_id) if coact_user else user_id,
+            id=coact_user["username"],
+            name=coact_user.get("fullname", user_id),
             api_key=api_key,
             client_ip=client_ip
         )
@@ -127,7 +114,7 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         - users + leaders + principal → user_ids
         """
         projects = []
-        repos = await self.coact_client.get_user_repos(user)
+        repos = await self.coact_client.get_user_repos(user.id)
 
         for repo in repos:
             all_users = set(repo.get("users", []) + repo.get("leaders", []) + [repo.get("principal", "")])
