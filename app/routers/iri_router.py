@@ -80,7 +80,7 @@ class IriRouter(APIRouter):
         return AdapterClass()
 
 
-    async def get_globus_info(self, api_key: str) -> tuple[list, dict]:
+    async def get_globus_info(self, api_key: str) -> dict:
         """Returns the linked identities and the session info objects"""
         # Introspect the IRI API token using resource server credentials
         globus_client = globus_sdk.ConfidentialAppAuthClient(GLOBUS_RS_ID, GLOBUS_RS_SECRET)
@@ -107,11 +107,11 @@ class IriRouter(APIRouter):
         if GLOBUS_SCOPE not in token_scope:
             raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")
 
-        # Get linked identities from the introspection response
-        identity_set = introspect.get('identity_set_detail', [])
-        logging.getLogger().info(f"Found {len(identity_set)} linked identities")
+        session_info = introspect.get("session_info", {})
+        if not session_info or not session_info.get("authentications", {}):
+            raise Exception(f"Empty session_info.authentications block")
 
-        return identity_set, introspect.get("session_info", {})
+        return introspect
 
 
     async def current_user(
@@ -126,8 +126,8 @@ class IriRouter(APIRouter):
             ip_address = get_client_ip(request)
             if GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
                 try:
-                    globus_linked_identities, globus_session_info = await self.get_globus_info(token)
-                    user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_linked_identities, globus_session_info)
+                    globus_introspect = await self.get_globus_info(token)
+                    user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_introspect)
                 except Exception as globus_exc:
                     logging.getLogger().exception("Globus error:", exc_info=globus_exc)
             if not user_id:
@@ -152,7 +152,7 @@ class AuthenticatedAdapter(ABC):
         pass
 
     @abstractmethod
-    async def get_current_user_globus(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, globus_linked_identities: list | None, globus_session_info: dict | None) -> str:
+    async def get_current_user_globus(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, globus_introspect: dict | None) -> str:
         """
         Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
         This method is not called directly, rather authorized endpoints "depend" on it.

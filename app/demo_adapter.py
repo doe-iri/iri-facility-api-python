@@ -496,8 +496,7 @@ class DemoAdapter(
             self: "DemoAdapter",
             api_key: str,
             client_ip: str,
-            globus_linked_identities: list | None,
-            globus_session_info: dict | None,
+            globus_introspect: dict | None,
         ) -> str:
         """
         Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
