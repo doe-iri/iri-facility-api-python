@@ -89,7 +89,7 @@ jobs:
         source .venv/bin/activate
         python schema-validator/verification/api-validator.py \
           --baseurl http://localhost:8000 \
-          --schema-url https://raw.githubusercontent.com/doe-iri/iri-facility-api-docs/refs/heads/main/specification/openapi/openapi_iri_facility_api_v1.json \
+          --schema-url https://raw.githubusercontent.com/doe-iri/iri-facility-api-docs/refs/heads/main/specification/openapi/all_spec.yaml \
           --report-name schemathesis-official
         echo "exitcode=$?" >> $GITHUB_OUTPUT
 
