@@ -50,41 +50,40 @@ async def submit_job(
     return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
 
 
-# TODO: this conflicts with PUT commented out while we finalize the API design
-# @router.post(
-#    "/job/script/{resource_id:str}",
-#    dependencies=[Depends(router.current_user)],
-#    response_model=models.Job,
-#    response_model_exclude_unset=True,
-#    responses=DEFAULT_RESPONSES,
-#    operation_id="launchJobScript",
-# )
-# async def submit_job_path(
-#    resource_id: str,
-#    job_script_path : str,
-#    request : Request,
-#    args : Annotated[List[str], Form()] = [],
-#    _forbid = Depends(iri_router.forbidExtraQueryParams("job_script_path")),
-#    ):
-#    """
-#    Submit a job on a compute resource
-#
-#    - **resource**: the name of the compute resource to use
-#    - **job_script_path**: path to the job script on the compute resource
-#    - **args**: optional arguments to the job script
-#
-#    This command will attempt to submit a job and return its id.
-#    """
-#    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-#    if not user:
-#        raise HTTPException(status_code=404, detail="User not found")
-#
-#    # look up the resource (todo: maybe ensure it's available)
-#    resource = await status_router.adapter.get_resource(resource_id)
-#
-#    # the handler can use whatever means it wants to submit the job and then fill in its id
-#    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-#    return await router.adapter.submit_job_script(resource=resource, user=user, job_script_path=job_script_path, args=args)
+@router.post(
+   "/job/{resource_id:str}/script",
+   dependencies=[Depends(router.current_user)],
+   response_model=models.Job,
+   response_model_exclude_unset=True,
+   responses=DEFAULT_RESPONSES,
+   operation_id="launchJobScript",
+)
+async def submit_job_path(
+   resource_id: str,
+   job_script_path : str,
+   request : Request,
+   args: list[str] = [],
+   _forbid = Depends(forbidExtraQueryParams("job_script_path", "args")),
+   ):
+   """
+   Submit a job on a compute resource
+
+   - **resource**: the name of the compute resource to use
+   - **job_script_path**: path to the job script on the compute resource
+   - **args**: optional arguments to the job script
+
+   This command will attempt to submit a job and return its id.
+   """
+   user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
+   if not user:
+       raise HTTPException(status_code=404, detail="User not found")
+
+   # look up the resource (todo: maybe ensure it's available)
+   resource = await status_router.adapter.get_resource(resource_id)
+
+   # the handler can use whatever means it wants to submit the job and then fill in its id
+   # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+   return await router.adapter.submit_job_script(resource=resource, user=user, job_script_path=job_script_path, args=args)
 
 
 @router.put(
