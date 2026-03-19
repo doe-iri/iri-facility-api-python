@@ -43,7 +43,7 @@ class CoactClient:
         self.use_basic_auth = use_basic_auth
         self._client: Optional[Client] = None
 
-        LOG.info(f"Initialized CoactClient for endpoint: {self.api_url} (basic_auth={use_basic_auth})")
+        LOG.info(f"Initialized CoactClient for endpoint: {self.api_url} (service_user={self.service_user}, use_basic_auth={self.use_basic_auth})")
 
     def _get_client(self, username: Optional[str] = None) -> Client:
         """
@@ -285,7 +285,7 @@ class CoactClient:
         query = """
             query GetClusters {
                 clusters {
-                    _id
+                    Id
                     name
                     nodecpucount
                     nodecpucountdivisor

@@ -121,7 +121,7 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
             # if user.id in all_users:
 
             projects.append(account_models.Project(
-                id=repo["_id"],
+                id=repo["Id"],
                 name=repo["name"],
                 description=repo.get("description", ""),
                 user_ids=list(all_users)
@@ -145,7 +145,7 @@ class S3DFAccountAdapter(account_adapter.FacilityAdapter):
         - gigabytes * 1e9 → bytes allocation
         """
         
-        repo_allocations = await self.coact_client.get_repo_compute_allocation(repo_id=project.id)
+        repo_allocations = await self.coact_client.get_repo_compute_allocations(repo_id=project.id)
 
         allocations = []
         
