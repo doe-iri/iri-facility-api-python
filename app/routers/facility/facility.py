@@ -4,13 +4,22 @@ from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictDateTime
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
+from ..iri_meta import iri_meta_dict
 from . import facility_adapter, models
 
 router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facility", tags=["facility"])
 
 
-@router.get("", responses=DEFAULT_RESPONSES, operation_id="getFacility", response_model_exclude_none=True,)
-@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getFacilityWithSlash", response_model_exclude_none=True, include_in_schema=False,)
+@router.get("",
+            responses=DEFAULT_RESPONSES,
+            operation_id="getFacility",
+            response_model_exclude_none=True,
+            openapi_extra=iri_meta_dict("production", "required"))
+@router.get("/",
+            responses=DEFAULT_RESPONSES,
+            operation_id="getFacilityWithSlash",
+            response_model_exclude_none=True,
+            include_in_schema=False)
 async def get_facility(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
@@ -23,7 +32,7 @@ async def get_facility(
     return facility
 
 
-@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True,)
+@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True, openapi_extra=iri_meta_dict("production", "required"))
 async def list_sites(
     request: Request,
     modified_since: StrictDateTime = Query(default=None),
@@ -40,7 +49,7 @@ async def list_sites(
     return sites
 
 
-@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite", response_model_exclude_none=True,)
+@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite", response_model_exclude_none=True, openapi_extra=iri_meta_dict("production", "required"))
 async def get_site(
     request: Request,
     site_id: str,

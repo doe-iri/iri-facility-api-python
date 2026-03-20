@@ -9,6 +9,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status, Query, Request, File, UploadFile
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
+from ..iri_meta import iri_meta_dict
 from ..status.status import router as status_router, models as status_models
 from ..account.account import models as account_models
 from ..task import facility_adapter as task_facility_adapter, models as task_models
@@ -47,6 +48,7 @@ async def _user_resource(
     response_description="File permissions changed successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="chmod",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def put_chmod(
     resource_id: str,
@@ -76,6 +78,7 @@ async def put_chmod(
     response_description="File ownership changed successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="chown",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def put_chown(
     resource_id: str,
@@ -105,6 +108,7 @@ async def put_chown(
     response_description="Type returned successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="file",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_file(
     resource_id: str,
@@ -134,6 +138,7 @@ async def get_file(
     response_description="Stat returned successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="stat",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_stat(
     resource_id: str,
@@ -165,6 +170,7 @@ async def get_stat(
     response_description="Directory created successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="mkdir",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_mkdir(
     resource_id: str,
@@ -194,6 +200,7 @@ async def post_mkdir(
     response_description="Symlink created successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="symlink",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_symlink(
     resource_id: str,
@@ -224,6 +231,7 @@ async def post_symlink(
     include_in_schema=router.task_adapter is not None,
     responses=DEFAULT_RESPONSES,
     operation_id="ls",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_ls_async(
     resource_id: str,
@@ -261,6 +269,7 @@ async def get_ls_async(
     response_description="Head operation finished successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="head",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_head(
     resource_id: str,
@@ -321,6 +330,7 @@ async def get_head(
     response_description="View operation finished successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="view",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_view(
     resource_id: str,
@@ -355,6 +365,7 @@ async def get_view(
     response_description="`tail` operation finished successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="tail",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_tail(
     resource_id: str,
@@ -408,6 +419,7 @@ async def get_tail(
     response_description="Checksum returned successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="checksum",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_checksum(
     resource_id: str,
@@ -435,6 +447,7 @@ async def get_checksum(
     response_description="File or directory deleted successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="rm",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def delete_rm(
     resource_id: str,
@@ -464,6 +477,7 @@ async def delete_rm(
     response_description="File and/or directories compressed successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="compress",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_compress(
     resource_id: str,
@@ -493,6 +507,7 @@ async def post_compress(
     response_description="File extracted successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="extract",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_extract(
     resource_id: str,
@@ -522,6 +537,7 @@ async def post_extract(
     response_description="Move file or directory operation created successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="mv",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def move_mv(
     resource_id: str,
@@ -551,6 +567,7 @@ async def move_mv(
     response_description="Copy file or directory operation created successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="cp",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_cp(
     resource_id: str,
@@ -580,6 +597,7 @@ async def post_cp(
     response_description="File downloaded successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="download",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def get_download(
     resource_id: str,
@@ -609,6 +627,7 @@ async def get_download(
     response_description="File uploaded successfully",
     responses=DEFAULT_RESPONSES,
     operation_id="upload",
+    openapi_extra=iri_meta_dict("beta", "required")
 )
 async def post_upload(
     resource_id: str,
