@@ -7,11 +7,11 @@
 import base64
 from typing import Annotated
 from fastapi import Depends, HTTPException, status, Query, Request, File, UploadFile
+from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
 from ..status.status import router as status_router, models as status_models
-from ..account.account import models as account_models
 from ..task import facility_adapter as task_facility_adapter, models as task_models
 from . import models, facility_adapter
 
@@ -26,22 +26,17 @@ router = iri_router.IriRouter(
 
 async def _user_resource(
     resource_id: str,
-    request: Request,
-) -> tuple[account_models.User, status_models.Resource]:
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+    user: User,
+) -> status_models.Resource:
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-    return (user, resource)
+    return resource
 
 
 @router.put(
     "/chmod/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Change the permission mode of a file(`chmod`)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -54,8 +49,9 @@ async def put_chmod(
     resource_id: str,
     request_model: models.PutFileChmodRequest,
     request: Request,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -71,7 +67,6 @@ async def put_chmod(
 
 @router.put(
     "/chown/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Change the ownership of a given file (`chown`)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -84,8 +79,9 @@ async def put_chown(
     resource_id: str,
     request_model: models.PutFileChownRequest,
     request: Request,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -101,7 +97,6 @@ async def put_chown(
 
 @router.get(
     "/file/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Output the type of a file or directory",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -114,8 +109,9 @@ async def get_file(
     resource_id: str,
     request: Request,
     path: Annotated[str, Query(description="A file or folder path")],
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -131,7 +127,6 @@ async def get_file(
 
 @router.get(
     "/stat/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Output the `stat` of a file",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -145,8 +140,9 @@ async def get_stat(
     request: Request,
     path: Annotated[str, Query(description="A file or folder path")],
     dereference: Annotated[bool, Query(description="Follow symbolic links")] = False,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -163,7 +159,6 @@ async def get_stat(
 
 @router.post(
     "/mkdir/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Create directory operation (`mkdir`)",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -176,8 +171,9 @@ async def post_mkdir(
     resource_id: str,
     request: Request,
     request_model: models.PostMakeDirRequest,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -193,7 +189,6 @@ async def post_mkdir(
 
 @router.post(
     "/symlink/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Create symlink operation (`ln`)",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -206,8 +201,9 @@ async def post_symlink(
     resource_id: str,
     request: Request,
     request_model: models.PostFileSymlinkRequest,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -223,7 +219,6 @@ async def post_symlink(
 
 @router.get(
     "/ls/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="List the contents of the given directory (`ls`) asynchronously",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -247,8 +242,10 @@ async def get_ls_async(
             description="Show information for the file the link references.",
         ),
     ] = False,
+    user: User = Depends(router.current_user),
+
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -262,7 +259,6 @@ async def get_ls_async(
 
 @router.get(
     "/head/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Output the first part of file/s (`head`)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -300,8 +296,9 @@ async def get_head(
             description=("The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`."),
         ),
     ] = False,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     # Enforce that exactly one of `bytes` or `lines` is specified
     if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
         raise HTTPException(status_code=400, detail="Exactly one of `bytes` or `lines` must be specified.")
@@ -323,7 +320,6 @@ async def get_head(
 
 @router.get(
     "/view/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description=f"View file content (up to max {facility_adapter.OPS_SIZE_LIMIT} bytes)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -338,8 +334,9 @@ async def get_view(
     path: Annotated[str, Query(description="File path")],
     size: Annotated[int, Query(description="Value, in bytes, of the size of data to be retrieved from the file.", ge=1, le=facility_adapter.OPS_SIZE_LIMIT)] = facility_adapter.OPS_SIZE_LIMIT,
     offset: Annotated[int, Query(description="Value in bytes of the offset.", ge=0)] = 0,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
 
     return await router.task_adapter.put_task(
         user=user,
@@ -358,7 +355,6 @@ async def get_view(
 
 @router.get(
     "/tail/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Output the last part of a file (`tail`)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -389,8 +385,10 @@ async def get_tail(
             description=("The output will be the whole file, without the first NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`."),
         ),
     ] = False,
+    user: User = Depends(router.current_user),
+
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     # Enforce that exactly one of `bytes` or `lines` is specified
     if (file_bytes is None and lines is None) or (file_bytes is not None and lines is not None):
         raise HTTPException(status_code=400, detail="Exactly one of `bytes` or `lines` must be specified.")
@@ -412,7 +410,6 @@ async def get_tail(
 
 @router.get(
     "/checksum/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Output the checksum of a file (using SHA-256 algotithm)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -425,8 +422,9 @@ async def get_checksum(
     resource_id: str,
     request: Request,
     path: Annotated[str, Query(description="Target system")],
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -442,7 +440,6 @@ async def get_checksum(
 
 @router.delete(
     "/rm/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Delete file or directory operation (`rm`)",
     response_description="File or directory deleted successfully",
     responses=DEFAULT_RESPONSES,
@@ -453,8 +450,9 @@ async def delete_rm(
     resource_id: str,
     request: Request,
     path: Annotated[str, Query(description="The path to delete")],
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -470,7 +468,6 @@ async def delete_rm(
 
 @router.post(
     "/compress/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Compress files and directories using `tar` command",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -483,8 +480,9 @@ async def post_compress(
     resource_id: str,
     request: Request,
     request_model: models.PostCompressRequest,
+    user: str = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -500,7 +498,6 @@ async def post_compress(
 
 @router.post(
     "/extract/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Extract `tar` `gzip` archives",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -513,8 +510,9 @@ async def post_extract(
     resource_id: str,
     request: Request,
     request_model: models.PostExtractRequest,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -530,7 +528,6 @@ async def post_extract(
 
 @router.post(
     "/mv/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Create move file or directory operation (`mv`)",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -543,8 +540,9 @@ async def move_mv(
     resource_id: str,
     request: Request,
     request_model: models.PostMoveRequest,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -560,7 +558,6 @@ async def move_mv(
 
 @router.post(
     "/cp/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description="Create copy file or directory operation (`cp`)",
     status_code=status.HTTP_201_CREATED,
     response_model=task_models.TaskSubmitResponse,
@@ -573,8 +570,9 @@ async def post_cp(
     resource_id: str,
     request: Request,
     request_model: models.PostCopyRequest,
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -590,7 +588,6 @@ async def post_cp(
 
 @router.get(
     "/download/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description=f"Download a small file (max {facility_adapter.OPS_SIZE_LIMIT} Bytes)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -603,8 +600,9 @@ async def get_download(
     resource_id: str,
     request: Request,
     path: Annotated[str, Query(description="A file to download")],
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,
         resource=resource,
@@ -620,7 +618,6 @@ async def get_download(
 
 @router.post(
     "/upload/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     description=f"Upload a small file (max {facility_adapter.OPS_SIZE_LIMIT} Bytes)",
     status_code=status.HTTP_200_OK,
     response_model=task_models.TaskSubmitResponse,
@@ -634,8 +631,9 @@ async def post_upload(
     request: Request,
     path: Annotated[str, Query(description="Specify path where file should be uploaded.")],
     file: UploadFile = File(description="File to be uploaded as `multipart/form-data`"),
+    user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    user, resource = await _user_resource(resource_id, request)
+    resource = await _user_resource(resource_id, user)
     raw_content = file.file.read()
 
     if len(raw_content) > facility_adapter.OPS_SIZE_LIMIT:

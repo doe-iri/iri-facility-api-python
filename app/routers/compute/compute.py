@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, Query, Request, status
 
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
+from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -19,7 +20,6 @@ router = iri_router.IriRouter(
 
 @router.post(
     "/job/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
@@ -30,6 +30,7 @@ async def submit_job(
     resource_id: str,
     job_spec: models.JobSpec,
     request: Request,
+    user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
@@ -40,10 +41,6 @@ async def submit_job(
 
     This command will attempt to submit a job and return its id.
     """
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -52,46 +49,8 @@ async def submit_job(
     return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
 
 
-# TODO: this conflicts with PUT commented out while we finalize the API design
-# @router.post(
-#    "/job/script/{resource_id:str}",
-#    dependencies=[Depends(router.current_user)],
-#    response_model=models.Job,
-#    response_model_exclude_unset=True,
-#    responses=DEFAULT_RESPONSES,
-#    operation_id="launchJobScript",
-# )
-# async def submit_job_path(
-#    resource_id: str,
-#    job_script_path : str,
-#    request : Request,
-#    args : Annotated[List[str], Form()] = [],
-#    _forbid = Depends(iri_router.forbidExtraQueryParams("job_script_path")),
-#    ):
-#    """
-#    Submit a job on a compute resource
-#
-#    - **resource**: the name of the compute resource to use
-#    - **job_script_path**: path to the job script on the compute resource
-#    - **args**: optional arguments to the job script
-#
-#    This command will attempt to submit a job and return its id.
-#    """
-#    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-#    if not user:
-#        raise HTTPException(status_code=404, detail="User not found")
-#
-#    # look up the resource (todo: maybe ensure it's available)
-#    resource = await status_router.adapter.get_resource(resource_id)
-#
-#    # the handler can use whatever means it wants to submit the job and then fill in its id
-#    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-#    return await router.adapter.submit_job_script(resource=resource, user=user, job_script_path=job_script_path, args=args)
-
-
 @router.put(
     "/job/{resource_id:str}/{job_id:str}",
-    dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
@@ -103,6 +62,7 @@ async def update_job(
     job_id: str,
     job_spec: models.JobSpec,
     request: Request,
+    user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
@@ -113,10 +73,6 @@ async def update_job(
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
 
     """
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -127,7 +83,6 @@ async def update_job(
 
 @router.get(
     "/status/{resource_id:str}/{job_id:str}",
-    dependencies=[Depends(router.current_user)],
     response_model=models.Job,
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
@@ -138,15 +93,12 @@ async def get_job_status(
     resource_id: str,
     job_id: str,
     request: Request,
+    user: User = Depends(router.current_user),
     historical: StrictHTTPBool | None = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
     include_spec: StrictHTTPBool | None = Query(default=False, description="Whether to include the job specification. Defaults to false"),
     _forbid=Depends(forbidExtraQueryParams("historical", "include_spec")),
 ):
     """Get a job's status"""
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -158,7 +110,6 @@ async def get_job_status(
 
 @router.post(
     "/status/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
     response_model=list[models.Job],
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
@@ -168,6 +119,7 @@ async def get_job_status(
 async def get_job_statuses(
     resource_id: str,
     request: Request,
+    user: User = Depends(router.current_user),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     filters: dict[str, object] | None = None,
@@ -176,10 +128,6 @@ async def get_job_statuses(
     _forbid=Depends(forbidExtraQueryParams("offset", "limit", "filters", "historical", "include_spec")),
 ):
     """Get multiple jobs' statuses"""
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -191,7 +139,6 @@ async def get_job_statuses(
 
 @router.delete(
     "/cancel/{resource_id:str}/{job_id:str}",
-    dependencies=[Depends(router.current_user)],
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     response_model_exclude_unset=True,
@@ -203,13 +150,10 @@ async def cancel_job(
     resource_id: str,
     job_id: str,
     request: Request,
+    user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """Cancel a job"""
-    user = await router.adapter.get_user(user_id=request.state.current_user_id, api_key=request.state.api_key, client_ip=iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 

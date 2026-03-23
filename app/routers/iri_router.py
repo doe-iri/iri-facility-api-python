@@ -6,8 +6,8 @@ import time
 import globus_sdk
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .account.models import User
 
+from ..types.user import User
 
 bearer_scheme = HTTPBearer()
 
@@ -120,10 +120,10 @@ class IriRouter(APIRouter):
         credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     ):
         token = credentials.credentials
-
+        ip_address = get_client_ip(request)
         user_id = None
+        globus_introspect = None
         try:
-            ip_address = get_client_ip(request)
             if GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
                 try:
                     globus_introspect = await self.get_globus_info(token)
@@ -137,8 +137,17 @@ class IriRouter(APIRouter):
             raise HTTPException(status_code=401, detail="Invalid or malformed Authorization parameters") from exc
         if not user_id:
             raise HTTPException(status_code=403, detail="Unauthorized access")
-        request.state.current_user_id = user_id
-        request.state.api_key = token
+
+        user = await self.adapter.get_user(
+            user_id=user_id,
+            api_key=token,
+            client_ip=ip_address,
+            globus_introspect=globus_introspect,
+        )
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
 
 
 class AuthenticatedAdapter(ABC):
@@ -161,7 +170,7 @@ class AuthenticatedAdapter(ABC):
         pass
 
     @abstractmethod
-    async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None) -> User:
+    async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None, globus_introspect: dict | None) -> User:
         """
         Retrieve additional user information (name, email, etc.) for the given user_id.
         """
