@@ -19,7 +19,7 @@ client.oauth2_start_flow(
 )
 
 # Get the authorization URL
-authorize_url = client.oauth2_get_authorize_url()
+authorize_url = client.oauth2_get_authorize_url(query_params={"prompt": "login"})
 print(f"Visit this URL in your browser:\n{authorize_url}\n")
 
 # After visiting the URL and authorizing, you'll be redirected to a URL with a code parameter
