@@ -1,6 +1,6 @@
 from abc import abstractmethod
+from ...types.user import User
 from ..status import models as status_models
-from ..account import models as account_models
 from . import models as compute_models
 from ..iri_router import AuthenticatedAdapter
 
@@ -13,18 +13,18 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    async def submit_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_spec: compute_models.JobSpec) -> compute_models.Job:
+    async def submit_job(self: "FacilityAdapter", resource: status_models.Resource, user: User, job_spec: compute_models.JobSpec) -> compute_models.Job:
         pass
 
     @abstractmethod
-    async def update_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_spec: compute_models.JobSpec, job_id: str) -> compute_models.Job:
+    async def update_job(self: "FacilityAdapter", resource: status_models.Resource, user: User, job_spec: compute_models.JobSpec, job_id: str) -> compute_models.Job:
         pass
 
     @abstractmethod
     async def get_job(
         self: "FacilityAdapter",
         resource: status_models.Resource,
-        user: account_models.User,
+        user: User,
         job_id: str,
         historical: bool = False,
         include_spec: bool = False,
@@ -35,7 +35,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_jobs(
         self: "FacilityAdapter",
         resource: status_models.Resource,
-        user: account_models.User,
+        user: User,
         offset: int,
         limit: int,
         filters: dict[str, object] | None = None,
@@ -45,5 +45,5 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def cancel_job(self: "FacilityAdapter", resource: status_models.Resource, user: account_models.User, job_id: str) -> bool:
+    async def cancel_job(self: "FacilityAdapter", resource: status_models.Resource, user: User, job_id: str) -> bool:
         pass

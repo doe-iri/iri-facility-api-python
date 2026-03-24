@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 from ...types.models import Capability
+from ...types.user import User
 from ..iri_router import AuthenticatedAdapter
 from . import models as account_models
 
@@ -17,13 +18,13 @@ class FacilityAdapter(AuthenticatedAdapter):
         pass
 
     @abstractmethod
-    async def get_projects(self: "FacilityAdapter", user: account_models.User) -> list[account_models.Project]:
+    async def get_projects(self: "FacilityAdapter", user: User) -> list[account_models.Project]:
         pass
 
     @abstractmethod
-    async def get_project_allocations(self: "FacilityAdapter", project: account_models.Project, user: account_models.User) -> list[account_models.ProjectAllocation]:
+    async def get_project_allocations(self: "FacilityAdapter", project: account_models.Project, user: User) -> list[account_models.ProjectAllocation]:
         pass
 
     @abstractmethod
-    async def get_user_allocations(self: "FacilityAdapter", user: account_models.User, project_allocation: account_models.ProjectAllocation) -> list[account_models.UserAllocation]:
+    async def get_user_allocations(self: "FacilityAdapter", user: User, project_allocation: account_models.ProjectAllocation) -> list[account_models.UserAllocation]:
         pass

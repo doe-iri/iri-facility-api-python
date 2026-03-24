@@ -1,7 +1,7 @@
 import traceback
 from abc import abstractmethod
+from ...types.user import User
 from . import models as task_models
-from ..account import models as account_models
 from ..status import models as status_models
 from ..filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 from ..iri_router import AuthenticatedAdapter, IriRouter
@@ -18,23 +18,23 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    async def get_task(self: "FacilityAdapter", user: account_models.User, task_id: str) -> task_models.Task | None:
+    async def get_task(self: "FacilityAdapter", user: User, task_id: str) -> task_models.Task | None:
         pass
 
     @abstractmethod
-    async def get_tasks(self: "FacilityAdapter", user: account_models.User) -> list[task_models.Task]:
+    async def get_tasks(self: "FacilityAdapter", user: User) -> list[task_models.Task]:
         pass
 
     @abstractmethod
-    async def put_task(self: "FacilityAdapter", user: account_models.User, resource: status_models.Resource | None, task: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
+    async def put_task(self: "FacilityAdapter", user: User, resource: status_models.Resource | None, task: task_models.TaskCommand) -> task_models.TaskSubmitResponse:
         pass
 
     @abstractmethod
-    async def delete_task(self: "FacilityAdapter", user: account_models.User, task_id: str) -> None:
+    async def delete_task(self: "FacilityAdapter", user: User, task_id: str) -> None:
         pass
 
     @staticmethod
-    async def on_task(resource: status_models.Resource, user: account_models.User, task: task_models.TaskCommand) -> tuple[dict, task_models.TaskStatus]:
+    async def on_task(resource: status_models.Resource, user: User, task: task_models.TaskCommand) -> tuple[dict, task_models.TaskStatus]:
         # Handle a task from the facility message queue.
         # Returns: (result, status)
         def _extractNull(ind):
