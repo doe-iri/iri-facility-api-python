@@ -17,7 +17,7 @@ router = iri_router.IriRouter(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getTask",
-    openapi_extra=iri_meta_dict("beta", "required")
+    openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_task(
     request: Request,
@@ -35,7 +35,7 @@ async def get_task(
             dependencies=[Depends(router.current_user)],
             response_model_exclude_unset=True, responses=DEFAULT_RESPONSES,
             operation_id="getTasks",
-            openapi_extra=iri_meta_dict("beta", "required"))
+            openapi_extra=iri_meta_dict("production", "required"))
 @router.get("/", responses=DEFAULT_RESPONSES, operation_id="getTasksWithSlash", include_in_schema=False)
 
 async def get_tasks(
@@ -50,7 +50,7 @@ async def get_tasks(
     dependencies=[Depends(router.current_user)],
     responses=DEFAULT_RESPONSES,
     operation_id="deleteTask",
-    openapi_extra=iri_meta_dict("beta", "required")
+    openapi_extra=iri_meta_dict("production", "required")
 )
 async def delete_task(
     request: Request,
