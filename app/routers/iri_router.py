@@ -107,9 +107,16 @@ class IriRouter(APIRouter):
         if GLOBUS_SCOPE not in token_scope:
             raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")
 
-        session_info = introspect.get("session_info", {})
-        if not session_info or not session_info.get("authentications", {}):
-            raise Exception(f"Empty session_info.authentications block")
+        session_info = introspect.get("session_info")
+
+        if not session_info:
+            raise Exception("No recent login was found in the token (missing session_info). "
+                            "Please re-authenticate to obtain a valid session.")
+
+        authentications = session_info.get("authentications")
+        if not authentications:
+            raise Exception("No recent login was found in the token (empty session_info.authentications). "
+                            "Please re-authenticate to obtain a valid session.")
 
         return introspect
 
