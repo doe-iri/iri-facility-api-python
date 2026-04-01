@@ -107,9 +107,16 @@ class IriRouter(APIRouter):
         if GLOBUS_SCOPE not in token_scope:
             raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")
 
-        session_info = introspect.get("session_info", {})
-        if not session_info or not session_info.get("authentications", {}):
-            raise Exception(f"Empty session_info.authentications block")
+        session_info = introspect.get("session_info")
+
+        if not session_info:
+            raise Exception("No recent login was found in the token (missing session_info). "
+                            "Please re-authenticate to obtain a valid session.")
+
+        authentications = session_info.get("authentications")
+        if not authentications:
+            raise Exception("No recent login was found in the token (empty session_info.authentications). "
+                            "Please re-authenticate to obtain a valid session.")
 
         return introspect
 
@@ -123,6 +130,7 @@ class IriRouter(APIRouter):
         ip_address = get_client_ip(request)
         user_id = None
         globus_introspect = None
+        exc_msg = ""
         try:
             if GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
                 try:
@@ -130,13 +138,15 @@ class IriRouter(APIRouter):
                     user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_introspect)
                 except Exception as globus_exc:
                     logging.getLogger().exception("Globus error:", exc_info=globus_exc)
+                    exc_msg = f"Globus authentication failed: {str(globus_exc)}. || "
             if not user_id:
                 user_id = await self.adapter.get_current_user(token, ip_address)
         except Exception as exc:
-            logging.getLogger().exception(f"Error parsing IRI_API_PARAMS: ", exc_info=exc)
-            raise HTTPException(status_code=401, detail="Invalid or malformed Authorization parameters") from exc
+            logging.getLogger().exception("Facility Specific auth failed: ", exc_info=exc)
+            exc_msg += f"Facility Specific authentication failed: {str(exc)}"
+            raise HTTPException(status_code=401, detail=exc_msg) from exc
         if not user_id:
-            raise HTTPException(status_code=403, detail="Unauthorized access")
+            raise HTTPException(status_code=403, detail="Authentication succeeded but no user ID was identified. Contact Facility Admin.")
 
         user = await self.adapter.get_user(
             user_id=user_id,
