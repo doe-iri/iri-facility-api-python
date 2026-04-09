@@ -17,8 +17,8 @@ dev-s3df : .venv
 
 
 # --- Docker / GHCR targets ---
-
-GHCR_IMAGE ?= ghcr.io/$(GHCR_USER)/iri-s3df
+GHCR_USERNAME ?= ""
+GHCR_IMAGE ?= ghcr.io/$(GHCR_USERNAME)/iri-s3df
 IMAGE_TAG  ?= dev
 
 # build for linux/amd64 (for now, since coact client only works on linux)

@@ -16,10 +16,11 @@ Required env vars:
 import os
 import time
 import logging
+import base64
 from typing import Optional
-
+from ..routers.compute import models as compute_models
+from ..routers.compute import facility_adapter as compute_adapter
 import jwt  # PyJWT
-from psij import Job, JobExecutor, JobExecutorConfig, JobStatus, JobState, JobSpec, ResourceSpec
 from slurmrestd_client.api_client import ApiClient
 from slurmrestd_client.api.slurm_api import SlurmApi
 from slurmrestd_client.configuration import Configuration
@@ -72,11 +73,10 @@ SLURM_TO_IRI_STATE: dict = {
 # ---------------------------------------------------------------------------
 
 def _load_jwt_key() -> bytes:
-    """Load the HS256 shared key from disk."""
-    key_path = os.environ.get("SLURM_JWT_KEY_PATH", "/etc/iri/jwt_hs256.key")
-    with open(key_path, "rb") as f:
-        return f.read()
-
+    """Load the HS256 shared key from environment variable."""
+    key_str = os.environ.get("slurm_jwt")
+    
+    return base64.b64decode(key_str)
 
 def _mint_slurm_jwt(unix_username: str) -> str:
     """
@@ -91,7 +91,6 @@ def _mint_slurm_jwt(unix_username: str) -> str:
     now = int(time.time())
     payload = {
         "sun": unix_username, #slurm rest user -> authenticated via jwt
-        "iat": now,
         "exp": now + lifetime,
     }
     key = _load_jwt_key()
@@ -105,9 +104,9 @@ def _mint_slurm_jwt(unix_username: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _build_slurm_api(token: str) -> SlurmApi:
-    url = os.environ.get("SLURM_REST_URL", "http://slurmrestd:6820")
+    url = os.environ.get("SLURM_REST_URL", "http://sdfslurmctld-dev:6820")
     cfg = Configuration(host=url)
-    cfg.verify_ssl = os.environ.get("SLURM_VERIFY_SSL", "true").lower() == "true"
+    cfg.verify_ssl = False #os.environ.get("SLURM_VERIFY_SSL", "true").lower() == "true"
     # api_key on the config is not used for header auth — we pass headers manually
     return SlurmApi(ApiClient(cfg))
 
@@ -172,7 +171,7 @@ def _job_from_slurm_info(job_info, include_spec: bool = False) -> dict:
 # The adapter
 # ---------------------------------------------------------------------------
 
-class SLACComputeAdapter:
+class SLACComputeAdapter(compute_adapter.FacilityAdapter):
     """
     IRI FacilityAdapter backed by SLAC S3DF slurmrestd.
 
@@ -183,9 +182,13 @@ class SLACComputeAdapter:
       get_user
     """
 
-    # -- user helper --------------------------------------------------------
+    # -- AuthenticatedAdapter methods ---------------------------------------
 
-    async def get_user(self, user_id: str, api_key: str, client_ip: str = ""):
+    async def get_current_user(self, api_key: str, client_ip: str | None) -> str:
+        """Extract user ID from the Bearer token."""
+        return api_key[7:] if api_key.startswith("Bearer ") else api_key
+
+    async def get_user(self, user_id: str, api_key: str, client_ip: str | None):
         """
         Return a minimal user object.  The unix_username is the critical field —
         it becomes the `sun` claim in the Slurm JWT.
@@ -193,7 +196,6 @@ class SLACComputeAdapter:
         In production, resolve user_id → unix username via your LDAP / IRIS lookup.
         For now we use user_id directly (adjust as needed).
         """
-        # Minimal duck-typed user — replace with your IRI User model instance.
         class _User:
             def __init__(self, uid: str):
                 self.id = uid                # IRI user id
@@ -226,7 +228,7 @@ class SLACComputeAdapter:
         duration_mins = 60
         partition = None
         account = None
-        environment = None
+        environment = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
         name = None
         executable = None
         cwd = None
@@ -268,8 +270,8 @@ class SLACComputeAdapter:
             ),
             name=name,
             script=executable,
-            partition=partition,
-            account=account,
+            partition='milano',
+            account='scs:default',
             environment=environment,
             current_working_directory=cwd,
             standard_output=stdout,
@@ -329,7 +331,7 @@ class SLACComputeAdapter:
         """
         PUT /compute/job/{resource_id}/{job_id}
 
-        slurmrestd v0.0.40 exposes POST /slurm/v0.0.40/job/{job_id} for updates.
+        slurmrestd v0.0.41 exposes POST /slurm/v0.0.41/job/{job_id} for updates.
         Only a subset of fields can be changed after submission (time_limit,
         priority, partition, etc.).  Fields not supported by Slurm are ignored.
         """
@@ -353,8 +355,8 @@ class SLACComputeAdapter:
                     update_fields["partition"] = partition
 
         try:
-            # v0040 job update endpoint
-            api.slurm_v0040_post_job(job_id, update_fields, _headers=headers)
+            # v0041 job update endpoint
+            api.slurm_v0041_post_job(job_id, update_fields, _headers=headers)
         except ApiException as exc:
             logger.warning("update_job %s: slurmrestd returned %s", job_id, exc)
             # Non-fatal: fall through and return current status
@@ -376,17 +378,17 @@ class SLACComputeAdapter:
 
         try:
             # Try active jobs first
-            resp = api.slurm_v0040_get_job(job_id, _headers=headers)
+            resp = api.slurm_v0041_get_job(job_id, _headers=headers)
             if resp and resp.jobs:
                 return _job_from_slurm_info(resp.jobs[0], include_spec)
         except ApiException as exc:
-            if exc.status != 404:
+            if exc.status != 414:
                 raise RuntimeError(f"Slurm get_job failed: {exc}") from exc
 
         if historical:
             # Fall back to job history endpoint
             try:
-                resp = api.slurm_v0040_get_job_history(job_id, _headers=headers)
+                resp = api.slurm_v0041_get_job_history(job_id, _headers=headers)
                 if resp and resp.jobs:
                     return _job_from_slurm_info(resp.jobs[0], include_spec)
             except ApiException as exc:
@@ -410,7 +412,7 @@ class SLACComputeAdapter:
         api, headers = self._get_slurm_context(user)
 
         try:
-            resp = api.slurm_v0040_get_jobs(_headers=headers)
+            resp = api.slurm_v0041_get_jobs(_headers=headers)
         except ApiException as exc:
             raise RuntimeError(f"Slurm get_jobs failed: {exc}") from exc
 
@@ -437,7 +439,7 @@ class SLACComputeAdapter:
         api, headers = self._get_slurm_context(user)
 
         try:
-            api.slurm_v0040_delete_job(job_id, _headers=headers)
+            api.slurm_v0041_delete_job(job_id, _headers=headers)
             logger.info("Cancelled job %s", job_id)
             return True
         except ApiException as exc:
