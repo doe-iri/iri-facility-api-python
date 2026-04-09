@@ -94,7 +94,7 @@ async def get_job_status(
     job_id: str,
     request: Request,
     user: User = Depends(router.current_user),
-    historical: StrictHTTPBool | None = Query(default=False, description="Whether to include historical jobs. Defaults to false"),
+    historical: StrictHTTPBool | None = Query(default=True, description="Whether to include historical jobs. Defaults to true"),
     include_spec: StrictHTTPBool | None = Query(default=False, description="Whether to include the job specification. Defaults to false"),
     _forbid=Depends(forbidExtraQueryParams("historical", "include_spec")),
 ):
