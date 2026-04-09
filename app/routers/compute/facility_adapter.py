@@ -26,7 +26,7 @@ class FacilityAdapter(AuthenticatedAdapter):
         resource: status_models.Resource,
         user: User,
         job_id: str,
-        historical: bool = False,
+        historical: bool = True,
         include_spec: bool = False,
     ) -> compute_models.Job:
         pass
