@@ -73,6 +73,9 @@ lint: clean format ruff pylint audit bandit
 globus: deps
 	@source local.env && $(BIN)/python ./tools/globus.py
 
+ping: deps
+	@source local.env && $(BIN)/python ./tools/ping.py
+
 ARGS ?=
 
 # call it via: make manage-globus ARGS=scopes-show
