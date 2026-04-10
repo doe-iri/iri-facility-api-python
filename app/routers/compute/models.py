@@ -57,11 +57,26 @@ class Container(IRIBaseModel):
     volume_mounts: list[VolumeMount] = Field(default_factory=list, description="List of volume mounts for the container")
 
 
-class JobSpec(IRIBaseModel):
+class DependentJobStep(IRIBaseModel):
     """
-    Specification for a job.
+    A job step used in the depends_on array of the parent job step.
     """
+    model_config = ConfigDict(extra="forbid")
+    step_name: str|None = Field(default=None, description="The name of the job step to run")
+    condition: str|None = Field(
+        default=None,
+        description="An optional condition to test before running the step. Use the EXIT_CODE variable to use the parent step's exit code in the test.",
+        examples=["EXIT_CODE == 0"],
+    )
 
+class JobStep(IRIBaseModel):
+    """
+    A step in the job execution DAG.
+    Environment and parameters, if declared, override the parent step's (or job's for the root steps) values.
+    Steps with no dependencies run first, then the steps that depend on these.
+    Steps run in parallel when they have no dependencies between them.
+    Steps run serially when one step depends on another.
+    """
     model_config = ConfigDict(extra="forbid")
     executable: str|None = Field(default=None,
                                  min_length=1,
@@ -69,6 +84,28 @@ class JobSpec(IRIBaseModel):
                                  example="/usr/bin/python")
     container: Container|None = Field(default=None, description="Container specification for containerized execution")
     arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
+    directory: str|None = Field(default=None, min_length=1, description="Working directory for the step", example="/home/user/work")
+    name: str|None = Field(default=None, min_length=1, description="Name of the step", example="my-job-step")
+    inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
+    environment: dict[str, str] = Field(default_factory=dict,
+                                        description="Environment variables to set for the step. If container is specified, these will be set inside the container.",
+                                        example={"OMP_NUM_THREADS": "4"})
+    stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
+    stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
+    stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
+
+    attributes: JobAttributes|None = Field(default=None, description="Additional job attributes for the step, such as duration, queue, and account")
+    pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the step", example="module load cuda")
+    post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the step completes", example="echo done")
+    launcher: str|None = Field(default=None, min_length=1, description="Job launcher to use for this step (e.g., 'mpirun', 'srun')", example="srun")
+    depends_on: list[DependentJobStep] = Field(default_factory=list, description="The steps that should run before this step.")
+
+class JobSpec(IRIBaseModel):
+    """
+    Specification for a job.
+    """
+    model_config = ConfigDict(extra="forbid")
+    steps: list[JobStep]|None = Field(default=None, description="The job steps to run")
     directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
     name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
     inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
