@@ -1,6 +1,8 @@
 """Models for compute router, including job specifications, job status, and related data structures."""
+import time
 from enum import Enum
 from typing import Annotated
+from uuid import uuid4
 
 from pydantic import ConfigDict, Field, StrictBool
 
@@ -138,3 +140,69 @@ class Job(IRIBaseModel):
     id: str = Field(..., description="Unique identifier of the job", example="job-12345")
     status: JobStatus|None = Field(default=None, description="Current status of the job")
     job_spec: JobSpec|None = Field(default=None, description="Specification used to create the job")
+
+
+# ---------------------------------------------------------------------------
+# Workflow execution models
+# ---------------------------------------------------------------------------
+
+class TaskKind(str, Enum):
+    """Kind of task execution inside a scheduler allocation."""
+    local = "local"
+    per_node = "per_node"
+    coordinated = "coordinated"
+
+
+class TaskRun(str, Enum):
+    """Whether the task blocks or runs in the background."""
+    foreground = "foreground"
+    background = "background"
+
+
+class TaskLifecycleState(str, Enum):
+    """Directory-based lifecycle states for workflow tasks."""
+    New = "New"
+    Pending = "Pending"
+    Running = "Running"
+    Finished = "Finished"
+    Failed = "Failed"
+
+
+class WorkflowTaskSpec(IRIBaseModel):
+    """Specification for a single task dispatched into a workflow."""
+    task_id: str = Field(default_factory=lambda: str(uuid4()), description="Unique task identifier")
+    command: str = Field(..., min_length=1, description="Shell command to execute")
+    kind: TaskKind = Field(default=TaskKind.local, description="Execution semantics")
+    run: TaskRun = Field(default=TaskRun.foreground, description="Foreground (blocking) or background")
+    wait_for: list[str] = Field(default_factory=list, description="Task IDs that must finish before this task becomes pending")
+    created: float = Field(default_factory=time.time, description="Creation timestamp (seconds since epoch)")
+
+
+class WorkflowSpec(IRIBaseModel):
+    """Request body for creating a new workflow."""
+    name: str|None = Field(default=None, description="Optional workflow name")
+    work_dir: str|None = Field(default=None, description="Shared filesystem directory for workflow state; facility default if omitted")
+    worker_count: int = Field(default=1, ge=1, description="Number of worker processes to launch")
+    resources: ResourceSpec|None = Field(default=None, description="Compute resources for the scheduler allocation")
+    attributes: JobAttributes|None = Field(default=None, description="Scheduling attributes (queue, account, duration)")
+
+
+class Workflow(IRIBaseModel):
+    """Response returned when a workflow is created."""
+    workflow_id: str = Field(..., description="Unique workflow identifier")
+    work_dir: str = Field(..., description="Filesystem root where workflow state is stored")
+    job_id: str|None = Field(default=None, description="Scheduler job ID hosting the runtime")
+
+
+class WorkerInfo(IRIBaseModel):
+    """Heartbeat snapshot for a leader or worker process."""
+    id: str = Field(..., description="Process identifier (e.g. leader-1234)")
+    host: str = Field(..., description="Hostname where the process is running")
+    ts: float = Field(..., description="Last heartbeat timestamp (seconds since epoch)")
+
+
+class WorkflowStatus(IRIBaseModel):
+    """Aggregated status of a running workflow."""
+    tasks: dict[str, int] = Field(..., description="Count of tasks in each lifecycle state", example={"New": 1, "Pending": 2, "Running": 3, "Finished": 10, "Failed": 0})
+    workers: list[WorkerInfo] = Field(default_factory=list, description="Active worker heartbeats")
+    leader: WorkerInfo|None = Field(default=None, description="Leader heartbeat, if alive")

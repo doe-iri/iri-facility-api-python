@@ -160,3 +160,85 @@ async def cancel_job(
     await router.adapter.cancel_job(resource=resource, user=user, job_id=job_id)
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Workflow endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/workflow/{resource_id:str}",
+    response_model=models.Workflow,
+    response_model_exclude_unset=True,
+    status_code=status.HTTP_201_CREATED,
+    responses=DEFAULT_RESPONSES,
+    operation_id="createWorkflow",
+    openapi_extra=iri_meta_dict("production", "required"),
+)
+async def create_workflow(
+    resource_id: str,
+    spec: models.WorkflowSpec,
+    request: Request,
+    user: User = Depends(router.current_user),
+    _forbid=Depends(forbidExtraQueryParams()),
+):
+    """
+    Create a new workflow on a compute resource.
+
+    Provisions the filesystem layout and launches leader + worker processes
+    inside a scheduler allocation.
+    """
+    resource = await status_router.adapter.get_resource(resource_id)
+    return await router.adapter.create_workflow(resource=resource, user=user, spec=spec)
+
+
+@router.post(
+    "/workflow/{resource_id:str}/{workflow_id:str}/dispatch",
+    response_model=models.WorkflowTaskSpec,
+    response_model_exclude_unset=True,
+    status_code=status.HTTP_201_CREATED,
+    responses=DEFAULT_RESPONSES,
+    operation_id="dispatchWorkflowTask",
+    openapi_extra=iri_meta_dict("production", "required"),
+)
+async def dispatch_task(
+    resource_id: str,
+    workflow_id: str,
+    task_spec: models.WorkflowTaskSpec,
+    request: Request,
+    user: User = Depends(router.current_user),
+    _forbid=Depends(forbidExtraQueryParams()),
+):
+    """
+    Dispatch a task into an existing workflow.
+
+    The task JSON is written to ``tasks/New/`` on the shared filesystem.
+    The leader will move it to ``Pending/`` once all dependencies are satisfied.
+    """
+    resource = await status_router.adapter.get_resource(resource_id)
+    return await router.adapter.dispatch_task(resource=resource, user=user, workflow_id=workflow_id, task_spec=task_spec)
+
+
+@router.get(
+    "/workflow/{resource_id:str}/{workflow_id:str}",
+    response_model=models.WorkflowStatus,
+    response_model_exclude_unset=True,
+    responses=DEFAULT_RESPONSES,
+    operation_id="getWorkflow",
+    openapi_extra=iri_meta_dict("production", "required"),
+)
+async def get_workflow(
+    resource_id: str,
+    workflow_id: str,
+    request: Request,
+    user: User = Depends(router.current_user),
+    _forbid=Depends(forbidExtraQueryParams()),
+):
+    """
+    Get the current status of a workflow.
+
+    Returns task counts per lifecycle state and active worker/leader heartbeats.
+    """
+    resource = await status_router.adapter.get_resource(resource_id)
+    return await router.adapter.get_workflow(resource=resource, user=user, workflow_id=workflow_id)

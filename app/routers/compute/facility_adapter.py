@@ -47,3 +47,17 @@ class FacilityAdapter(AuthenticatedAdapter):
     @abstractmethod
     async def cancel_job(self: "FacilityAdapter", resource: status_models.Resource, user: User, job_id: str) -> bool:
         pass
+
+    # -- Workflow execution --
+
+    @abstractmethod
+    async def create_workflow(self: "FacilityAdapter", resource: status_models.Resource, user: User, spec: compute_models.WorkflowSpec) -> compute_models.Workflow:
+        pass
+
+    @abstractmethod
+    async def dispatch_task(self: "FacilityAdapter", resource: status_models.Resource, user: User, workflow_id: str, task_spec: compute_models.WorkflowTaskSpec) -> compute_models.WorkflowTaskSpec:
+        pass
+
+    @abstractmethod
+    async def get_workflow(self: "FacilityAdapter", resource: status_models.Resource, user: User, workflow_id: str) -> compute_models.WorkflowStatus:
+        pass

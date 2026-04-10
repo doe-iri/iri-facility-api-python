@@ -6,12 +6,14 @@ import base64
 import datetime
 import glob
 import grp
+import json
 import os
 import pathlib
 import pwd
 import random
 import stat
 import subprocess
+import sys
 import uuid
 
 from fastapi import HTTPException
@@ -111,6 +113,7 @@ class DemoAdapter(
         self.facility = {}
         self.locations = []
         self.sites = []
+        self._workflow_registry: dict[str, dict] = {}  # workflow_id -> {work_dir, resource_id, procs}
         self._init_state()
 
     def _init_state(self):
@@ -622,6 +625,121 @@ class DemoAdapter(
     ) -> bool:
         # call slurm/etc. to cancel job
         return True
+
+    # ----------------------------
+    # Workflow API
+    # ----------------------------
+
+    _WORKFLOW_STATES = ("New", "Pending", "Running", "Finished", "Failed")
+
+    async def create_workflow(
+        self: "DemoAdapter",
+        resource: status_models.Resource,
+        user: User,
+        spec: compute_models.WorkflowSpec,
+    ) -> compute_models.Workflow:
+        workflow_id = str(uuid.uuid4())
+        work_dir = spec.work_dir or PathSandbox.get_base_temp_dir()
+
+        base = os.path.join(work_dir, ".workflows", resource.id, workflow_id)
+        for state in self._WORKFLOW_STATES:
+            os.makedirs(os.path.join(base, "tasks", state), exist_ok=True)
+        os.makedirs(os.path.join(base, "workers"), exist_ok=True)
+
+        # Launch leader + workers as subprocesses
+        runtime_dir = os.path.join(os.path.dirname(__file__), "routers", "compute", "runtime")
+        leader_script = os.path.join(runtime_dir, "leader.py")
+        worker_script = os.path.join(runtime_dir, "worker.py")
+
+        procs = []
+        leader_proc = subprocess.Popen(
+            [sys.executable, leader_script, "--work-dir", work_dir, "--res-id", resource.id, "--work-id", workflow_id],
+        )
+        procs.append(leader_proc)
+
+        for i in range(spec.worker_count):
+            worker_proc = subprocess.Popen(
+                [sys.executable, worker_script, "--work-dir", work_dir, "--res-id", resource.id, "--work-id", workflow_id, "--worker-id", f"worker-{i}"],
+            )
+            procs.append(worker_proc)
+
+        self._workflow_registry[workflow_id] = {
+            "work_dir": work_dir,
+            "resource_id": resource.id,
+            "procs": procs,
+        }
+
+        logger.info(f"Created workflow {workflow_id} at {base} (leader pid={leader_proc.pid}, {spec.worker_count} workers)")
+
+        return compute_models.Workflow(
+            workflow_id=workflow_id,
+            work_dir=work_dir,
+            job_id=f"demo-{leader_proc.pid}",
+        )
+
+    async def dispatch_task(
+        self: "DemoAdapter",
+        resource: status_models.Resource,
+        user: User,
+        workflow_id: str,
+        task_spec: compute_models.WorkflowTaskSpec,
+    ) -> compute_models.WorkflowTaskSpec:
+        entry = self._workflow_registry.get(workflow_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+
+        task_path = os.path.join(
+            entry["work_dir"], ".workflows", entry["resource_id"], workflow_id,
+            "tasks", "New", f"{task_spec.task_id}.json",
+        )
+        with open(task_path, "w", encoding="utf-8") as f:
+            f.write(task_spec.model_dump_json(indent=2))
+
+        logger.info(f"Dispatched task {task_spec.task_id} to workflow {workflow_id}")
+        return task_spec
+
+    async def get_workflow(
+        self: "DemoAdapter",
+        resource: status_models.Resource,
+        user: User,
+        workflow_id: str,
+    ) -> compute_models.WorkflowStatus:
+        entry = self._workflow_registry.get(workflow_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+
+        base = os.path.join(entry["work_dir"], ".workflows", entry["resource_id"], workflow_id)
+
+        # Count tasks per state
+        counts: dict[str, int] = {}
+        for state in self._WORKFLOW_STATES:
+            state_dir = os.path.join(base, "tasks", state)
+            if os.path.isdir(state_dir):
+                counts[state] = sum(1 for f in os.listdir(state_dir) if f.endswith(".json"))
+            else:
+                counts[state] = 0
+
+        # Read worker/leader heartbeats
+        workers_dir = os.path.join(base, "workers")
+        workers: list[compute_models.WorkerInfo] = []
+        leader: compute_models.WorkerInfo | None = None
+        if os.path.isdir(workers_dir):
+            for fname in os.listdir(workers_dir):
+                if not fname.endswith(".json"):
+                    continue
+                fpath = os.path.join(workers_dir, fname)
+                try:
+                    with open(fpath, encoding="utf-8") as f:
+                        hb = json.load(f)
+                    info = compute_models.WorkerInfo(id=hb["id"], host=hb["host"], ts=hb["ts"])
+                    if fname.startswith("leader"):
+                        leader = info
+                    else:
+                        workers.append(info)
+                except (json.JSONDecodeError, KeyError, OSError):
+                    continue
+
+        return compute_models.WorkflowStatus(tasks=counts, workers=workers, leader=leader)
 
     def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
         """Validate that the given path is within the sandbox base directory and optionally check for symlinks."""
