@@ -56,10 +56,9 @@ class Container(IRIBaseModel):
     image: str = Field(min_length=1, description="The container image to use (e.g., 'docker.io/library/ubuntu:latest')", example="docker.io/library/ubuntu:latest")
     volume_mounts: list[VolumeMount] = Field(default_factory=list, description="List of volume mounts for the container")
 
-
-class JobSpec(IRIBaseModel):
+class JobStep(IRIBaseModel):
     """
-    Specification for a job.
+    Specification for a job step.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -67,17 +66,35 @@ class JobSpec(IRIBaseModel):
                                  min_length=1,
                                  description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.",
                                  example="/usr/bin/python")
+    background: bool = Field(default=False, description="Run this step in the background?")
     container: Container|None = Field(default=None, description="Container specification for containerized execution")
     arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
-    directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
+    directory: str|None = Field(default=None, min_length=1, description="Working directory for the job step", example="/home/user/work")
+    stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
+    stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
+    stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
+    name: str|None = Field(default=None, min_length=1, description="Name of the job step", example="my-job")
+    inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
+    environment: dict[str, str] = Field(default_factory=dict,
+                                        description="Environment variables to set for the job step. If container is specified, these will be set inside the container.",
+                                        example={"OMP_NUM_THREADS": "4"})
+    pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job step", example="module load cuda")
+    post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job step completes", example="echo done")
+
+
+class JobSpec(IRIBaseModel):
+    """
+    Specification for a job.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    steps: list[JobStep] = Field(default_factory=list, description="The list of job steps to run")
+    script: str|None = Field(default=None, description="The path to a custom job script. If this argument is non-null, the 'steps' argument is ignored. Note that job scripts are facility-specific.")
     name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
     inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
     environment: dict[str, str] = Field(default_factory=dict,
                                         description="Environment variables to set for the job. If container is specified, these will be set inside the container.",
                                         example={"OMP_NUM_THREADS": "4"})
-    stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
-    stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
-    stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
     resources: ResourceSpec|None = Field(default=None, description="Resource requirements for the job")
     attributes: JobAttributes|None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
     pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
