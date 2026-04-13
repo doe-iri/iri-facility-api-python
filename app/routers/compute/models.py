@@ -69,17 +69,17 @@ class JobStep(IRIBaseModel):
     background: bool = Field(default=False, description="Run this step in the background?")
     container: Container|None = Field(default=None, description="Container specification for containerized execution")
     arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
-    directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
+    directory: str|None = Field(default=None, min_length=1, description="Working directory for the job step", example="/home/user/work")
     stdin_path: str|None = Field(default=None, min_length=1, description="Path to file to use as standard input", example="/home/user/input.txt")
     stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
     stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
-    name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
+    name: str|None = Field(default=None, min_length=1, description="Name of the job step", example="my-job")
     inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
     environment: dict[str, str] = Field(default_factory=dict,
-                                        description="Environment variables to set for the job. If container is specified, these will be set inside the container.",
+                                        description="Environment variables to set for the job step. If container is specified, these will be set inside the container.",
                                         example={"OMP_NUM_THREADS": "4"})
-    pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
-    post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job completes", example="echo done")
+    pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job step", example="module load cuda")
+    post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job step completes", example="echo done")
 
 
 class JobSpec(IRIBaseModel):
