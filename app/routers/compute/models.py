@@ -57,18 +57,36 @@ class Container(IRIBaseModel):
     volume_mounts: list[VolumeMount] = Field(default_factory=list, description="List of volume mounts for the container")
 
 
+class CommandSpec(IRIBaseModel):
+    """ Represents a command to run. """
+    executable: str|None = Field(default=None, min_length=1, description="Path to the executable to run", examples=["/usr/bin/python"])
+    container: Container|None = Field(default=None, description="Container specification for containerized execution")
+    arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable", examples=["-n", "100"])
+
+
+class CommandLaunchSpec(IRIBaseModel):
+    """ Specification for launching a command and its associated resources for a parallel launch."""
+    command: CommandSpec|None = Field(default=None, description="Specification of the command to launch")
+    resources: ResourceSpec|None = Field(default=None, description="Resource requirements for this command")
+
+
+class ParallelLaunchSpec(IRIBaseModel):
+    """ Specification for launching multiple commands in parallel as part of a job step."""
+    launcher: str|None = Field(default=None, min_length=1, description="Job launcher to use for the parallel job (e.g., 'mpirun', 'srun')", examples=["mpirun"])
+    entries: list[CommandLaunchSpec] = Field(default_factory=list, description="Launch entries to run in parallel")
+
+
+class JobStep(IRIBaseModel):
+    """ Job step which can be either a single command or multiple commands to launch in parallel. """
+    launch: CommandSpec|ParallelLaunchSpec = Field(description="Specification of the command or parallel launch for this job step")
+    background: bool = Field(default=False, description="Run this step in the background?")
+
+
 class JobSpec(IRIBaseModel):
     """
     Specification for a job.
     """
-
-    model_config = ConfigDict(extra="forbid")
-    executable: str|None = Field(default=None,
-                                 min_length=1,
-                                 description="Path to the executable to run. If container is specified, this will be used as the entrypoint to the container.",
-                                 example="/usr/bin/python")
-    container: Container|None = Field(default=None, description="Container specification for containerized execution")
-    arguments: list[str] = Field(default_factory=list, description="Command-line arguments to pass to the executable or container", example=["-n", "100"])
+    steps: list[JobStep] = Field(default_factory=list, description="List of job steps for multi-step jobs")
     directory: str|None = Field(default=None, min_length=1, description="Working directory for the job", example="/home/user/work")
     name: str|None = Field(default=None, min_length=1, description="Name of the job", example="my-job")
     inherit_environment: StrictBool = Field(default=True, description="Whether to inherit the environment variables from the submission environment", example=True)
@@ -82,7 +100,7 @@ class JobSpec(IRIBaseModel):
     attributes: JobAttributes|None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
     pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
     post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job completes", example="echo done")
-    launcher: str|None = Field(default=None, min_length=1, description="Job launcher to use (e.g., 'mpirun', 'srun')", example="srun")
+
 
 
 class JobState(str, Enum):
