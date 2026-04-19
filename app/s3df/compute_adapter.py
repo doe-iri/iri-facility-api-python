@@ -104,7 +104,9 @@ def _mint_slurm_jwt(unix_username: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _build_slurm_api(token: str) -> SlurmApi:
-    url = os.environ.get("SLURM_REST_URL", "http://sdfslurmctld-dev:6820")
+    url = os.environ.get("SLURM_REST_URL")
+    if not url:
+        raise RuntimeError("SLURM_REST_URL environment variable is not set")
     cfg = Configuration(host=url)
     cfg.verify_ssl = False #os.environ.get("SLURM_VERIFY_SSL", "true").lower() == "true"
     # api_key on the config is not used for header auth — we pass headers manually
@@ -270,13 +272,21 @@ class SLACComputeAdapter(compute_adapter.FacilityAdapter):
             ),
             name=name,
             script=executable,
-            partition='milano',
-            account='scs:default',
+            partition=partition,
+            account=account,
             environment=environment,
             current_working_directory=cwd,
             standard_output=stdout,
             standard_error=stderr,
         )
+
+        # Job array support: e.g. custom_attributes={"array": "0-19"}
+        if job_spec:
+            attributes = getattr(job_spec, "attributes", None)
+            if attributes:
+                ca = getattr(attributes, "custom_attributes", {}) or {}
+                if "array" in ca:
+                    slurm_job.array = ca["array"]
 
         req = SlurmV0041PostJobSubmitRequest(job=slurm_job)
 
