@@ -5,10 +5,10 @@ See it live:
 
 - NERSC instance:
    - API docs: https://api.iri.nersc.gov
-   - API requests: https://api.iri.nersc.gov/api/v1/
+   - API requests: https://api.iri.nersc.gov/api/v2/
 - ALCF instance:
    - API docs: https://api.alcf.anl.gov
-   - API requests: https://api.alcf.anl.gov/api/v1/
+   - API requests: https://api.alcf.anl.gov/api/v2/
 - ESnet instance: https://iri-dev.ppg.es.net
 
 ## Prerequisites
@@ -50,7 +50,7 @@ If using docker (see next section), your dockerfile could extend this reference 
 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
-- `API_URL`: the path to the api itself. Defaults to `api/v1`.
+- `API_URL`: the path to the api itself. Defaults to `api/v2`.
 - `OPENTELEMETRY_ENABLED`: Enables OpenTelemetry. If enabled, the application will use OpenTelemetry SDKs and emit traces, metrics, and logs. Default to false
 - `OTLP_ENDPOINT`: OpenTelemetry Protocol collector endpoint to export telemetry data. If empty or not set, telemetry data is logged locally to log file. Default: ""
 

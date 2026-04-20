@@ -7,7 +7,7 @@ On every pull request or push to `main` branch, Github Actions run the following
 3. Waits for `/openapi.json` to become available on localhost:8000.
 4. Runs Schemathesis validation twice:
    - Against Facilities API’s OpenAPI spec. (http://localhost:8000/openapi.json)
-   - Against the official IRI Facility API OpenAPI spec. (https://github.com/doe-iri/iri-facility-api-docs/blob/main/specification/openapi/openapi_iri_facility_api_v1.json)
+   - Against the official IRI Facility API OpenAPI spec. (https://github.com/doe-iri/iri-facility-api-docs/blob/main/specification/openapi/openapi_iri_facility_api_v2.json)
 5. Fails the workflow if either validation fails.
 6. Saves Schemathesis HTML/XML reports as artifacts (or saves it locally when run with `act`).
 7. Dumps API container logs and do clean up to stop container.
