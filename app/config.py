@@ -8,6 +8,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")
 logger = get_stream_logger(__name__, LOG_LEVEL)
 
 API_VERSION = "2.0.0"
+API_VERSION_SHORT = "v2"
 
 # lines in the description can't have indentation (markup format)
 description = """
@@ -19,7 +20,7 @@ For more information, see: [https://iri.science/](https://iri.science/)
 """
 
 # version is the openapi.json spec version
-# /api/v1 mount point means it's the latest backward-compatible url
+# /api/v2 mount point means it's the latest backward-compatible url
 API_CONFIG = {
     "title": "IRI Facility API reference implementation",
     "description": description,
@@ -38,7 +39,7 @@ except Exception as exc:
 
 API_URL_ROOT = os.environ.get("API_URL_ROOT", "https://api.iri.nersc.gov")
 API_PREFIX = os.environ.get("API_PREFIX", "/")
-API_URL = os.environ.get("API_URL", "api/v1")
+API_URL = os.environ.get("API_URL", f"api/{API_VERSION_SHORT}")
 
 OPENTELEMETRY_ENABLED = os.environ.get("OPENTELEMETRY_ENABLED", "false").lower() == "true"
 OPENTELEMETRY_DEBUG = os.environ.get("OPENTELEMETRY_DEBUG", "false").lower() == "true"

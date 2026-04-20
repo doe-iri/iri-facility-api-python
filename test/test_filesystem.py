@@ -13,9 +13,9 @@ import requests
 # CONFIG — EDIT THESE AS NEEDED
 # =========================
 
-BASE_URL = "http://localhost:8000/api/v1"
-#BASE_URL = "https://api.iri.nersc.gov/api/v1"
-#BASE_URL = "https://iri-dev.ppg.es.net/api/v1"
+BASE_URL = "http://localhost:8000/api/v2"
+#BASE_URL = "https://api.iri.nersc.gov/api/v2"
+#BASE_URL = "https://iri-dev.ppg.es.net/api/v2"
 TOKEN = os.environ.get("IRI_API_TOKEN", "12345")
 # =========================
 HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
