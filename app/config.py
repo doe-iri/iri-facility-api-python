@@ -7,7 +7,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")
 
 logger = get_stream_logger(__name__, LOG_LEVEL)
 
-API_VERSION = "1.0.0"
+API_VERSION = "2.0.0"
 
 # lines in the description can't have indentation (markup format)
 description = """
