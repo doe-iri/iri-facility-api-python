@@ -20,6 +20,7 @@ import base64
 from typing import Optional
 from ..routers.compute import models as compute_models
 from ..routers.compute import facility_adapter as compute_adapter
+from app.s3df.auth.authenticated_adapter import S3DFAuthenticatedAdapter
 import jwt  # PyJWT
 from slurmrestd_client.api_client import ApiClient
 from slurmrestd_client.api.slurm_api import SlurmApi
@@ -173,7 +174,7 @@ def _job_from_slurm_info(job_info, include_spec: bool = False) -> dict:
 # The adapter
 # ---------------------------------------------------------------------------
 
-class SLACComputeAdapter(compute_adapter.FacilityAdapter):
+class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapter):
     """
     IRI FacilityAdapter backed by SLAC S3DF slurmrestd.
 
@@ -185,10 +186,6 @@ class SLACComputeAdapter(compute_adapter.FacilityAdapter):
     """
 
     # -- AuthenticatedAdapter methods ---------------------------------------
-
-    async def get_current_user(self, api_key: str, client_ip: str | None) -> str:
-        """Extract user ID from the Bearer token."""
-        return api_key[7:] if api_key.startswith("Bearer ") else api_key
 
     async def get_user(self, user_id: str, api_key: str, client_ip: str | None):
         """

@@ -12,3 +12,4 @@ pyproject.toml
 data/
 app/s3df/coact-models.py
 app/s3df/clients/IMPLEMENTATION.md
+.claude/

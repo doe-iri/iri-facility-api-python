@@ -7,4 +7,12 @@ dependencies = [
     "uvicorn[standard]>=0.22.0",
     "humps>=0.2.2",
     "gql[httpx]>=3.5.0",
+    "pyjwt[crypto]>=2.8.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+

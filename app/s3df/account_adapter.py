@@ -20,31 +20,24 @@ from fastapi import HTTPException
 
 from ..routers.account import models as account_models
 from ..routers.account import facility_adapter as account_adapter
+from app.s3df.auth.authenticated_adapter import S3DFAuthenticatedAdapter
 from app.s3df.clients import get_coact_client
 from app.s3df.clients.coact import CoactClient
-from app.s3df.auth.auth_provider import S3DFAuthProvider
-from app.s3df.auth.coact_auth import CoactAuthProvider
 
 
-class S3DFAccountAdapter(account_adapter.FacilityAdapter):
+class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapter):
     """
     S3DF implementation of the IRI Account FacilityAdapter.
     Returns static dummy data for testing data model mappings.
     """
-    
-    def __init__(self, coact_client: CoactClient | None = None, auth_provider: S3DFAuthProvider | None = None):
+
+    def __init__(self, coact_client: CoactClient | None = None):
         self.coact_client = coact_client or get_coact_client()
-        self.auth_provider = auth_provider or CoactAuthProvider(self.coact_client)
-    
+
     # -------------------------------------------------------------------------
     # AuthenticatedAdapter methods
     # -------------------------------------------------------------------------
-    
-    async def get_current_user(self, api_key: str, client_ip: str) -> str:
-        user_id = api_key[7:] if api_key.startswith("Bearer ") else api_key
-        await self.auth_provider.validate_user(user_id)
-        return user_id
-    
+
     async def get_user(self, user_id: str, api_key: str, client_ip: str | None) -> account_models.User:
         """
         coact.User → IRI.User mapping:
