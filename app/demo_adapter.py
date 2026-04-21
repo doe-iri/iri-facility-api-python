@@ -15,21 +15,20 @@ import subprocess
 import uuid
 
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
-from .routers.account import facility_adapter as account_adapter
-from .routers.account import models as account_models
-from .routers.compute import facility_adapter as compute_adapter
-from .routers.compute import models as compute_models
-from .routers.facility import facility_adapter
-from .routers.facility import models as facility_models
-from .routers.filesystem import facility_adapter as filesystem_adapter
-from .routers.filesystem import models as filesystem_models
-from .routers.status import facility_adapter as status_adapter
-from .routers.status import models as status_models
-from .routers.task import facility_adapter as task_adapter
-from .routers.task import models as task_models
+from .routers.v1.account import facility_adapter as account_adapter
+from .routers.v1.account import models as account_models
+from .routers.v1.compute import facility_adapter as compute_adapter
+from .routers.v1.compute import models as compute_models
+from .routers.v1.facility import facility_adapter
+from .routers.v1.facility import models as facility_models
+from .routers.v1.filesystem import facility_adapter as filesystem_adapter
+from .routers.v1.filesystem import models as filesystem_models
+from .routers.v1.status import facility_adapter as status_adapter
+from .routers.v1.status import models as status_models
+from .routers.v1.task import facility_adapter as task_adapter
+from .routers.v1.task import models as task_models
 from .types.models import Capability
 from .types.user import User
 from .types.scalars import AllocationUnit
@@ -365,8 +364,8 @@ class DemoAdapter(
             sites = [s for s in sites if s.last_modified > ms]
 
         o = offset or 0
-        l = limit or len(sites)
-        return sites[o : o + l]
+        list_limit = limit or len(sites)
+        return sites[o : o + list_limit]
 
     async def get_site(self: "DemoAdapter", site_id: str, modified_since: str | None = None) -> facility_models.Site:
         site = next((s for s in self.sites if s.id == site_id), None)

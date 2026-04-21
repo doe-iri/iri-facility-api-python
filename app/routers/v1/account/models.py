@@ -2,9 +2,9 @@
 import datetime
 from pydantic import Field, computed_field, field_validator
 
-from ... import config
-from ...types.base import IRIBaseModel
-from ...types.scalars import AllocationUnit
+from .... import config
+from ....types.base import IRIBaseModel
+from ....types.scalars import AllocationUnit
 
 
 class Project(IRIBaseModel):

@@ -12,6 +12,10 @@ dependencies = [
     "globus-sdk>=4.3.1",
     "typer>=0.24.1",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.ruff]
 line-length = 200
 exclude = [".venv", "__pycache__", "build", "dist"]

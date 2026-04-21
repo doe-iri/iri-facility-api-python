@@ -1,13 +1,13 @@
 """Compute resource API router"""
 
-from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi import Depends, Query, Request, status
 
-from ...types.http import forbidExtraQueryParams
-from ...types.scalars import StrictHTTPBool
-from ...types.user import User
-from .. import iri_router
-from ..error_handlers import DEFAULT_RESPONSES
-from ..iri_meta import iri_meta_dict
+from ....types.http import forbidExtraQueryParams
+from ....types.scalars import StrictHTTPBool
+from ....types.user import User
+from ... import iri_router
+from ...error_handlers import DEFAULT_RESPONSES
+from ...iri_meta import iri_meta_dict
 from ..status.status import router as status_router
 from . import facility_adapter, models
 

@@ -1,8 +1,8 @@
 from fastapi import Request, HTTPException, Depends
-from ...types.user import User
-from .. import iri_router
-from ..error_handlers import DEFAULT_RESPONSES
-from ..iri_meta import iri_meta_dict
+from ....types.user import User
+from ... import iri_router
+from ...error_handlers import DEFAULT_RESPONSES
+from ...iri_meta import iri_meta_dict
 from . import models, facility_adapter
 
 router = iri_router.IriRouter(

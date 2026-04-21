@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from ...types.user import User
+from ....types.user import User
 from ..status import models as status_models
 from . import models as compute_models
-from ..iri_router import AuthenticatedAdapter
+from ...iri_router import AuthenticatedAdapter
 
 
 class FacilityAdapter(AuthenticatedAdapter):

@@ -1,12 +1,12 @@
 import traceback
 from abc import abstractmethod
-from ...types.user import User
+from ....types.user import User
 from . import models as task_models
 from ..status import models as status_models
 from ..filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
-from ..iri_router import AuthenticatedAdapter, IriRouter
+from ...iri_router import AuthenticatedAdapter, IriRouter
 
-from ...apilogger import get_stream_logger
+from ....apilogger import get_stream_logger
 
 logger = get_stream_logger(__name__)
 

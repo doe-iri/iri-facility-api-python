@@ -2,7 +2,7 @@
 import enum
 from pydantic import BaseModel, Field, computed_field
 
-from ... import config
+from .... import config
 
 
 class TaskSubmitResponse(BaseModel):
