@@ -5,6 +5,7 @@ import enum
 from pydantic import Field, computed_field, field_validator
 
 from ... import config
+from ...context import get_api_base_url
 from ...types.base import NamedObject
 
 
@@ -43,13 +44,13 @@ class Resource(NamedObject):
     @property
     def site_uri(self) -> str:
         """Return the site URI for this resource."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/facility/sites/{self.site_id}"
+        return f"{get_api_base_url(config.API_URL_ROOT)}/facility/sites/{self.site_id}"
 
     @computed_field(description="The list of capabilities in this resource")
     @property
     def capability_uris(self) -> list[str]:
         """Return the list of capability URIs for this resource."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
+        return [f"{get_api_base_url(config.API_URL_ROOT)}/account/capabilities/{e}" for e in self.capability_ids]
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, group=None, resource_type=None, current_status=None, capability=None, site_id=None) -> list:
@@ -89,13 +90,13 @@ class Event(NamedObject):
     @property
     def resource_uri(self) -> str:
         """Return the resource URI for this event."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.resource_id}"
+        return f"{get_api_base_url(config.API_URL_ROOT)}/status/resources/{self.resource_id}"
 
     @computed_field(description="The event's incident")
     @property
     def incident_uri(self) -> str | None:
         """Return the incident URI for this event."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
+        return f"{get_api_base_url(config.API_URL_ROOT)}/status/incidents/{self.incident_id}" if self.incident_id else None
 
     @classmethod
     def find(cls, items, incident_id=None, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
@@ -162,13 +163,13 @@ class Incident(NamedObject):
     @property
     def event_uris(self) -> list[str]:
         """Return the list of event URIs for this incident."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/events/{e}" for e in self.event_ids]
+        return [f"{get_api_base_url(config.API_URL_ROOT)}/status/events/{e}" for e in self.event_ids]
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
         """Return the list of resource URIs for this incident."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
+        return [f"{get_api_base_url(config.API_URL_ROOT)}/status/resources/{r}" for r in self.resource_ids]
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, status=None, type_=None, from_=None, to=None, time_=None, resource_id=None, resolution=None) -> list:
