@@ -35,11 +35,17 @@ On Windows, see the [Makefile](Makefile) and run the commands manually.
 The reference implementation is meant to be customized for your facility's IRI implementation. Running the IRI api unmodified will show only fake, test data. The paragraphs below describe how to customize the business logic and appearance of the API for your facility.
 
 ### Customizing the business logic for your facility
-The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance.
+The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each versioned router directory defines a FacilityAdapter class (eg. [the v1 status adapter](app/routers/v1/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance.
 
-The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
+The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.v1.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
 
 As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data.
+
+### Versioned router layout
+
+Versioned API route groups live under `app/routers/v1`, `app/routers/v2`, etc. Shared router infrastructure, such as error handling, metadata helpers, and adapter loading, stays directly under `app/routers`.
+
+The current V1 implementation is the baseline surface. Future versions should add only new or changed route groups under their version folder. For example, a future `app/routers/v2/compute` can add V2 compute routes without copying every V1 route group. At startup, the API composes all available route groups up through the version named by `API_URL`; for example, `API_URL=api/v2` loads V1 routes plus any V2 route modules that exist, all under the configured `/api/v2` prefix.
 
 ### Customizing the API meta-data
 You can optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
@@ -57,8 +63,13 @@ If using docker (see next section), your dockerfile could extend this reference 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 
 - `IRI_API_PARAMS`: as described above, this is a way to customize the API meta-data
-- `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
+- `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.v1.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
 - `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
+- `LOG_LEVEL`: logging level for the API and adapters. Defaults to `DEBUG`.
+- `IRI_LOG_FILE`: file path for API logs. Logs always go to stdout; when this is set, logs also go to the file.
+- `LOG_FILE`: fallback file path for API logs when `IRI_LOG_FILE` is not set.
+
+For local development, `make` writes logs to `runtime-logs.log` by default. Use `make LOG_FILE=/tmp/iri-api.log` or `make IRI_LOG_FILE=/tmp/iri-api.log` to choose a different file. You can also put either variable in `local.env`.
 
 ## Docker support
 
@@ -142,4 +153,3 @@ You can optionally use globus for authorization. Steps to use globus:
 - Specify the monitoring endpoint by setting the [OpenTelemetry](https://opentelemetry.io/docs/zero-code/python/) env vars
 - Add additional routers for other API-s
 - Add authenticated API-s via an [OAuth2 integration](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
-

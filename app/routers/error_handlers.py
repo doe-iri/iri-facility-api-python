@@ -13,14 +13,46 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .. import config
+
+
+def _url_join(*parts: str) -> str:
+    """Join URL parts without losing the scheme separator."""
+    if not parts:
+        return ""
+
+    first = parts[0].rstrip("/")
+    rest = [stripped for part in parts[1:] if (stripped := part.strip("/"))]
+    return "/".join([first, *rest])
+
+
+def _api_example_url(path: str = "") -> str:
+    return _url_join(config.API_URL_ROOT, config.API_PREFIX, config.API_URL, path)
+
+
+def _problem_type_url(problem_type: str) -> str:
+    return _url_join(config.API_URL_ROOT, "problems", problem_type)
+
 
 class Problem(BaseModel):
-    model_config = ConfigDict(extra="allow", json_schema_extra={"description": 'Error structure for REST interface based on RFC 9457, "Problem Details for HTTP APIs."'})
-    type: str = Field(..., description="A URI reference that identifies the problem type.", example="https://example.com/notFound", json_schema_extra={"format": "uri", "default": "about:blank"})
+    model_config = ConfigDict(
+        extra="allow",
+        json_schema_extra={
+            "description": 'Error structure for REST interface based on RFC 9457, "Problem Details for HTTP APIs."',
+            "example": {
+                "type": _problem_type_url("not-found"),
+                "status": 404,
+                "title": "Not Found",
+                "detail": "Descriptive text.",
+                "instance": _api_example_url("resource/123"),
+            },
+        },
+    )
+    type: str = Field(..., description="A URI reference that identifies the problem type.", example=_problem_type_url("not-found"), json_schema_extra={"format": "uri", "default": "about:blank"})
     status: int = Field(..., ge=100, le=599, description="The HTTP status code for this occurrence.", example=404)
     title: str|None = Field(default=None, description="Short human-readable summary.", example="Not Found")
     detail: str|None = Field(default=None, description="Human-readable explanation.", example="Descriptive text.")
-    instance: str = Field(..., description="A URI reference identifying this occurrence.", example="http://localhost/api/v1/resource/123")
+    instance: str = Field(..., description="A URI reference identifying this occurrence.", example=_api_example_url("resource/123"))
 
 
 def get_url_base(request: Request) -> str:
@@ -218,93 +250,99 @@ def install_error_handlers(app: FastAPI):
 
 
 EXAMPLE_400 = {
-    "type": "https://iri.example.com/problems/invalid-parameter",
+    "type": _problem_type_url("invalid-parameter"),
     "title": "Invalid parameter",
     "status": 400,
     "detail": "modified_since must be in ISO 8601 format.",
-    "instance": "/api/v1/status/resources?modified_since=BADVALUE",
+    "instance": _api_example_url("status/resources?modified_since=BADVALUE"),
     "invalid_params": [{"name": "modified_since", "reason": "Invalid datetime format"}],
 }
 
-EXAMPLE_401 = {"type": "https://iri.example.com/problems/unauthorized", "title": "Unauthorized", "status": 401, "detail": "Bearer token is missing or invalid.", "instance": "/api/v1/status/resources"}
+EXAMPLE_401 = {"type": _problem_type_url("unauthorized"), "title": "Unauthorized", "status": 401, "detail": "Bearer token is missing or invalid.", "instance": _api_example_url("status/resources")}
 
 EXAMPLE_403 = {
-    "type": "https://iri.example.com/problems/forbidden",
+    "type": _problem_type_url("forbidden"),
     "title": "Forbidden",
     "status": 403,
     "detail": "Caller is authenticated but lacks required role.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
 
 EXAMPLE_404 = {
-    "type": "https://iri.example.com/problems/not-found",
+    "type": _problem_type_url("not-found"),
     "title": "Not Found",
     "status": 404,
     "detail": "The resource ID 'abc123' does not exist.",
-    "instance": "/api/v1/status/resources/abc123",
+    "instance": _api_example_url("status/resources/abc123"),
 }
 
 EXAMPLE_405 = {
-    "type": "https://iri.example.com/problems/method-not-allowed",
+    "type": _problem_type_url("method-not-allowed"),
     "title": "Method Not Allowed",
     "status": 405,
     "detail": "HTTP method TRACE is not allowed for this endpoint.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
 
 EXAMPLE_409 = {
-    "type": "https://iri.example.com/problems/conflict",
+    "type": _problem_type_url("conflict"),
     "title": "Conflict",
     "status": 409,
     "detail": "A job with this ID already exists.",
-    "instance": "/api/v1/compute/job/perlmutter/123",
+    "instance": _api_example_url("compute/job/perlmutter/123"),
 }
 
 EXAMPLE_422 = {
-    "type": "https://iri.example.com/problems/unprocessable-entity",
+    "type": _problem_type_url("unprocessable-entity"),
     "title": "Unprocessable Entity",
     "status": 422,
     "detail": "The PSIJ JobSpec is syntactically correct but invalid.",
-    "instance": "/api/v1/compute/job/perlmutter",
+    "instance": _api_example_url("compute/job/perlmutter"),
     "invalid_params": [{"name": "job_spec.executable", "reason": "Executable must be provided"}],
 }
 
 EXAMPLE_500 = {
-    "type": "https://iri.example.com/problems/internal-error",
+    "type": _problem_type_url("internal-error"),
     "title": "Internal Server Error",
     "status": 500,
     "detail": "An unexpected error occurred.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
 
 EXAMPLE_501 = {
-    "type": "https://iri.example.com/problems/not-implemented",
+    "type": _problem_type_url("not-implemented"),
     "title": "Not Implemented",
     "status": 501,
     "detail": "This functionality is not implemented.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
 
 EXAMPLE_503 = {
-    "type": "https://iri.example.com/problems/service-unavailable",
+    "type": _problem_type_url("service-unavailable"),
     "title": "Service Unavailable",
     "status": 503,
     "detail": "The service is temporarily unavailable.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
 
 EXAMPLE_504 = {
-    "type": "https://iri.example.com/problems/gateway-timeout",
+    "type": _problem_type_url("gateway-timeout"),
     "title": "Gateway Timeout",
     "status": 504,
     "detail": "The server did not receive a timely response.",
-    "instance": "/api/v1/status/resources",
+    "instance": _api_example_url("status/resources"),
 }
+
+
+def _problem_content(example: dict) -> dict:
+    return {"application/problem+json": {"example": example}}
+
 
 DEFAULT_RESPONSES = {
     400: {
         "description": "Invalid request parameters",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_400),
     },
     401: {
         "description": "Unauthorized",
@@ -315,15 +353,18 @@ DEFAULT_RESPONSES = {
             }
         },
         "model": Problem,
+        "content": _problem_content(EXAMPLE_401),
 
     },
     403: {
         "description": "Forbidden",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_403),
     },
     404: {
         "description": "Not Found",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_404),
     },
     405: {
         "description": "Method Not Allowed",
@@ -334,30 +375,37 @@ DEFAULT_RESPONSES = {
             }
         },
         "model": Problem,
+        "content": _problem_content(EXAMPLE_405),
     },
     409: {
         "description": "Conflict",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_409),
     },
     422: {
         "description": "Unprocessable Entity",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_422),
     },
     500: {
         "description": "Internal Server Error",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_500),
     },
     501: {
         "description": "Not Implemented",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_501),
     },
     503: {
         "description": "Service Unavailable",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_503),
     },
     504: {
         "description": "Gateway Timeout",
         "model": Problem,
+        "content": _problem_content(EXAMPLE_504),
     },
     304: {"description": "Not Modified"},
 }

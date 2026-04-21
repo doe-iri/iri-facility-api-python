@@ -1,8 +1,8 @@
 """Facility-related models."""
 from pydantic import Field, HttpUrl, computed_field
 
-from ... import config
-from ...types.base import NamedObject
+from .... import config
+from ....types.base import NamedObject
 
 
 class Site(NamedObject):

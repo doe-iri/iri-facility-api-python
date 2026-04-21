@@ -4,8 +4,8 @@ import enum
 
 from pydantic import Field, computed_field, field_validator
 
-from ... import config
-from ...types.base import NamedObject
+from .... import config
+from ....types.base import NamedObject
 
 
 class Status(enum.Enum):

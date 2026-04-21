@@ -1,15 +1,15 @@
 import os
 from abc import abstractmethod
-from ...types.user import User
+from ....types.user import User
 from ..status import models as status_models
 from . import models as filesystem_models
-from ..iri_router import AuthenticatedAdapter
+from ...iri_router import AuthenticatedAdapter
 
 
 def to_int(name, default_value):
     try:
         return int(os.environ.get(name) or default_value)
-    except:
+    except (TypeError, ValueError):
         return default_value
 
 

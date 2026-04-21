@@ -11,20 +11,13 @@ from opentelemetry.sdk.trace.sampling import TraceIdRatioBased, ParentBased
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-from app.routers.error_handlers import install_error_handlers
-from app.routers.facility import facility
-from app.routers.status import status
-from app.routers.account import account
-from app.routers.compute import compute
-from app.routers.filesystem import filesystem
-from app.routers.task import task
-
 from . import config
+from .apilogger import configure_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-)
+from app.routers.error_handlers import install_error_handlers
+from app.routers.loader import load_routers, version_from_api_url
+
+configure_logging(config.LOG_LEVEL)
 
 # ------------------------------------------------------------------
 # OpenTelemetry Tracing Configuration
@@ -55,12 +48,7 @@ install_error_handlers(APP)
 
 api_prefix = f"{config.API_PREFIX}{config.API_URL}"
 
-# Attach routers under the prefix
-APP.include_router(facility.router, prefix=api_prefix)
-APP.include_router(status.router, prefix=api_prefix)
-APP.include_router(account.router, prefix=api_prefix)
-APP.include_router(compute.router, prefix=api_prefix)
-APP.include_router(filesystem.router, prefix=api_prefix)
-APP.include_router(task.router, prefix=api_prefix)
+for loaded_router in load_routers(version_from_api_url(config.API_URL)):
+    APP.include_router(loaded_router.router, prefix=api_prefix)
 
 logging.getLogger().info(f"API path: {api_prefix}")

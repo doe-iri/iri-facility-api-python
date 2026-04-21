@@ -1,7 +1,7 @@
 import datetime
 from abc import ABC, abstractmethod
 
-from ...types.models import Capability
+from ....types.models import Capability
 from . import models as status_models
 
 

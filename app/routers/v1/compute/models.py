@@ -1,10 +1,9 @@
 """Models for compute router, including job specifications, job status, and related data structures."""
 from enum import Enum
-from typing import Annotated
 
 from pydantic import ConfigDict, Field, StrictBool
 
-from ...types.base import IRIBaseModel
+from ....types.base import IRIBaseModel
 
 
 class ResourceSpec(IRIBaseModel):
