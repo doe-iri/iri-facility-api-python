@@ -32,6 +32,13 @@ class S3DFSettings:
         self.dex_issuer = os.getenv("DEX_ISSUER")
         self.dex_audience = os.getenv("DEX_AUDIENCE")
         self.dex_username_claim = os.getenv("DEX_USERNAME_CLAIM", "name")
+        # When set, the verifier reads this PEM instead of fetching JWKS live
+        # each request. An in-process background task keeps it fresh; the
+        # verifier reloads on mtime change.
+        self.dex_jwt_public_key = os.getenv("DEX_JWT_PUBLIC_KEY")
+        self.dex_jwt_refresh_interval_seconds = int(
+            os.getenv("DEX_JWT_REFRESH_INTERVAL_SECONDS", "21600")
+        )
 
 
 settings = S3DFSettings()
