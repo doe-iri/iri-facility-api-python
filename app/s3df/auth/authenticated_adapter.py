@@ -8,16 +8,16 @@ inherit from this mixin instead of carrying any auth state of their own.
 
 from fastapi import HTTPException
 
-from app.s3df.auth.jwt_verifier import ensure_pinned_key_refresh_started, get_jwt_verifier
+from app.s3df.auth.jwt_verifier import get_jwt_verifier
 from app.s3df.clients import get_coact_client
 from app.s3df.config import settings
 
-# Bootstrap the pinned Dex key + start the background refresh thread at module
-# import time. Adapters are instantiated while routers are being imported
-# (before uvicorn starts the event loop), so this runs before the first client
-# request and has the cache warm by then. No-op when DEX_JWT_PUBLIC_KEY is unset.
-if settings.dex_jwt_public_key:
-    ensure_pinned_key_refresh_started()
+# Prewarm the JWKS cache at module import. S3DF adapters are constructed while
+# routers are being built (before uvicorn starts the event loop), so this runs
+# synchronously during process startup — the cache is populated before the
+# first client request. No-op when DEX_JWKS_URL isn't set (e.g. unit tests).
+if settings.dex_jwks_url:
+    get_jwt_verifier().prewarm()
 
 
 class S3DFAuthenticatedAdapter:
