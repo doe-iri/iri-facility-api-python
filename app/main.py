@@ -2,8 +2,9 @@
 """Main API application"""
 
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from opentelemetry import trace
+from starlette.middleware.base import BaseHTTPMiddleware
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, BatchSpanProcessor, SimpleSpanProcessor
@@ -20,6 +21,7 @@ from app.routers.filesystem import filesystem
 from app.routers.task import task
 
 from . import config
+from .request_context import set_api_url_base, _api_url_base
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +49,19 @@ if config.OPENTELEMETRY_ENABLED:
 # ------------------------------------------------------------------
 
 APP = FastAPI(servers=[{"url": config.API_URL_ROOT}], **config.API_CONFIG)
+
+
+class _ExternalRequestContextMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        token = _api_url_base.set(None)
+        try:
+            set_api_url_base(request)
+            return await call_next(request)
+        finally:
+            _api_url_base.reset(token)
+
+
+APP.add_middleware(_ExternalRequestContextMiddleware)
 
 if config.OPENTELEMETRY_ENABLED:
     FastAPIInstrumentor.instrument_app(APP)

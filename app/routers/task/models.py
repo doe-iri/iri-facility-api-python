@@ -2,7 +2,7 @@
 import enum
 from pydantic import BaseModel, Field, computed_field
 
-from ... import config
+from ...request_context import get_url_prefix
 
 
 class TaskSubmitResponse(BaseModel):
@@ -13,7 +13,7 @@ class TaskSubmitResponse(BaseModel):
     @property
     def task_uri(self) -> str:
         """Return the URI for this task."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/task/{self.task_id}"
+        return f"{get_url_prefix()}/task/{self.task_id}"
 
 
 class TaskStatus(str, enum.Enum):
