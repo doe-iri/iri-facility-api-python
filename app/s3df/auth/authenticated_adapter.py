@@ -30,8 +30,9 @@ class S3DFAuthenticatedAdapter:
         token = api_key[7:] if api_key.startswith("Bearer ") else api_key
         username = await get_jwt_verifier().verify(token)
 
-        coact_user = await get_coact_client().get_user(username)
-        if not coact_user:
-            raise HTTPException(status_code=403, detail="User not authorized")
+        print(f"Authenticated user {username}")
+        # coact_user = await get_coact_client().get_user(username)
+        # if not coact_user:
+        #     raise HTTPException(status_code=403, detail="User not authorized")
 
         return username

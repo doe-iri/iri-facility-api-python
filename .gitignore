@@ -14,3 +14,5 @@ app/s3df/coact-models.py
 app/s3df/clients/IMPLEMENTATION.md
 .claude/
 set_env.sh
+test_compute.sh
+fastapi.log

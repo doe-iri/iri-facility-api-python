@@ -20,6 +20,7 @@ import base64
 from typing import Optional
 from ..routers.compute import models as compute_models
 from ..routers.compute import facility_adapter as compute_adapter
+from ..routers.compute.models import JobState
 from app.s3df.auth.authenticated_adapter import S3DFAuthenticatedAdapter
 import jwt  # PyJWT
 from slurmrestd_client.api_client import ApiClient
@@ -44,28 +45,28 @@ logger = logging.getLogger(__name__)
 # Import JobState from wherever IRI defines it — adjust path as needed.
 # from app.routers.compute.models import JobState, Job, JobStatus, JobSpec
 
-SLURM_TO_IRI_STATE: dict = {
-    "PENDING":     "QUEUED",
-    "CONFIGURING": "NEW",
-    "RUNNING":     "ACTIVE",
-    "COMPLETED":   "COMPLETED",
-    "CANCELLED":   "CANCELED",
-    "FAILED":      "FAILED",
-    "TIMEOUT":     "FAILED",
-    "PREEMPTED":   "FAILED",
-    "NODE_FAIL":   "FAILED",
-    "SUSPENDED":   "CANCELED",
-    "COMPLETING":  "ACTIVE",
-    "STAGE_OUT":   "ACTIVE",
-    "BOOT_FAIL":   "FAILED",
-    "DEADLINE":    "FAILED",
-    "OUT_OF_MEMORY": "FAILED",
-    "RESIZING":    "ACTIVE",
-    "REQUEUED":    "QUEUED",
-    "REVOKED":     "FAILED",
-    "SIGNALING":   "ACTIVE",
-    "SPECIAL_EXIT": "FAILED",
-    "STOPPED":     "CANCELED",
+SLURM_TO_IRI_STATE: dict[str, JobState] = {
+    "PENDING":       JobState.QUEUED,
+    "CONFIGURING":   JobState.NEW,
+    "RUNNING":       JobState.ACTIVE,
+    "COMPLETED":     JobState.COMPLETED,
+    "CANCELLED":     JobState.CANCELED,
+    "FAILED":        JobState.FAILED,
+    "TIMEOUT":       JobState.FAILED,
+    "PREEMPTED":     JobState.FAILED,
+    "NODE_FAIL":     JobState.FAILED,
+    "SUSPENDED":     JobState.CANCELED,
+    "COMPLETING":    JobState.ACTIVE,
+    "STAGE_OUT":     JobState.ACTIVE,
+    "BOOT_FAIL":     JobState.FAILED,
+    "DEADLINE":      JobState.FAILED,
+    "OUT_OF_MEMORY": JobState.FAILED,
+    "RESIZING":      JobState.ACTIVE,
+    "REQUEUED":      JobState.QUEUED,
+    "REVOKED":       JobState.FAILED,
+    "SIGNALING":     JobState.ACTIVE,
+    "SPECIAL_EXIT":  JobState.FAILED,
+    "STOPPED":       JobState.CANCELED,
 }
 
 
@@ -132,12 +133,12 @@ def _primary_state(job_state) -> str:
     return str(job_state).upper()
 
 
-def _map_state(slurm_state) -> str:
+def _map_state(slurm_state) -> JobState:
     primary = _primary_state(slurm_state)
     mapped = SLURM_TO_IRI_STATE.get(primary)
     if not mapped:
         logger.warning("Unknown Slurm state %r — mapping to FAILED", primary)
-        return "FAILED"
+        return JobState.FAILED
     return mapped
 
 
@@ -155,6 +156,16 @@ def _job_from_slurm_info(job_info, include_spec: bool = False) -> dict:
         },
     }
     if include_spec:
+        tl = getattr(job_info, "time_limit", None)
+        if tl is None:
+            duration_secs = 0
+        elif isinstance(tl, (int, float)):
+            duration_secs = int(tl) * 60
+        elif getattr(tl, "set", False):
+            duration_secs = int(getattr(tl, "number", 0) or 0) * 60
+        else:
+            duration_secs = 0
+
         job_dict["spec"] = {
             "name": getattr(job_info, "name", None),
             "executable": getattr(job_info, "batch_script", None),
@@ -164,7 +175,7 @@ def _job_from_slurm_info(job_info, include_spec: bool = False) -> dict:
             "attributes": {
                 "queue_name": getattr(job_info, "partition", None),
                 "account": getattr(job_info, "account", None),
-                "duration": (getattr(job_info, "time_limit", None) or 0) * 60,
+                "duration": duration_secs,
             },
         }
     return job_dict
@@ -259,8 +270,8 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
                         else float(duration)
                     )
                     duration_mins = max(1, int(total_secs // 60))
-                partition = getattr(attributes, "queue_name", None)
-                account = getattr(attributes, "account", None)
+                partition = getattr(attributes, "queue_name", None) or 'ampere'
+                account = getattr(attributes, "account", None) or 'scs:default'
 
         slurm_job = SlurmV0041PostJobSubmitRequestJob(
             nodes=str(node_count),
@@ -295,7 +306,7 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
             logger.info("Job submitted: job_id=%s", resp.job_id)
             return {
                 "id": str(resp.job_id),
-                "status": {"state": "QUEUED"},
+                "status": {"state": JobState.QUEUED},
             }
         except ApiException as exc:
             logger.error("submit_job failed: %s", exc)
@@ -356,7 +367,9 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
                         if hasattr(duration, "total_seconds")
                         else float(duration)
                     )
-                    update_fields["time_limit"] = max(1, int(total_secs // 60))
+                    update_fields["time_limit"] = SlurmV0041PostJobSubmitRequestJobsInnerTimeLimit(
+                        set=True, number=max(1, int(total_secs // 60))
+                    )
                 partition = getattr(attributes, "queue_name", None)
                 if partition:
                     update_fields["partition"] = partition
