@@ -36,6 +36,7 @@ from slurmrestd_client.models.slurm_v0041_post_job_submit_request_job import (
 from slurmrestd_client.models.slurm_v0041_post_job_submit_request_jobs_inner_time_limit import (
     SlurmV0041PostJobSubmitRequestJobsInnerTimeLimit,
 )
+from fastapi import Response
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +271,11 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
                         else float(duration)
                     )
                     duration_mins = max(1, int(total_secs // 60))
-                partition = getattr(attributes, "queue_name", None) or 'ampere'
-                account = getattr(attributes, "account", None) or 'scs:default'
+                partition = getattr(attributes, "queue_name", None)
+                account = getattr(attributes, "account", None)
+
+        partition = partition or os.environ.get("SLURM_DEFAULT_PARTITION")
+        account = account or os.environ.get("SLURM_DEFAULT_ACCOUNT")
 
         slurm_job = SlurmV0041PostJobSubmitRequestJob(
             nodes=str(node_count),
@@ -330,11 +334,13 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
         else:
             script = f"#!/bin/bash\n{job_script_path}\n"
 
+        unix_user = getattr(user, "unix_username", user.id)
+
         # Reuse submit_job with a minimal spec carrying just the script
         class _MinimalSpec:
             executable = script
             name = os.path.basename(job_script_path)
-            directory = None
+            directory = f"/sdf/home/{unix_user[0]}/{unix_user}"
             stdout_path = None
             stderr_path = None
             environment = None
@@ -378,8 +384,8 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
             # v0041 job update endpoint
             api.slurm_v0041_post_job(job_id, update_fields, _headers=headers)
         except ApiException as exc:
-            logger.warning("update_job %s: slurmrestd returned %s", job_id, exc)
-            # Non-fatal: fall through and return current status
+            logger.error("update_job %s failed: %s", job_id, exc)
+            raise RuntimeError(f"Slurm update failed for job {job_id}: {exc}") from exc
 
         return await self.get_job(resource, user, job_id)
 
@@ -432,15 +438,17 @@ class SLACComputeAdapter(S3DFAuthenticatedAdapter, compute_adapter.FacilityAdapt
         api, headers = self._get_slurm_context(user)
 
         try:
-            resp = api.slurm_v0041_get_jobs(_headers=headers)
+            if historical:
+                # resp = api.slurm_v0041_get_jobs_history(_headers=headers)
+                # return a 501 not implemented as we don't want to hit the slurmdb 
+                return Response(status_code=501, content="Historical job listing is not implemented yet")
+            else:
+                resp = api.slurm_v0041_get_jobs(_headers=headers)
         except ApiException as exc:
             raise RuntimeError(f"Slurm get_jobs failed: {exc}") from exc
 
+        
         jobs = resp.jobs or []
-
-        # Basic server-side filtering by unix username (jobs owned by this user)
-        unix_user = getattr(user, "unix_username", user.id)
-        jobs = [j for j in jobs if getattr(j, "user_name", None) == unix_user]
 
         # Apply caller-supplied filters (key = Slurm job_info attribute name)
         if filters:
