@@ -62,8 +62,10 @@ Links to data, created by this api, will concatenate these values producing link
 - `LOG_LEVEL`: logging level for the API and adapters. Defaults to `DEBUG`.
 - `IRI_LOG_FILE`: file path for API logs. Logs always go to stdout; when this is set, logs also go to the file.
 - `LOG_FILE`: fallback file path for API logs when `IRI_LOG_FILE` is not set.
+- `IRI_LOG_ROTATION_DAYS`: number of daily rotated log files to retain. Defaults to `5`.
+- `LOG_ROTATION_DAYS`: fallback retention when `IRI_LOG_ROTATION_DAYS` is not set.
 
-For local development, `make` writes logs to `runtime-logs.log` by default. Use `make LOG_FILE=/tmp/iri-api.log` or `make IRI_LOG_FILE=/tmp/iri-api.log` to choose a different file. You can also put either variable in `local.env`.
+For local development, `make` writes logs to `runtime-logs.log` by default and keeps `5` daily rotated files. Use `make LOG_FILE=/tmp/iri-api.log`, `make IRI_LOG_FILE=/tmp/iri-api.log`, or `make LOG_ROTATION_DAYS=10` to override those defaults. You can also put the same variables in `local.env`.
 
 ## Docker support
 
