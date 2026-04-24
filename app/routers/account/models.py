@@ -2,7 +2,7 @@
 import datetime
 from pydantic import Field, computed_field, field_validator
 
-from ... import config
+from ...request_context import get_url_prefix
 from ...types.base import IRIBaseModel
 from ...types.scalars import AllocationUnit
 
@@ -26,7 +26,7 @@ class Project(IRIBaseModel):
     @property
     def self_uri(self) -> str:
         """Return the URI for this project resource."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.id}"
+        return f"{get_url_prefix()}/account/projects/{self.id}"
 
 
 class AllocationEntry(IRIBaseModel):
@@ -54,13 +54,13 @@ class ProjectAllocation(IRIBaseModel):
     @property
     def project_uri(self) -> str:
         """Return the URI for the associated project resource."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}"
+        return f"{get_url_prefix()}/account/projects/{self.project_id}"
 
     @computed_field(description="URI of the associated capability resource")
     @property
     def capability_uri(self) -> str:
         """Return the URI for the associated capability."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{self.capability_id}"
+        return f"{get_url_prefix()}/account/capabilities/{self.capability_id}"
 
 
 class UserAllocation(IRIBaseModel):
@@ -79,4 +79,4 @@ class UserAllocation(IRIBaseModel):
     @property
     def project_allocation_uri(self) -> str:
         """Return the URI for the associated project allocation."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"
+        return f"{get_url_prefix()}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"

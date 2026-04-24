@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_serializer
 
 from .. import config
+from ..request_context import get_url_prefix
 from .scalars import StrictDateTime
 
 
@@ -59,7 +60,7 @@ class NamedObject(IRIBaseModel):
     @property
     def self_uri(self) -> str:
         """Computed self URI property."""
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}{self._self_path()}"
+        return f"{get_url_prefix()}{self._self_path()}"
 
     name: str|None = Field(default=None, description="The long name of the object.", example="Perlmutter GPU")
     description: str|None = Field(default=None, description="Human-readable description of the object.", example="High-performance GPU compute resource")

@@ -1,7 +1,7 @@
 """Facility-related models."""
 from pydantic import Field, HttpUrl, computed_field
 
-from ... import config
+from ...request_context import get_url_prefix
 from ...types.base import NamedObject
 
 
@@ -26,7 +26,7 @@ class Site(NamedObject):
     @property
     def resource_uris(self) -> list[str]:
         """Return the list of resource URIs for this site."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{resource_id}" for resource_id in self.resource_ids]
+        return [f"{get_url_prefix()}/status/resources/{resource_id}" for resource_id in self.resource_ids]
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
@@ -53,4 +53,4 @@ class Facility(NamedObject):
     @property
     def site_uris(self) -> list[str]:
         """Return the list of site URIs for this facility."""
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/facility/sites/{site_id}" for site_id in self.site_ids]
+        return [f"{get_url_prefix()}/facility/sites/{site_id}" for site_id in self.site_ids]
