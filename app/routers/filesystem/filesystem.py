@@ -31,7 +31,7 @@ router = iri_router.IriRouter(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getFilesystemResources",
-    openapi_extra=iri_meta_dict("production", "required"),
+    openapi_extra=iri_meta_dict("planned"),
 )
 async def get_resources(
     request: Request,
