@@ -27,6 +27,11 @@ class ResourceType(enum.Enum):
     unknown = "unknown"
 
 
+class Endpoint(enum.Enum):
+    compute = "compute"
+    filesystem = "filesystem"
+
+
 class Resource(NamedObject):
     """Represents a resource in the system."""
     def _self_path(self) -> str:
@@ -38,6 +43,7 @@ class Resource(NamedObject):
     group: str|None = Field(default=None, description="Logical grouping of the resource", example="frontend")
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
+    supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
 
     @computed_field(description="URI of the site where this resource is located")
     @property
