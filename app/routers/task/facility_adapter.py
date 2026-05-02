@@ -3,6 +3,7 @@ from abc import abstractmethod
 from ...types.user import User
 from . import models as task_models
 from ..status import models as status_models
+from ..compute import models as compute_models, facility_adapter as compute_adapter
 from ..filesystem import models as filesystem_models, facility_adapter as filesystem_adapter
 from ..iri_router import AuthenticatedAdapter, IriRouter
 
@@ -46,7 +47,13 @@ class FacilityAdapter(AuthenticatedAdapter):
         try:
             r = None
             logger.info(f"Received task: {task.router}:{task.command} with args: {task.args}")
-            if task.router == "filesystem":
+            if task.router == "compute":
+                c_adapter = IriRouter.create_adapter(task.router, compute_adapter.FacilityAdapter)
+                if task.command == "submit_job":
+                    data = _extractNull(task.args["job_spec"])
+                    job_spec = compute_models.JobSpec.model_validate(data)
+                    r = await c_adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
+            elif task.router == "filesystem":
                 fs_adapter = IriRouter.create_adapter(task.router, filesystem_adapter.FacilityAdapter)
                 if task.command == "chmod":
                     data = _extractNull(task.args["request_model"])
