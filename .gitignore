@@ -16,3 +16,4 @@ app/s3df/clients/IMPLEMENTATION.md
 set_env.sh
 test_compute.sh
 fastapi.log
+compute-tests/

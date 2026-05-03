@@ -194,6 +194,125 @@ class CoactClient:
             LOG.error(f"Failed to get user {username}: {e}")
             return None
 
+    async def get_user_from_lookup_service(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Look up a user from the authoritative external userlookup service
+        via coact-api's usersLookupFromService query.
+
+        Args:
+            username: Username to look up
+
+        Returns:
+            User dict with uidnumber, fullname, eppns, preferredemail, shell, or None
+        """
+        query = """
+            query UsersLookupFromService($filter: UserInput!) {
+                usersLookupFromService(filter: $filter) {
+                    username
+                    fullname
+                    uidnumber
+                    eppns
+                    preferredemail
+                    shell
+                }
+            }
+        """
+
+        try:
+            result = await self.execute_query(
+                query,
+                variables={"filter": {"username": username}},
+                username=self.service_user
+            )
+            print(result)
+            users = result.get("usersLookupFromService", [])
+            return users[0] if users else None
+        except Exception as e:
+            LOG.error(f"Failed to look up user {username} from lookup service: {e}")
+            return None
+
+    async def get_access_groups_for_repo(self, repo_id: str) -> List[Dict[str, Any]]:
+        """
+        Get access groups for a specific repo.
+
+        Args:
+            repo_id: Repo (project) ID to filter by
+
+        Returns:
+            List of access group dicts with gidnumber, name, members, etc.
+        """
+        query = """
+            query GetAccessGroups($filter: AccessGroupInput) {
+                access_groups(filter: $filter) {
+                    _id
+                    state
+                    gidnumber
+                    name
+                    repoid
+                    members
+                }
+            }
+        """
+
+        try:
+            result = await self.execute_query(
+                query,
+                variables={"filter": {"repoid": repo_id}},
+                username=self.service_user
+            )
+            return result.get("access_groups", [])
+        except Exception as e:
+            LOG.error(f"Failed to get access groups for repo {repo_id}: {e}")
+            return []
+
+    async def get_user_identity(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Resolve a username into full POSIX identity: uidnumber and access groups
+        with gidnumbers.
+
+        Combines the external userlookup service (for uidnumber) with repo-based
+        access group queries (for gidnumbers).
+
+        Args:
+            username: Username to resolve (typically from JWT)
+
+        Returns:
+            Dict with username, uidnumber, gidnumbers, and access_groups, or None
+        """
+        lookup_user = await self.get_user_from_lookup_service(username)
+        if not lookup_user:
+            LOG.warning(f"User {username} not found in lookup service")
+            return None
+
+        repos = await self.get_user_repos(username)
+
+        user_groups = []
+        seen_group_ids = set()
+        for repo in repos:
+            repo_id = repo.get("Id")
+            if not repo_id:
+                continue
+            groups = await self.get_access_groups_for_repo(repo_id)
+            for group in groups:
+                group_id = group.get("_id")
+                if group_id in seen_group_ids:
+                    continue
+                seen_group_ids.add(group_id)
+                if username in group.get("members", []):
+                    user_groups.append(group)
+
+        gidnumbers = [
+            g["gidnumber"] for g in user_groups
+            if g.get("gidnumber") is not None
+        ]
+
+        return {
+            "username": lookup_user.get("username", username),
+            "uidnumber": lookup_user.get("uidnumber"),
+            "gidnumbers": gidnumbers,
+            "access_groups": user_groups,
+        }
+
     # =========================================================================
     # Repo (Project) Queries
     # =========================================================================

@@ -9,14 +9,10 @@ logging.basicConfig(level=logging.INFO)
 
 from app.s3df.clients.coact import get_coact_client
 
-async def main():
-    client = get_coact_client()
-    
 
-    print("\n--- Testing get_all_repos ---")
+async def test_compute_allocation_info(client):
     repos = await client.get_all_repos()
-    print(repos)
-
+    
     count = 0
     limit = 5
     for repo in repos:
@@ -30,6 +26,21 @@ async def main():
             print(f"...skipping remaining repos after {limit} tests")
             break
         count += 1
+
+
+async def test_user_authorization(client):
+    user_identity = await client.get_user_identity("amithm")
+    print(f"User Identity: {user_identity}")
+
+
+async def main():
+    client = get_coact_client()
+    # await test_compute_allocation_info(client)
+    await test_user_authorization(client)
+
+    
+
+    
 
 
 
