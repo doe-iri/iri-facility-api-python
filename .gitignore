@@ -4,3 +4,16 @@ iri_api_python.egg-info
 docker-build.sh
 iri_sandbox
 .env
+uv.lock
+docs/
+Makefile
+pyproject.toml
+.DS_Store
+data/
+app/s3df/coact-models.py
+app/s3df/clients/IMPLEMENTATION.md
+.claude/
+set_env.sh
+test_compute.sh
+fastapi.log
+compute-tests/

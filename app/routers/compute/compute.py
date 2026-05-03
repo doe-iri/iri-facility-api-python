@@ -5,6 +5,14 @@ from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..status.status import router as status_router
 
+
+async def _lookup_resource(resource_id: str):
+    if status_router.adapter is None:
+        return None
+    return await status_router.adapter.get_resource(resource_id)
+
+
+
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
     prefix="/compute",
@@ -38,8 +46,8 @@ async def submit_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
-
+    resource = await _lookup_resource(resource_id)
+    
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
     return await router.adapter.submit_job(resource, user, job_spec)
@@ -73,8 +81,8 @@ async def submit_job_path(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
-
+    resource = await _lookup_resource(resource_id)
+    
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
     return await router.adapter.submit_job_script(resource, user, job_script_path, args)
@@ -107,7 +115,7 @@ async def update_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
+    resource = await _lookup_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -136,7 +144,7 @@ async def get_job_status(
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await status_router.adapter.get_resource(resource_id)
+    resource = await _lookup_resource(resource_id)
 
     job = await router.adapter.get_job(resource, user, job_id, historical, include_spec)
 
@@ -167,7 +175,7 @@ async def get_job_statuses(
 
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await status_router.adapter.get_resource(resource_id)
+    resource = await _lookup_resource(resource_id)
 
     jobs = await router.adapter.get_jobs(resource, user, offset, limit, filters, historical, include_spec)
 
@@ -194,7 +202,7 @@ async def cancel_job(
         raise HTTPException(status_code=404, detail="User not found")
 
     # look up the resource (todo: maybe ensure it's available)
-    resource = await status_router.adapter.get_resource(resource_id)
+    resource = await _lookup_resource(resource_id)
 
     try:
         await router.adapter.cancel_job(resource, user, job_id)
