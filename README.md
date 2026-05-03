@@ -5,7 +5,7 @@ See it live:
 
 - NERSC instance:
    - API docs: https://api.iri.nersc.gov
-   - API requests: https://api.iri.nersc.gov/nersc/api/v1/
+   - API requests: https://api.iri.nersc.gov/api/v1/
 - ALCF instance:
    - API docs: https://api.alcf.anl.gov
    - API requests: https://api.alcf.anl.gov/api/v1/
@@ -51,6 +51,8 @@ If using docker (see next section), your dockerfile could extend this reference 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
 - `API_URL`: the path to the api itself. Defaults to `api/v1`.
+- `OPENTELEMETRY_ENABLED`: Enables OpenTelemetry. If enabled, the application will use OpenTelemetry SDKs and emit traces, metrics, and logs. Default to false
+- `OTLP_ENDPOINT`: OpenTelemetry Protocol collector endpoint to export telemetry data. If empty or not set, telemetry data is logged locally to log file. Default: ""
 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 
@@ -119,11 +121,25 @@ ENV IRI_API_PARAMS='{ \
 }'
 ```
 
+## Globus auth integration
+
+You can optionally use globus for authorization. Steps to use globus:
+- ask someone to add your globus account to the IRI Resource Server
+- log into globus and make a secret for yourself for the IRI Resource Server
+- if you want to create tokens during developent, also create a separate globus app
+- `cp local-template.env local.env` and fill in the missing values
+- to mint a token, run `make globus`, click the link and copy the code from the browser url bar back into the terminal
+- you can also run `make manage-globus` but be sure to not accidentally delete the `iri-api` scope. (Maybe it's better if you don't run this app)
+- now you can run `make` for the dev server and enjoy using your globus iri access tokens (in the demo adapter they will all resolve to the user `gtorok`)
+- for your facility:
+   - implement the `get_current_user_globus` method (see iri_adapter.py). Here you can look at the linked globus identities and session info to determine what the local username is
+   - make sure the values in `local.env` are available in the deployed app
+
 ## Next steps
 
 - Learn more about [fastapi](https://fastapi.tiangolo.com/), including how to run it [in production](https://fastapi.tiangolo.com/advanced/behind-a-proxy/)
-- Instead of the simulated state, keep real data in a [database](/Users/gtorok/dev/iri-api-python/README.md)
-- Add monitoring by [integrating with OpenTelemetry](https://opentelemetry.io/docs/zero-code/python/)
+- Instead of the simulated state, keep real data in a database
+- Specify the monitoring endpoint by setting the [OpenTelemetry](https://opentelemetry.io/docs/zero-code/python/) env vars
 - Add additional routers for other API-s
 - Add authenticated API-s via an [OAuth2 integration](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
 

@@ -1,0 +1,63 @@
+from fastapi import Depends, Query, Request, HTTPException
+
+from ...types.http import forbidExtraQueryParams
+from ...types.scalars import StrictDateTime
+from .. import iri_router
+from ..error_handlers import DEFAULT_RESPONSES
+from ..iri_meta import iri_meta_dict
+from . import facility_adapter, models
+
+router = iri_router.IriRouter(facility_adapter.FacilityAdapter, prefix="/facility", tags=["facility"])
+
+
+@router.get("",
+            responses=DEFAULT_RESPONSES,
+            operation_id="getFacility",
+            response_model_exclude_none=True,
+            openapi_extra=iri_meta_dict("production", "required"))
+@router.get("/",
+            responses=DEFAULT_RESPONSES,
+            operation_id="getFacilityWithSlash",
+            response_model_exclude_none=True,
+            include_in_schema=False)
+async def get_facility(
+    request: Request,
+    modified_since: StrictDateTime = Query(default=None),
+    _forbid=Depends(forbidExtraQueryParams("modified_since")),
+) -> models.Facility:
+    """Get facility information"""
+    facility = await router.adapter.get_facility(modified_since=modified_since)
+    if not facility:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    return facility
+
+
+@router.get("/sites", responses=DEFAULT_RESPONSES, operation_id="getSites", response_model_exclude_none=True, openapi_extra=iri_meta_dict("production", "required"))
+async def list_sites(
+    request: Request,
+    modified_since: StrictDateTime = Query(default=None),
+    name: str | None = Query(default=None, min_length=1),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=0, le=1000),
+    short_name: str | None = Query(default=None, min_length=1),
+    _forbid=Depends(forbidExtraQueryParams("modified_since", "name", "offset", "limit", "short_name")),
+) -> list[models.Site]:
+    """List sites"""
+    sites = await router.adapter.list_sites(modified_since=modified_since, name=name, offset=offset, limit=limit, short_name=short_name)
+    if not sites:
+        raise HTTPException(status_code=404, detail="No sites found")
+    return sites
+
+
+@router.get("/sites/{site_id}", responses=DEFAULT_RESPONSES, operation_id="getSite", response_model_exclude_none=True, openapi_extra=iri_meta_dict("production", "required"))
+async def get_site(
+    request: Request,
+    site_id: str,
+    modified_since: StrictDateTime = Query(default=None),
+    _forbid=Depends(forbidExtraQueryParams("modified_since")),
+) -> models.Site:
+    """Get site by ID"""
+    site = await router.adapter.get_site(site_id=site_id, modified_since=modified_since)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site

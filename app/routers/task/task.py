@@ -1,7 +1,9 @@
 from fastapi import Request, HTTPException, Depends
+from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
-from .import models, facility_adapter
+from ..iri_meta import iri_meta_dict
+from . import models, facility_adapter
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -12,37 +14,49 @@ router = iri_router.IriRouter(
 
 @router.get(
     "/{task_id:str}",
-    dependencies=[Depends(router.current_user)],
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getTask",
+    openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_task(
-    request : Request,
-    task_id : str,
-    ) -> models.Task:
+    request: Request,
+    task_id: str,
+    user: User = Depends(router.current_user)
+) -> models.Task:
     """Get a task"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    task = await router.adapter.get_task(user, task_id)
+    task = await router.adapter.get_task(user=user, task_id=task_id)
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     return task
 
 
-@router.get(
-    "",
-    dependencies=[Depends(router.current_user)],
-    response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES,
-    operation_id="getTasks",
-)
+@router.get("",
+            dependencies=[Depends(router.current_user)],
+            response_model_exclude_unset=True, responses=DEFAULT_RESPONSES,
+            operation_id="getTasks",
+            openapi_extra=iri_meta_dict("production", "required"))
+@router.get("/", responses=DEFAULT_RESPONSES, operation_id="getTasksWithSlash", include_in_schema=False)
+
 async def get_tasks(
-    request : Request,
-    ) -> list[models.Task]:
+    request: Request,
+    user: User = Depends(router.current_user)
+) -> list[models.Task]:
     """Get all tasks"""
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return await router.adapter.get_tasks(user)
+    return await router.adapter.get_tasks(user=user)
+
+@router.delete(
+    "/{task_id:str}",
+    dependencies=[Depends(router.current_user)],
+    responses=DEFAULT_RESPONSES,
+    operation_id="deleteTask",
+    openapi_extra=iri_meta_dict("production", "required")
+)
+async def delete_task(
+    request: Request,
+    task_id: str,
+    user: User = Depends(router.current_user)
+) -> str:
+    """Delete a task"""
+    await router.adapter.delete_task(user=user, task_id=task_id)
+    return f"Task {task_id} deleted successfully"
