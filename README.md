@@ -87,11 +87,18 @@ Links to data, created by this api, will concatenate these values producing link
 - `IRI_API_PARAMS`: as described above, this is a way to customize the API meta-data
 - `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
 - `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
-- `LOG_LEVEL`: logging level for the API and adapters. Defaults to `DEBUG`.
-- `IRI_LOG_FILE`: file path for API logs. Logs always go to stdout; when this is set, logs also go to the file.
-- `LOG_FILE`: fallback file path for API logs when `IRI_LOG_FILE` is not set.
-- `IRI_LOG_ROTATION_DAYS`: number of daily rotated log files to retain. Defaults to `5`.
-- `LOG_ROTATION_DAYS`: fallback retention when `IRI_LOG_ROTATION_DAYS` is not set.
+
+### Logging
+
+Logs always go to stdout. Optionally, logs can also be written to a rotating file.
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `DEBUG` | Logging level for the API and adapters (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `IRI_LOG_FILE` | _(none)_ | File path for API logs. When set, logs go to both stdout and this file. |
+| `LOG_FILE` | _(none)_ | Fallback file path when `IRI_LOG_FILE` is not set. |
+| `IRI_LOG_ROTATION_DAYS` | `5` | Number of daily rotated log files to retain. |
+| `LOG_ROTATION_DAYS` | `5` | Fallback retention when `IRI_LOG_ROTATION_DAYS` is not set. |
 
 For local development, `make` writes logs to `runtime-logs.log` by default and keeps `5` daily rotated files. Use `make LOG_FILE=/tmp/iri-api.log`, `make IRI_LOG_FILE=/tmp/iri-api.log`, or `make LOG_ROTATION_DAYS=10` to override those defaults. You can also put the same variables in `local.env`.
 
