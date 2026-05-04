@@ -1,8 +1,6 @@
 """Compute resource API router"""
 
-from typing import Annotated, List
-
-from fastapi import Depends, Form, HTTPException, Query, Request, status
+from fastapi import Depends, HTTPException, Query, Request, status
 
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
@@ -12,14 +10,6 @@ from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
 from ..status.status import router as status_router
 from . import facility_adapter, models
-
-
-async def _lookup_resource(resource_id: str):
-    if status_router.adapter is None:
-        return None
-    return await status_router.adapter.get_resource(resource_id)
-
-
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
@@ -52,46 +42,11 @@ async def submit_job(
     This command will attempt to submit a job and return its id.
     """
     # look up the resource (todo: maybe ensure it's available)
-    resource = await _lookup_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
     return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
-
-
-@router.post(
-    "/job/script/{resource_id:str}",
-    dependencies=[Depends(router.current_user)],
-    response_model=models.Job,
-    response_model_exclude_unset=True,
-    responses=DEFAULT_RESPONSES,
-    operation_id="launchJobScript",
-)
-async def submit_job_path(
-    resource_id: str,
-    job_script_path : str,
-    request : Request,
-    args : Annotated[List[str], Form()] = [],
-    ):
-    """
-    Submit a job on a compute resource
-
-    - **resource**: the name of the compute resource to use
-    - **job_script_path**: path to the job script on the compute resource
-    - **args**: optional arguments to the job script
-
-    This command will attempt to submit a job and return its id.
-    """
-    user = await router.adapter.get_user(request.state.current_user_id, request.state.api_key, iri_router.get_client_ip(request))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # look up the resource (todo: maybe ensure it's available)
-    resource = await _lookup_resource(resource_id)
-
-    # the handler can use whatever means it wants to submit the job and then fill in its id
-    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    return await router.adapter.submit_job_script(resource, user, job_script_path, args)
 
 
 @router.put(
@@ -119,7 +74,7 @@ async def update_job(
 
     """
     # look up the resource (todo: maybe ensure it's available)
-    resource = await _lookup_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     # the handler can use whatever means it wants to submit the job and then fill in its id
     # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
@@ -146,7 +101,7 @@ async def get_job_status(
     """Get a job's status"""
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await _lookup_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     job = await router.adapter.get_job(resource=resource, user=user, job_id=job_id, historical=historical, include_spec=include_spec)
 
@@ -175,7 +130,7 @@ async def get_job_statuses(
     """Get multiple jobs' statuses"""
     # look up the resource (todo: maybe ensure it's available)
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
-    resource = await _lookup_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     jobs = await router.adapter.get_jobs(resource=resource, user=user, offset=offset, limit=limit, filters=filters, historical=historical, include_spec=include_spec)
 
@@ -200,7 +155,7 @@ async def cancel_job(
 ):
     """Cancel a job"""
     # look up the resource (todo: maybe ensure it's available)
-    resource = await _lookup_resource(resource_id)
+    resource = await status_router.adapter.get_resource(resource_id)
 
     await router.adapter.cancel_job(resource=resource, user=user, job_id=job_id)
 
