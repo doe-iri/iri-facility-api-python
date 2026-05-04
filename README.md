@@ -51,8 +51,36 @@ If using docker (see next section), your dockerfile could extend this reference 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
 - `API_URL`: the path to the api itself. Defaults to `api/v1`.
-- `OPENTELEMETRY_ENABLED`: Enables OpenTelemetry. If enabled, the application will use OpenTelemetry SDKs and emit traces, metrics, and logs. Default to false
-- `OTLP_ENDPOINT`: OpenTelemetry Protocol collector endpoint to export telemetry data. If empty or not set, telemetry data is logged locally to log file. Default: ""
+### OpenTelemetry
+
+The API supports OpenTelemetry for distributed tracing and metrics. Traces and metrics can be independently enabled or disabled.
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENTELEMETRY_ENABLED` | `false` | Master switch. Must be `true` for any telemetry to be emitted. |
+| `OTEL_TRACES_ENABLED` | `true` | Enable trace export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
+| `OTEL_METRICS_ENABLED` | `true` | Enable metric export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
+| `OTLP_ENDPOINT` | `""` | gRPC endpoint for the OTLP collector (e.g. `http://otel-collector:4317`). When empty, telemetry is printed to the console. |
+| `OPENTELEMETRY_DEBUG` | `false` | Sets trace sample rate to 100% (overrides `OTEL_SAMPLE_RATE`). |
+| `OTEL_SAMPLE_RATE` | `0.2` | Trace sampling rate (0.0 to 1.0). Ignored when `OPENTELEMETRY_DEBUG=true`. |
+| `OTEL_METRIC_EXPORT_INTERVAL` | `60000` | Metric export interval in milliseconds. |
+
+When metrics are enabled, the FastAPI instrumentor automatically emits standard HTTP server metrics: `http.server.active_requests`, `http.server.duration`, and `http.server.response.size`.
+
+Examples:
+```bash
+# Traces and metrics to an OTLP collector
+OPENTELEMETRY_ENABLED=true OTLP_ENDPOINT=http://otel-collector:4317
+
+# Traces only, no metrics
+OPENTELEMETRY_ENABLED=true OTEL_METRICS_ENABLED=false
+
+# Metrics only, no traces
+OPENTELEMETRY_ENABLED=true OTEL_TRACES_ENABLED=false
+
+# Debug mode: 100% sampling, console output
+OPENTELEMETRY_ENABLED=true OPENTELEMETRY_DEBUG=true
+```
 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 
