@@ -1,53 +1,23 @@
+"""Models for the status API."""
 import datetime
 import enum
-from pydantic import BaseModel, computed_field, Field
-from ... import config
 
-class Link(BaseModel):
-    rel : str
-    href : str
+from pydantic import Field, computed_field, field_validator
+
+from ...request_context import get_url_prefix
+from ...types.base import NamedObject
 
 
 class Status(enum.Enum):
+    """Represents the status of a resource."""
     up = "up"
     down = "down"
     degraded = "degraded"
     unknown = "unknown"
 
 
-class NamedResource(BaseModel):
-    id : str
-    name : str
-    description : str
-    last_modified : datetime.datetime
-
-
-    @staticmethod
-    def find_by_id(a, id, allow_name: bool|None=False):
-        # Find a resource by its id.
-        # If allow_name is True, the id parameter can also match the resource's name.
-        return next((r for r in a if r.id == id or (allow_name and r.name == id)), None)
-
-
-    @staticmethod
-    def find(a, name, description, modified_since):
-        def normalize(dt: datetime) -> datetime:
-            # Convert naive datetimes into UTC-aware versions
-            if dt.tzinfo is None:
-                return dt.replace(tzinfo=datetime.timezone.utc)
-            return dt
-        if name:
-            a = [aa for aa in a if aa.name == name]
-        if description:
-            a = [aa for aa in a if description in aa.description]
-        if modified_since:
-            if modified_since.tzinfo is None:
-                modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
-            a = [aa for aa in a if normalize(aa.last_modified) >= modified_since]
-        return a
-
-
 class ResourceType(enum.Enum):
+    """Represents the type of a resource."""
     website = "website"
     service = "service"
     compute = "compute"
@@ -57,92 +27,111 @@ class ResourceType(enum.Enum):
     unknown = "unknown"
 
 
-class Resource(NamedResource):
-    capability_ids: list[str] = Field(exclude=True)
-    group: str | None
-    current_status: Status | None = Field("The current status comes from the status of the last event for this resource")
-    resource_type: ResourceType
+class Resource(NamedObject):
+    """Represents a resource in the system."""
+    def _self_path(self) -> str:
+        """Return the API path for this resource."""
+        return f"/status/resources/{self.id}"
 
+    site_id: str = Field(..., description="The site identifier this resource is located at", exclude=True, example="site-1")
+    capability_ids: list[str] = Field(default_factory=list, exclude=True)
+    group: str|None = Field(default=None, description="Logical grouping of the resource", example="frontend")
+    current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
+    resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
 
-    @computed_field(description="The url of this object")
+    @computed_field(description="URI of the site where this resource is located")
     @property
-    def self_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.id}"
+    def site_uri(self) -> str:
+        """Return the site URI for this resource."""
+        return f"{get_url_prefix()}/facility/sites/{self.site_id}"
 
-
-    @computed_field(description="The list of past events in this incident")
+    @computed_field(description="The list of capabilities in this resource")
     @property
     def capability_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{e}" for e in self.capability_ids]
+        """Return the list of capability URIs for this resource."""
+        return [f"{get_url_prefix()}/account/capabilities/{e}" for e in self.capability_ids]
 
-
-    @staticmethod
-    def find(resources, name, description, group, modified_since, resource_type):
-        a = NamedResource.find(resources, name, description, modified_since)
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None, group=None, resource_type=None, current_status=None, capability=None, site_id=None) -> list:
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
         if group:
-            a = [aa for aa in a if aa.group == group]
+            items = [item for item in items if item.group == group]
         if resource_type:
-            a = [aa for aa in a if aa.resource_type == resource_type]
-        return a
+            if isinstance(resource_type, str):
+                resource_type = ResourceType(resource_type)
+            items = [item for item in items if item.resource_type == resource_type]
+        if current_status:
+            items = [item for item in items if item.current_status == current_status]
+        if capability:
+            items = [item for item in items if any(cap_id in item.capability_ids for cap_id in capability)]
+        if site_id:
+            items = [item for item in items if item.site_id == site_id]
+        return items
 
 
-class Event(NamedResource):
-    occurred_at : datetime.datetime
-    status : Status
-    resource_id : str = Field(exclude=True)
-    incident_id : str | None = Field(exclude=True, default=None)
+class Event(NamedObject):
+    """Represents an event that occurred to a resource, which may be part of an incident."""
+    def _self_path(self) -> str:
+        """Return the API path for this event."""
+        return f"/status/events/{self.id}"
 
+    @field_validator("occurred_at", mode="before")
+    @classmethod
+    def _norm_dt_field(cls, v):
+        return cls.normalize_dt(v)
 
-    @computed_field(description="The url of this object")
-    @property
-    def self_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}/events/{self.id}"
-
+    occurred_at: datetime.datetime = Field(..., description="Timestamp when the event occurred", example="2026-02-21T12:00:00Z")
+    status: Status = Field(..., description="Status of the resource at the time of the event", example="down")
+    resource_id: str = Field(..., exclude=True, description="Identifier of the affected resource", example="res-1")
+    incident_id: str|None = Field(default=None, exclude=True, description="Identifier of the related incident", example="inc-1")
 
     @computed_field(description="The resource belonging to this event")
     @property
     def resource_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{self.resource_id}"
-
+        """Return the resource URI for this event."""
+        return f"{get_url_prefix()}/status/resources/{self.resource_id}"
 
     @computed_field(description="The event's incident")
     @property
-    def incident_uri(self) -> str|None:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.incident_id}" if self.incident_id else None
+    def incident_uri(self) -> str | None:
+        """Return the incident URI for this event."""
+        return f"{get_url_prefix()}/status/incidents/{self.incident_id}" if self.incident_id else None
 
+    @classmethod
+    def find(cls, items, incident_id=None, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
 
-    @staticmethod
-    def find(
-        events : list,
-        resource_id : str | None = None,
-        name : str | None = None,
-        description : str | None = None,
-        status : Status | None = None,
-        from_ : datetime.datetime | None = None,
-        to : datetime.datetime | None = None,
-        time_ : datetime.datetime | None = None,
-        modified_since : datetime.datetime | None = None,
-    ) -> list:
-        events = NamedResource.find(events, name, description, modified_since)
+        if incident_id:
+            items = [e for e in items if e.incident_id == incident_id]
         if resource_id:
-            events = [e for e in events if e.resource_id == resource_id]
+            items = [e for e in items if e.resource_id == resource_id]
         if status:
-            events = [e for e in events if e.status == status]
+            if isinstance(status, str):
+                status = Status(status)
+            items = [e for e in items if e.status == status]
+
+        from_ = cls.normalize_dt(from_) if from_ else None
+        to = cls.normalize_dt(to) if to else None
+        time_ = cls.normalize_dt(time_) if time_ else None
+
         if from_:
-            events = [e for e in events if e.occurred_at >= from_]
+            items = [e for e in items if e.occurred_at >= from_]
         if to:
-            events = [e for e in events if e.occurred_at < to]
+            items = [e for e in items if e.occurred_at < to]
         if time_:
-            events = [e for e in events if e.occurred_at == time_]
-        return events
+            items = [e for e in items if e.occurred_at == time_]
+        return items
 
 
 class IncidentType(enum.Enum):
+    """Represents the type of an incident."""
     planned = "planned"
     unplanned = "unplanned"
+    reservation = "reservation"
 
 
 class Resolution(enum.Enum):
+    """Represents the resolution status of an incident."""
     unresolved = "unresolved"
     cancelled = "cancelled"
     completed = "completed"
@@ -150,56 +139,59 @@ class Resolution(enum.Enum):
     pending = "pending"
 
 
-class Incident(NamedResource):
-    status : Status
-    resource_ids : list[str] = Field(exclude=True)
-    event_ids : list[str] = Field(exclude=True)
-    start : datetime.datetime
-    end : datetime.datetime | None
-    type : IncidentType
-    resolution : Resolution
+class Incident(NamedObject):
+    """Represents an incident that may impact one or more resources."""
+    def _self_path(self) -> str:
+        """Return the API path for this incident."""
+        return f"/status/incidents/{self.id}"
 
+    @field_validator("start", "end", mode="before")
+    @classmethod
+    def _norm_dt_field(cls, v):
+        return cls.normalize_dt(v)
 
-    @computed_field(description="The url of this object")
-    @property
-    def self_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}"
-
+    status: Status = Field(..., description="Current status of the incident", example="degraded")
+    resource_ids: list[str] = Field(default_factory=list, exclude=True)
+    event_ids: list[str] = Field(default_factory=list, exclude=True)
+    start: datetime.datetime = Field(..., description="Incident start time", example="2026-02-21T12:00:00Z")
+    end: datetime.datetime|None = Field(default=None, description="Incident end time", example="2026-02-21T14:00:00Z")
+    type: IncidentType = Field(..., description="Type of incident", example="planned")
+    resolution: Resolution = Field(..., description="Resolution status of the incident", example="pending")
 
     @computed_field(description="The list of past events in this incident")
     @property
     def event_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/incidents/{self.id}/events/{e}" for e in self.event_ids]
-
+        """Return the list of event URIs for this incident."""
+        return [f"{get_url_prefix()}/status/events/{e}" for e in self.event_ids]
 
     @computed_field(description="The list of resources that may be impacted by this incident")
     @property
     def resource_uris(self) -> list[str]:
-        return [f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/status/resources/{r}" for r in self.resource_ids]
+        """Return the list of resource URIs for this incident."""
+        return [f"{get_url_prefix()}/status/resources/{r}" for r in self.resource_ids]
 
-    def find(
-        incidents : list,
-        name : str | None = None,
-        description : str | None = None,
-        status : Status | None = None,
-        type_ : IncidentType | None = None,
-        from_ : datetime.datetime | None = None,
-        to : datetime.datetime | None = None,
-        time_ : datetime.datetime | None = None,
-        modified_since : datetime.datetime | None = None,
-        resource_id : str | None = None,
-    ) -> list:
-        incidents = NamedResource.find(incidents, name, description, modified_since)
+    @classmethod
+    def find(cls, items, name=None, description=None, modified_since=None, status=None, type_=None, from_=None, to=None, time_=None, resource_id=None, resolution=None) -> list:
+        items = super().find(items, name=name, description=description, modified_since=modified_since)
+
         if resource_id:
-            incidents = [e for e in incidents if resource_id in e.resource_ids]
+            items = [e for e in items if resource_id in e.resource_ids]
         if status:
-            incidents = [e for e in incidents if e.status == status]
+            items = [e for e in items if e.status == status]
         if type_:
-            incidents = [e for e in incidents if e.type == type_]
+            items = [e for e in items if e.type == type_]
+        if resolution:
+            items = [e for e in items if e.resolution == resolution]
+
+        from_ = cls.normalize_dt(from_) if from_ else None
+        to = cls.normalize_dt(to) if to else None
+        time_ = cls.normalize_dt(time_) if time_ else None
+
         if from_:
-            incidents = [e for e in incidents if e.start >= from_]
+            items = [e for e in items if e.start >= from_]
         if to:
-            incidents = [e for e in incidents if e.end < to]
+            items = [e for e in items if e.end and e.end < to]
+
         if time_:
-            incidents = [e for e in incidents if e.start <= time_ and e.end > time_]
-        return incidents
+            items = [e for e in items if e.start <= time_ and (e.end is None or e.end > time_)]
+        return items

@@ -6,8 +6,6 @@ iri_sandbox
 .env
 uv.lock
 docs/
-Makefile
-pyproject.toml
 .DS_Store
 data/
 app/s3df/coact-models.py
@@ -17,3 +15,4 @@ set_env.sh
 test_compute.sh
 fastapi.log
 compute-tests/
+local.env

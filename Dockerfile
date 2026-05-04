@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13
 
 RUN mkdir /app
 COPY . /app
@@ -14,4 +14,3 @@ ENV DEX_ISSUER="https://dex.slac.stanford.edu"
 
 
 CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
-

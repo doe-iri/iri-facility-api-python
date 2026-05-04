@@ -1,89 +1,82 @@
-from pydantic import BaseModel, computed_field, Field
-import enum
-from ... import config
+"""Models for account-related API endpoints, including users, projects, and allocations."""
+import datetime
+from pydantic import Field, computed_field, field_validator
+
+from ...request_context import get_url_prefix
+from ...types.base import IRIBaseModel
+from ...types.scalars import AllocationUnit
 
 
-class AllocationUnit(enum.Enum):
-    node_hours = "node_hours"
-    bytes = "bytes"
-    inodes = "inodes"
-
-
-class Capability(BaseModel):
-    """
-        An aspect of a resource that can have an allocation.
-        For example, Perlmutter nodes with GPUs
-        For some resources at a facility, this will be 1 to 1 with the resource.
-        It is a way to further subdivide a resource into allocatable sub-resources.
-        The word "capability" is also known to users as something they need for a job to run. (eg. gpu)
-    """
-    id: str
-    name: str
-    units: list[AllocationUnit]
-
-
-class User(BaseModel):
-    """A user of the facility"""
-    id: str
-    name: str
-    api_key: str
-    client_ip: str|None
-    # we could expose more fields here (eg. email) but it might be against policy
-
-
-class Project(BaseModel):
+class Project(IRIBaseModel):
     """A project and its users at a facility"""
-    id: str
-    name: str
-    description: str
-    user_ids: list[str]
+
+    id: str = Field(..., description="Unique identifier of the project.", example="proj-abc123")
+    name: str = Field(..., description="Human-readable name of the project.", example="Climate Simulation")
+    description: str = Field(..., description="Detailed description of the project.", example="Research project studying atmospheric dynamics.")
+    user_ids: list[str] = Field(..., description="List of user identifiers participating in the project.", example=["user-123", "user-456"])
+
+    @field_validator("last_modified", mode="before")
+    @classmethod
+    def _norm_dt_field(cls, v):
+        return cls.normalize_dt(v)
+
+    last_modified: datetime.datetime = Field(..., description="Timestamp of the last modification of the project.", example="2026-02-21T14:30:00Z")
+
+    @computed_field(description="URI to this project resource")
+    @property
+    def self_uri(self) -> str:
+        """Return the URI for this project resource."""
+        return f"{get_url_prefix()}/account/projects/{self.id}"
 
 
-class AllocationEntry(BaseModel):
+class AllocationEntry(IRIBaseModel):
     """Base class for allocations."""
-    allocation: float  # how much this allocation can spend
-    usage: float # how much this allocation has spent
-    unit: AllocationUnit
+
+    allocation: float = Field(..., description="Total allocation amount granted.", example=100000.0)  # how much this allocation can spend
+    usage: float = Field(..., description="Amount of allocation consumed.", example=52342.5)  # how much this allocation has spent
+    unit: AllocationUnit = Field(..., description="Unit of the allocation (e.g., node_hours, bytes).", example="node_hours")
 
 
-class ProjectAllocation(BaseModel):
+class ProjectAllocation(IRIBaseModel):
     """
-        A project's allocation for a capability. (aka. repo)
-        This allocation is a piece of the total allocation for the capability. (eg. 5% of the total node hours of Perlmutter GPU nodes)
-        A project would at least have a storage and job repos, maybe more than 1 of each.
+    A project's allocation for a capability. (aka. repo)
+    This allocation is a piece of the total allocation for the capability. (eg. 5% of the total node hours of Perlmutter GPU nodes)
+    A project would at least have a storage and job repos, maybe more than 1 of each.
     """
+
     # how much this allocation can spend
-    id: str
-    project_id: str = Field(exclude=True)
-    capability_id: str = Field(exclude=True)
-    entries: list[AllocationEntry]
+    id: str = Field(..., description="Unique identifier of the project allocation.", example="alloc-001")
+    project_id: str = Field(exclude=True, description="Internal identifier of the associated project.")
+    capability_id: str = Field(exclude=True, description="Internal identifier of the associated capability.")
+    entries: list[AllocationEntry] = Field(..., description="Allocation entries describing usage and limits.")
 
-
-    @computed_field(description="The list of past events in this incident")
+    @computed_field(description="URI of the associated project resource")
     @property
     def project_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}"
+        """Return the URI for the associated project resource."""
+        return f"{get_url_prefix()}/account/projects/{self.project_id}"
 
-
-    @computed_field(description="The list of past events in this incident")
+    @computed_field(description="URI of the associated capability resource")
     @property
     def capability_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/capabilities/{self.capability_id}"
+        """Return the URI for the associated capability."""
+        return f"{get_url_prefix()}/account/capabilities/{self.capability_id}"
 
 
-class UserAllocation(BaseModel):
+class UserAllocation(IRIBaseModel):
     """
-        A user's allcation in a project.
-        This allocation is a piece of the project's allocation.
+    A user's allcation in a project.
+    This allocation is a piece of the project's allocation.
     """
-    id: str
-    project_id: str = Field(exclude=True)
-    project_allocation_id: str = Field(exclude=True)
-    user_id: str
-    entries: list[AllocationEntry]
 
+    id: str = Field(..., description="Unique identifier of the user allocation.", example="user-alloc-42")
+    project_id: str = Field(exclude=True, description="Internal identifier of the associated project.")
+    project_allocation_id: str = Field(exclude=True, description="Internal identifier of the associated project allocation.")
+    user_id: str = Field(..., description="Identifier of the user receiving this allocation.", example="user-123")
+    entries: list[AllocationEntry] = Field(..., description="Allocation entries describing usage and limits.")
 
-    @computed_field(description="The list of past events in this incident")
+    @computed_field(description="URI of the associated project allocation")
     @property
     def project_allocation_uri(self) -> str:
-        return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"
+        """Return the URI for the associated project allocation."""
+        return f"{get_url_prefix()}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"
