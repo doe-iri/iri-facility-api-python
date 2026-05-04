@@ -18,6 +18,9 @@ Data Model Mapping (coact → IRI):
 
 from fastapi import HTTPException
 
+from app.types.user import User
+from app.types.models import Capability
+from app.types.scalars import AllocationUnit
 from ..routers.account import models as account_models
 from ..routers.account import facility_adapter as account_adapter
 from app.s3df.auth.authenticated_adapter import S3DFAuthenticatedAdapter
@@ -38,7 +41,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
     # AuthenticatedAdapter methods
     # -------------------------------------------------------------------------
 
-    async def get_user(self, user_id: str, api_key: str, client_ip: str | None) -> account_models.User:
+    async def get_user(self, user_id: str, api_key: str, client_ip: str | None, globus_introspect: dict | None = None) -> User:
         """
         coact.User → IRI.User mapping:
         - username → id
@@ -47,7 +50,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
         coact_user = await self.coact_client.get_user(user_id)
         if not coact_user:
             raise HTTPException(status_code=403, detail="User not authorized")
-        return account_models.User(
+        return User(
             id=coact_user["username"],
             name=coact_user.get("fullname", user_id),
             api_key=api_key,
@@ -58,7 +61,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
     # AccountFacilityAdapter methods
     # -------------------------------------------------------------------------
     
-    async def get_capabilities(self) -> list[account_models.Capability]:
+    async def get_capabilities(self) -> list[Capability]:
         """
         coact.Cluster → IRI.Capability (compute)
         Static storage types → IRI.Capability (storage)
@@ -70,35 +73,35 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
 
         for cluster in clusters:
             gpu_info = f", {cluster['nodegpucount']} GPUs" if cluster.get('nodegpucount', 0) > 0 else ""
-            capabilities.append(account_models.Capability(
+            capabilities.append(Capability(
                 id=cluster["name"],
                 name=f"{cluster['name'].upper()} ({cluster['nodecpucount']} CPUs{gpu_info}, {cluster['nodememgb']}GB/node)",
-                units=[account_models.AllocationUnit.node_hours]
+                units=[AllocationUnit.node_hours]
             ))
         
         # Add storage capabilities
 
         # capabilities.extend([
-        #     account_models.Capability(
+        #     Capability(
         #         id="sdf-data",
         #         name="S3DF Data Storage - /sdf/data",
-        #         units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]
+        #         units=[AllocationUnit.bytes, AllocationUnit.inodes]
         #     ),
-        #     account_models.Capability(
+        #     Capability(
         #         id="sdf-group",
         #         name="S3DF Group Storage - /sdf/group",
-        #         units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]
+        #         units=[AllocationUnit.bytes, AllocationUnit.inodes]
         #     ),
-        #     account_models.Capability(
+        #     Capability(
         #         id="sdf-scratch",
         #         name="S3DF Scratch Storage - /sdf/scratch",
-        #         units=[account_models.AllocationUnit.bytes, account_models.AllocationUnit.inodes]
+        #         units=[AllocationUnit.bytes, AllocationUnit.inodes]
         #     ),
         # ])
         
         return capabilities
     
-    async def get_projects(self, user: account_models.User) -> list[account_models.Project]:
+    async def get_projects(self, user: User) -> list[account_models.Project]:
         """
         coact.Repo → IRI.Project mapping:
         - Id → id
@@ -127,7 +130,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
     async def get_project_allocations(
         self,
         project: account_models.Project,
-        user: account_models.User
+        user: User
     ) -> list[account_models.ProjectAllocation]:
         """
         coact.RepoComputeAllocation → IRI.ProjectAllocation (node_hours)
@@ -153,7 +156,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
                 entries=[account_models.AllocationEntry(
                     allocation=comp_alloc.get("allocated", 0),
                     usage= overall_usage.get("resourceHours", 0) if overall_usage else 0,
-                    unit=account_models.AllocationUnit.node_hours
+                    unit=AllocationUnit.node_hours
                 )]
             ))
         
@@ -162,7 +165,7 @@ class S3DFAccountAdapter(S3DFAuthenticatedAdapter, account_adapter.FacilityAdapt
     
     async def get_user_allocations(
         self,
-        user: account_models.User,
+        user: User,
         project_allocation: account_models.ProjectAllocation
     ) -> list[account_models.UserAllocation]:
         """

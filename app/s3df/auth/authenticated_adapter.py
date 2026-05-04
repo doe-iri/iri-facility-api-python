@@ -23,7 +23,7 @@ if settings.dex_jwks_url:
 class S3DFAuthenticatedAdapter:
     """Mixin: implements AuthenticatedAdapter.get_current_user via Dex JWT + CoAct."""
 
-    async def get_current_user(self, api_key: str, client_ip: str | None) -> str:
+    async def get_current_user(self, api_key: str, client_ip: str |  None, globus_introspect: dict | None = None) -> str:
         if not api_key:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
 
@@ -36,3 +36,8 @@ class S3DFAuthenticatedAdapter:
         #     raise HTTPException(status_code=403, detail="User not authorized")
 
         return username
+    
+    async def get_current_user_globus(self, api_key: str, client_ip: str | None, globus_introspect: dict | None) -> str:
+        # Not implemented currently, return 501: Not Implemented
+        
+        raise HTTPException(status_code=501, detail="Globus authentication not implemented yet")
