@@ -12,6 +12,9 @@ from opentelemetry.sdk.trace.sampling import TraceIdRatioBased, ParentBased
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
+from . import config
+from .apilogger import configure_logging
+
 from app.routers.error_handlers import install_error_handlers
 from app.routers.facility import facility
 from app.routers.status import status
@@ -20,13 +23,7 @@ from app.routers.compute import compute
 from app.routers.filesystem import filesystem
 from app.routers.task import task
 
-from . import config
-from .request_context import set_api_url_base, _api_url_base
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-)
+configure_logging(config.LOG_LEVEL)
 
 # ------------------------------------------------------------------
 # OpenTelemetry Tracing Configuration
