@@ -44,6 +44,9 @@ OPENTELEMETRY_ENABLED = os.environ.get("OPENTELEMETRY_ENABLED", "false").lower()
 OPENTELEMETRY_DEBUG = os.environ.get("OPENTELEMETRY_DEBUG", "false").lower() == "true"
 OTLP_ENDPOINT = os.environ.get("OTLP_ENDPOINT", "")
 OTEL_SAMPLE_RATE = float(os.environ.get("OTEL_SAMPLE_RATE", "0.2"))
+OTEL_TRACES_ENABLED = os.environ.get("OTEL_TRACES_ENABLED", "true").lower() == "true"
+OTEL_METRICS_ENABLED = os.environ.get("OTEL_METRICS_ENABLED", "true").lower() == "true"
+OTEL_METRIC_EXPORT_INTERVAL = int(os.environ.get("OTEL_METRIC_EXPORT_INTERVAL", "60000"))
 
 # Print all startup config for debugging
 logger.info("IRI Facility API starting with config:")
@@ -58,4 +61,7 @@ logger.info(f"OPENTELEMETRY_ENABLED={OPENTELEMETRY_ENABLED}")
 logger.info(f"OPENTELEMETRY_DEBUG={OPENTELEMETRY_DEBUG}")
 logger.info(f"OTLP_ENDPOINT={OTLP_ENDPOINT}")
 logger.info(f"OTEL_SAMPLE_RATE={OTEL_SAMPLE_RATE}")
+logger.info(f"OTEL_TRACES_ENABLED={OTEL_TRACES_ENABLED}")
+logger.info(f"OTEL_METRICS_ENABLED={OTEL_METRICS_ENABLED}")
+logger.info(f"OTEL_METRIC_EXPORT_INTERVAL={OTEL_METRIC_EXPORT_INTERVAL}")
 logger.info("="*40)
