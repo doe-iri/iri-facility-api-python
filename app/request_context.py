@@ -8,18 +8,20 @@ from . import config
 _api_url_base: ContextVar[str | None] = ContextVar("_api_url_base", default=None)
 
 
+def _first_header_value(value: str | None) -> str:
+    """Return the first comma-delimited header value with surrounding whitespace removed."""
+    return (value or "").split(",")[0].strip()
+
+
 def set_api_url_base(request: Request) -> None:
     """Set the per-request API URL base from forwarding headers."""
-    host = (request.headers.get("x-forwarded-host") or
-            request.headers.get("host", "")).split(",")[0].strip()
-    proto = (request.headers.get("x-forwarded-proto") or
-             request.url.scheme).split(",")[0].strip()
-    prefix = (request.headers.get("x-forwarded-prefix")
-              or request.headers.get("x-script-name")
-              or "").rstrip("/")
+    host = _first_header_value(request.headers.get("x-forwarded-host") or request.headers.get("host", ""))
+    proto = _first_header_value(request.headers.get("x-forwarded-proto") or request.url.scheme)
+    prefix = _first_header_value(request.headers.get("x-forwarded-prefix") or request.headers.get("x-script-name")).rstrip("/")
+    api_prefix = config.API_PREFIX.rstrip("/")
     api_url = config.API_URL.strip("/")
     if host:
-        _api_url_base.set(f"{proto}://{host}{prefix}/{api_url}")
+        _api_url_base.set(f"{proto}://{host}{prefix}{api_prefix}/{api_url}")
 
 
 def get_url_prefix() -> str:
