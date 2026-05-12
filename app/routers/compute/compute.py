@@ -9,10 +9,12 @@ from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
 from ..status.status import router as status_router
+from ..task import facility_adapter as task_facility_adapter, models as task_models
 from . import facility_adapter, models
 
 router = iri_router.IriRouter(
     facility_adapter.FacilityAdapter,
+    task_facility_adapter.FacilityAdapter,
     prefix="/compute",
     tags=["compute"],
 )
@@ -31,22 +33,38 @@ async def submit_job(
     job_spec: models.JobSpec,
     request: Request,
     user: User = Depends(router.current_user),
-    _forbid=Depends(forbidExtraQueryParams()),
+    _forbid=Depends(forbidExtraQueryParams("run_as_task")),
+    run_as_task: bool|None = False,
 ):
     """
     Submit a job on a compute resource
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
+    - **run_as_task**: return immediately and start job via the task queue. (Returns the task id as the job's id.)
 
     This command will attempt to submit a job and return its id.
     """
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    # the handler can use whatever means it wants to submit the job and then fill in its id
-    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
-    return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
+    if run_as_task:
+        task = await router.task_adapter.put_task(
+            user=user,
+            resource=resource,
+            task=task_models.TaskCommand(
+                router=router.get_router_name(),
+                command="submit_job",
+                args={
+                    "job_spec": job_spec,
+                },
+            ),
+        )
+        return models.Job(id=task.task_id, status=models.JobStatus(state=models.JobState.NEW), job_spec=job_spec)
+    else:
+        # the handler can use whatever means it wants to submit the job and then fill in its id
+        # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+        return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
 
 
 @router.put(
