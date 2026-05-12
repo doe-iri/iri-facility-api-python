@@ -37,6 +37,7 @@ dev: deps
 	IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
+	IRI_API_ADAPTER_storage=app.demo_adapter.DemoAdapter \
 	IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
 	IRI_LOG_FILE="$${IRI_LOG_FILE:-$${LOG_FILE:-$(IRI_LOG_FILE)}}" \
 	IRI_LOG_ROTATION_DAYS="$${IRI_LOG_ROTATION_DAYS:-$${LOG_ROTATION_DAYS:-$(IRI_LOG_ROTATION_DAYS)}}" \
