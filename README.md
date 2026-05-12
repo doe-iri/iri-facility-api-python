@@ -57,19 +57,56 @@ If using docker (see next section), your dockerfile could extend this reference 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
 - `API_URL`: the path to the api itself. Defaults to `api/v1`.
-- `OPENTELEMETRY_ENABLED`: Enables OpenTelemetry. If enabled, the application will use OpenTelemetry SDKs and emit traces, metrics, and logs. Default to false
-- `OTLP_ENDPOINT`: OpenTelemetry Protocol collector endpoint to export telemetry data. If empty or not set, telemetry data is logged locally to log file. Default: ""
+### OpenTelemetry
+
+The API supports OpenTelemetry for distributed tracing and metrics. Traces and metrics can be independently enabled or disabled.
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENTELEMETRY_ENABLED` | `false` | Master switch. Must be `true` for any telemetry to be emitted. |
+| `OTEL_TRACES_ENABLED` | `true` | Enable trace export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
+| `OTEL_METRICS_ENABLED` | `true` | Enable metric export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
+| `OTLP_ENDPOINT` | `""` | gRPC endpoint for the OTLP collector (e.g. `http://otel-collector:4317`). When empty, telemetry is printed to the console. |
+| `OPENTELEMETRY_DEBUG` | `false` | Sets trace sample rate to 100% (overrides `OTEL_SAMPLE_RATE`). |
+| `OTEL_SAMPLE_RATE` | `0.2` | Trace sampling rate (0.0 to 1.0). Ignored when `OPENTELEMETRY_DEBUG=true`. |
+| `OTEL_METRIC_EXPORT_INTERVAL` | `60000` | Metric export interval in milliseconds. |
+
+When metrics are enabled, the FastAPI instrumentor automatically emits standard HTTP server metrics: `http.server.active_requests`, `http.server.duration`, and `http.server.response.size`.
+
+Examples:
+```bash
+# Traces and metrics to an OTLP collector
+OPENTELEMETRY_ENABLED=true OTLP_ENDPOINT=http://otel-collector:4317
+
+# Traces only, no metrics
+OPENTELEMETRY_ENABLED=true OTEL_METRICS_ENABLED=false
+
+# Metrics only, no traces
+OPENTELEMETRY_ENABLED=true OTEL_TRACES_ENABLED=false
+
+# Debug mode: 100% sampling, console output
+OPENTELEMETRY_ENABLED=true OPENTELEMETRY_DEBUG=true
+```
 
 Links to data, created by this api, will concatenate these values producing links, eg: `https://iri.myfacility.com/my_api_prefix/my_api_url/projects/123`
 
 - `IRI_API_PARAMS`: as described above, this is a way to customize the API meta-data
 - `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.v1.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
 - `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
-- `LOG_LEVEL`: logging level for the API and adapters. Defaults to `DEBUG`.
-- `IRI_LOG_FILE`: file path for API logs. Logs always go to stdout; when this is set, logs also go to the file.
-- `LOG_FILE`: fallback file path for API logs when `IRI_LOG_FILE` is not set.
 
-For local development, `make` writes logs to `runtime-logs.log` by default. Use `make LOG_FILE=/tmp/iri-api.log` or `make IRI_LOG_FILE=/tmp/iri-api.log` to choose a different file. You can also put either variable in `local.env`.
+### Logging
+
+Logs always go to stdout. Optionally, logs can also be written to a rotating file.
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `DEBUG` | Logging level for the API and adapters (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `IRI_LOG_FILE` | _(none)_ | File path for API logs. When set, logs go to both stdout and this file. |
+| `LOG_FILE` | _(none)_ | Fallback file path when `IRI_LOG_FILE` is not set. |
+| `IRI_LOG_ROTATION_DAYS` | `5` | Number of daily rotated log files to retain. |
+| `LOG_ROTATION_DAYS` | `5` | Fallback retention when `IRI_LOG_ROTATION_DAYS` is not set. |
+
+For local development, `make` writes logs to `runtime-logs.log` by default and keeps `5` daily rotated files. Use `make LOG_FILE=/tmp/iri-api.log`, `make IRI_LOG_FILE=/tmp/iri-api.log`, or `make LOG_ROTATION_DAYS=10` to override those defaults. You can also put the same variables in `local.env`.
 
 ## Docker support
 
