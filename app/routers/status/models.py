@@ -6,6 +6,7 @@ from pydantic import Field, computed_field, field_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
+from ...types.scalars import ResourceType, ResourceTypeValue, canonicalize_resource_type, urn_has_complete_prefix
 
 
 class Status(enum.Enum):
@@ -14,18 +15,6 @@ class Status(enum.Enum):
     down = "down"
     degraded = "degraded"
     unknown = "unknown"
-
-
-class ResourceType(enum.Enum):
-    """Represents the type of a resource."""
-    website = "website"
-    service = "service"
-    compute = "compute"
-    system = "system"
-    storage = "storage"
-    network = "network"
-    unknown = "unknown"
-
 
 class Resource(NamedObject):
     """Represents a resource in the system."""
@@ -37,7 +26,7 @@ class Resource(NamedObject):
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
     group: str|None = Field(default=None, description="Logical grouping of the resource", example="frontend")
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
-    resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
+    resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
 
     @computed_field(description="URI of the site where this resource is located")
     @property
@@ -57,9 +46,8 @@ class Resource(NamedObject):
         if group:
             items = [item for item in items if item.group == group]
         if resource_type:
-            if isinstance(resource_type, str):
-                resource_type = ResourceType(resource_type)
-            items = [item for item in items if item.resource_type == resource_type]
+            resource_type = canonicalize_resource_type(resource_type)
+            items = [item for item in items if urn_has_complete_prefix(resource_type, item.resource_type)]
         if current_status:
             items = [item for item in items if item.current_status == current_status]
         if capability:

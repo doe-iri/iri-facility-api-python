@@ -4,7 +4,7 @@ from pydantic import Field, computed_field, field_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import IRIBaseModel
-from ...types.scalars import AllocationUnit
+from ...types.scalars import AllocationUnit, AllocationUnitValue
 
 
 class Project(IRIBaseModel):
@@ -34,7 +34,7 @@ class AllocationEntry(IRIBaseModel):
 
     allocation: float = Field(..., description="Total allocation amount granted.", example=100000.0)  # how much this allocation can spend
     usage: float = Field(..., description="Amount of allocation consumed.", example=52342.5)  # how much this allocation has spent
-    unit: AllocationUnit = Field(..., description="Unit of the allocation (e.g., node_hours, bytes).", example="node_hours")
+    unit: AllocationUnitValue = Field(..., description="DOE IRI URN for the allocation unit.", example=AllocationUnit.node_hours)
 
 
 class ProjectAllocation(IRIBaseModel):

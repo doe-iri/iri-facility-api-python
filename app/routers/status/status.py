@@ -3,7 +3,7 @@ from typing import List
 from fastapi import Depends, HTTPException, Query, Request
 
 from ...types.http import forbidExtraQueryParams
-from ...types.scalars import AllocationUnit, StrictDateTime
+from ...types.scalars import AllocationUnitValue, StrictDateTime, doe_iri_domain_urn_min_length, doe_iri_domain_urn_schema_pattern
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -33,9 +33,15 @@ async def get_resources(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     modified_since: StrictDateTime = Query(default=None),
-    resource_type: models.ResourceType = Query(default=None),
+    resource_type: models.ResourceTypeValue = Query(
+        default=None,
+        min_length=doe_iri_domain_urn_min_length("resource"),
+        pattern=doe_iri_domain_urn_schema_pattern("resource"),
+        description="DOE IRI resource type URN. Legacy short tokens are accepted only as input compatibility aliases and are normalized to canonical URNs.",
+        examples=[models.ResourceType.compute, models.ResourceType.storage],
+    ),
     current_status: models.Status = Query(default=None),
-    capability: List[AllocationUnit] = Query(default=None, min_length=1),
+    capability: List[AllocationUnitValue] = Query(default=None, min_length=1),
     _forbid=Depends(forbidExtraQueryParams("name", "description", "group", "offset", "limit", "modified_since", "resource_type", "current_status", "capability", multiParams={"capability"})),
 ) -> list[models.Resource]:
     return await router.adapter.get_resources(
