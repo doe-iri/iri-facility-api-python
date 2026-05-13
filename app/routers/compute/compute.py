@@ -1,6 +1,6 @@
 """Compute resource API router"""
 
-from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi import Depends, Query, Request, status
 
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
@@ -16,23 +16,6 @@ router = iri_router.IriRouter(
     prefix="/compute",
     tags=["compute"],
 )
-
-
-def _validate_project_account_source(job_spec: models.JobSpec, project_name: str | None) -> None:
-    """Require exactly one project/account source: job spec account or forwarded header."""
-    spec_account = job_spec.attributes.account if job_spec.attributes else None
-    if spec_account and project_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Specify project/account in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project, not both.",
-        )
-    if not spec_account and not project_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Project/account must be specified in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project.",
-        )
-
-
 @router.post(
     "/job/{resource_id:str}",
     response_model=models.Job,
@@ -63,8 +46,6 @@ async def submit_job(
 
     This command will attempt to submit a job and return its id.
     """
-    _validate_project_account_source(job_spec, project_name)
-
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -104,8 +85,6 @@ async def update_job(
       the request is rejected with `400 Bad Request`.
 
     """
-    _validate_project_account_source(job_spec, project_name)
-
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
