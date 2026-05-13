@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, Query, Request, status
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
 from ...types.user import User
+from ...request_context import get_iri_facility_project
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -34,6 +35,22 @@ async def get_resources(
     return await status_router.adapter.get_resources_for_endpoint(status_models.Endpoint.compute)
 
 
+def _validate_project_account_source(job_spec: models.JobSpec) -> None:
+    """Require exactly one project/account source: job spec account or forwarded header."""
+    spec_account = job_spec.attributes.account if job_spec.attributes else None
+    header_account = get_iri_facility_project()
+    if spec_account and header_account:
+        raise HTTPException(
+            status_code=400,
+            detail="Specify project/account in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project, not both.",
+        )
+    if not spec_account and not header_account:
+        raise HTTPException(
+            status_code=400,
+            detail="Project/account must be specified in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project.",
+        )
+
+
 @router.post(
     "/job/{resource_id:str}",
     response_model=models.Job,
@@ -57,6 +74,8 @@ async def submit_job(
 
     This command will attempt to submit a job and return its id.
     """
+    _validate_project_account_source(job_spec)
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
@@ -89,6 +108,8 @@ async def update_job(
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
 
     """
+    _validate_project_account_source(job_spec)
+
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
