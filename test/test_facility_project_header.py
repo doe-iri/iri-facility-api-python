@@ -92,6 +92,26 @@ class FacilityProjectHeaderTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("not both", response.json()["detail"])
 
+    def test_compute_submit_requires_authorization_before_project_validation(self):
+        client = TestClient(APP)
+
+        response = client.post(
+            "/api/v1/compute/job/0",
+            json={"executable": "/bin/echo", "arguments": ["hello"]},
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_compute_update_requires_authorization_before_project_validation(self):
+        client = TestClient(APP)
+
+        response = client.put(
+            "/api/v1/compute/job/0/0",
+            json={"executable": "/bin/echo", "arguments": ["hello"]},
+        )
+
+        self.assertEqual(response.status_code, 401)
+
 
 if __name__ == "__main__":
     unittest.main()

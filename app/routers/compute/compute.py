@@ -28,8 +28,8 @@ async def submit_job(
     resource_id: str,
     job_spec: models.JobSpec,
     request: Request,
-    project_name: str | None = Depends(router.iri_header_project),
     user: User = Depends(router.current_user),
+    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
@@ -67,8 +67,8 @@ async def update_job(
     job_id: str,
     job_spec: models.JobSpec,
     request: Request,
-    project_name: str | None = Depends(router.iri_header_project),
     user: User = Depends(router.current_user),
+    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
