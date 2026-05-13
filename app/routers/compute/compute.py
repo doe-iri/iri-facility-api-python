@@ -5,7 +5,6 @@ from fastapi import Depends, HTTPException, Query, Request, status
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
 from ...types.user import User
-from ...request_context import get_iri_facility_project
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -19,16 +18,15 @@ router = iri_router.IriRouter(
 )
 
 
-def _validate_project_account_source(job_spec: models.JobSpec) -> None:
+def _validate_project_account_source(job_spec: models.JobSpec, project_name: str | None) -> None:
     """Require exactly one project/account source: job spec account or forwarded header."""
     spec_account = job_spec.attributes.account if job_spec.attributes else None
-    header_account = get_iri_facility_project()
-    if spec_account and header_account:
+    if spec_account and project_name:
         raise HTTPException(
             status_code=400,
             detail="Specify project/account in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project, not both.",
         )
-    if not spec_account and not header_account:
+    if not spec_account and not project_name:
         raise HTTPException(
             status_code=400,
             detail="Project/account must be specified in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project.",
@@ -47,6 +45,7 @@ async def submit_job(
     resource_id: str,
     job_spec: models.JobSpec,
     request: Request,
+    project_name: str | None = Depends(router.iri_header_project),
     user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
@@ -55,10 +54,16 @@ async def submit_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
+    - **project/account resolution**:
+      The effective project/account for the submission must be supplied in exactly one place:
+      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
+      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
+      for the downstream submission and related job metadata. If both sources are present, or neither is present,
+      the request is rejected with `400 Bad Request`.
 
     This command will attempt to submit a job and return its id.
     """
-    _validate_project_account_source(job_spec)
+    _validate_project_account_source(job_spec, project_name)
 
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
@@ -81,6 +86,7 @@ async def update_job(
     job_id: str,
     job_spec: models.JobSpec,
     request: Request,
+    project_name: str | None = Depends(router.iri_header_project),
     user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
@@ -90,9 +96,15 @@ async def update_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
+    - **project/account resolution**:
+      The effective project/account for the update must be supplied in exactly one place:
+      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
+      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
+      for downstream update handling and job metadata. If both sources are present, or neither is present,
+      the request is rejected with `400 Bad Request`.
 
     """
-    _validate_project_account_source(job_spec)
+    _validate_project_account_source(job_spec, project_name)
 
     # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)

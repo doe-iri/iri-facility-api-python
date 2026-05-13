@@ -7,6 +7,7 @@ import globus_sdk
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from ..request_context import get_iri_facility_project
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
@@ -158,6 +159,11 @@ class IriRouter(APIRouter):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return user
+
+    async def iri_header_project(self, request: Request) -> str | None:
+        """Expose the forwarded facility-project header as a router dependency."""
+        del request
+        return get_iri_facility_project()
 
 
 class AuthenticatedAdapter(ABC):

@@ -37,6 +37,27 @@ The reference implementation is meant to be customized for your facility's IRI i
 ### Customizing the business logic for your facility
 The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance.
 
+## Forwarded Project Header For Compute Requests
+
+Compute submission and update requests support a trusted forwarded header named `X-IRI-Facility-Project`.
+
+This header is intended for deployments where an upstream trusted component has already resolved the caller's project/account into the facility-native value required by the downstream scheduler or execution system.
+
+When `X-IRI-Facility-Project` is present and valid:
+
+- IRI treats that header value as the effective project/account for the compute request.
+- The downstream compute adapter receives the request as if that value were the facility-native account to use for job submission or update.
+- Implementations may surface that effective value in returned job metadata, scheduler requests, labels, annotations, or similar downstream submission context.
+
+For compute submit/update requests, the effective project/account must be specified in exactly one place:
+
+- `job_spec.attributes.account`, or
+- `X-IRI-Facility-Project`
+
+If both are provided, IRI returns `400 Bad Request`.
+If neither is provided, IRI returns `400 Bad Request`.
+This behavior is specific to compute submission/update handling; read-only endpoints are unchanged.
+
 The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
 
 As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data.
