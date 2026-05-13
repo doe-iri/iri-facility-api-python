@@ -162,7 +162,6 @@ class IriRouter(APIRouter):
 
     async def iri_header_project(self, request: Request) -> str | None:
         """Expose the forwarded facility-project header as a router dependency."""
-        del request
         return get_iri_facility_project()
 
 
