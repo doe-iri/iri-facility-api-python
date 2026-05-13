@@ -163,7 +163,6 @@ class IriRouter(APIRouter):
 
     async def iri_header_project(self, request: Request, job_spec: dict[str, Any] | None = Body(default=None)) -> str | None:
         """Expose and validate the forwarded facility-project header for compute routes."""
-        del request
         project_name = get_iri_facility_project()
         spec_account = None
         if job_spec is not None:
