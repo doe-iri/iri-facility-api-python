@@ -30,6 +30,7 @@ from .routers.status import facility_adapter as status_adapter
 from .routers.status import models as status_models
 from .routers.task import facility_adapter as task_adapter
 from .routers.task import models as task_models
+from .request_context import get_iri_facility_project
 from .types.models import Capability
 from .types.user import User
 from .types.scalars import AllocationUnit
@@ -542,6 +543,8 @@ class DemoAdapter(
         user: User,
         job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
+        facility_project = get_iri_facility_project()
+        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
@@ -549,7 +552,7 @@ class DemoAdapter(
                 time=utc_timestamp(),
                 message="job submitted",
                 exit_code=0,
-                meta_data={"account": "account1"},
+                meta_data={"account": account},
             ),
         )
 
@@ -560,6 +563,8 @@ class DemoAdapter(
         job_spec: compute_models.JobSpec,
         job_id: str,
     ) -> compute_models.Job:
+        facility_project = get_iri_facility_project()
+        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
@@ -567,7 +572,7 @@ class DemoAdapter(
                 time=utc_timestamp(),
                 message="job updated",
                 exit_code=0,
-                meta_data={"account": "account1"},
+                meta_data={"account": account},
             ),
         )
 

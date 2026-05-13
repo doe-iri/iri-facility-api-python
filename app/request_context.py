@@ -6,6 +6,7 @@ from fastapi import Request
 from . import config
 
 _api_url_base: ContextVar[str | None] = ContextVar("_api_url_base", default=None)
+_iri_facility_project: ContextVar[str | None] = ContextVar("_iri_facility_project", default=None)
 
 
 def _first_header_value(value: str | None) -> str:
@@ -22,6 +23,8 @@ def set_api_url_base(request: Request) -> None:
     api_url = config.API_URL.strip("/")
     if host:
         _api_url_base.set(f"{proto}://{host}{prefix}{api_prefix}/{api_url}")
+    facility_project = _first_header_value(request.headers.get("x-iri-facility-project"))
+    _iri_facility_project.set(facility_project or None)
 
 
 def get_url_prefix() -> str:
@@ -30,3 +33,8 @@ def get_url_prefix() -> str:
     if value:
         return value
     return f"{config.API_URL_ROOT}{config.API_PREFIX}{config.API_URL}"
+
+
+def get_iri_facility_project() -> str | None:
+    """Return the facility-native project/account identifier forwarded by RIG."""
+    return _iri_facility_project.get()
