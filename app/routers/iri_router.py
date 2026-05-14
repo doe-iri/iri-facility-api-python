@@ -4,8 +4,8 @@ import json
 import os
 import logging
 import importlib
+import threading
 import time
-from functools import lru_cache
 from typing import Any
 import jwt
 from jwt import PyJWKClient
@@ -18,6 +18,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
+_DISCOVERY_TIMEOUT_SECONDS = float(os.environ.get("OIDC_DISCOVERY_TIMEOUT_SECONDS", "10"))
+_DISCOVERY_CACHE_TTL_SECONDS = float(os.environ.get("OIDC_DISCOVERY_CACHE_TTL_SECONDS", "300"))
+_JWKS_CACHE_LIFESPAN_SECONDS = float(os.environ.get("OIDC_JWKS_CACHE_LIFESPAN_SECONDS", "3600"))
+_oidc_remote_cache_lock = threading.Lock()
+_oidc_remote_cache: dict[str, tuple[float, dict[str, Any], PyJWKClient]] = {}
 
 
 def _oidc_auth_config() -> dict[str, str] | None:
@@ -45,13 +50,12 @@ def _oidc_auth_config() -> dict[str, str] | None:
     }
 
 
-@lru_cache(maxsize=8)
-def _load_oidc_discovery_document(discovery_uri: str) -> dict[str, Any]:
+def _fetch_oidc_discovery_document(discovery_uri: str) -> dict[str, Any]:
     request = UrlRequest(
         discovery_uri,
         headers={"Accept": "application/json"},
     )
-    with urlopen(request, timeout=10) as response:
+    with urlopen(request, timeout=_DISCOVERY_TIMEOUT_SECONDS) as response:
         payload = response.read().decode("utf-8")
     metadata = json.loads(payload)
     jwks_uri = metadata.get("jwks_uri")
@@ -60,10 +64,40 @@ def _load_oidc_discovery_document(discovery_uri: str) -> dict[str, Any]:
     return metadata
 
 
-@lru_cache(maxsize=8)
-def _jwks_client(discovery_uri: str) -> PyJWKClient:
-    metadata = _load_oidc_discovery_document(discovery_uri)
-    return PyJWKClient(metadata["jwks_uri"])
+def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], PyJWKClient]:
+    now = time.time()
+    cached: tuple[float, dict[str, Any], PyJWKClient] | None = None
+    with _oidc_remote_cache_lock:
+        cached = _oidc_remote_cache.get(discovery_uri)
+        if cached and now - cached[0] < _DISCOVERY_CACHE_TTL_SECONDS:
+            return cached[1], cached[2]
+
+    try:
+        metadata = _fetch_oidc_discovery_document(discovery_uri)
+    except Exception:
+        if cached:
+            logging.getLogger(__name__).warning(
+                "OIDC discovery refresh failed for %s; using cached metadata and JWKS client",
+                discovery_uri,
+                exc_info=True,
+            )
+            return cached[1], cached[2]
+        raise
+
+    with _oidc_remote_cache_lock:
+        cached = _oidc_remote_cache.get(discovery_uri)
+        if cached and cached[1].get("jwks_uri") == metadata["jwks_uri"]:
+            jwks_client = cached[2]
+        else:
+            jwks_client = PyJWKClient(
+                metadata["jwks_uri"],
+                cache_keys=True,
+                cache_jwk_set=True,
+                lifespan=_JWKS_CACHE_LIFESPAN_SECONDS,
+                timeout=_DISCOVERY_TIMEOUT_SECONDS,
+            )
+        _oidc_remote_cache[discovery_uri] = (now, metadata, jwks_client)
+        return metadata, jwks_client
 
 
 def _normalize_scope_claim(scope: Any) -> set[str]:
@@ -80,12 +114,12 @@ def _decode_oidc_jwt(
     discovery_uri: str,
     required_audience: str,
 ) -> dict[str, Any]:
-    metadata = _load_oidc_discovery_document(discovery_uri)
-    signing_key = _jwks_client(discovery_uri).get_signing_key_from_jwt(api_key)
+    metadata, jwks_client = _load_oidc_remote_state(discovery_uri)
+    signing_key = jwks_client.get_signing_key_from_jwt(api_key)
     return jwt.decode(
         api_key,
-        signing_key.key,
-        algorithms=["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "EdDSA"],
+        signing_key,
+        algorithms=None,
         audience=required_audience,
         issuer=metadata["issuer"],
         options={"require": ["exp", "iat", "nbf", "iss"]},
@@ -175,16 +209,6 @@ class IriRouter(APIRouter):
 
         logging.getLogger().info("PING OIDC JWT VALIDATION CLAIMS:")
         logging.getLogger().info(token_info)
-
-        # Check exp (expiration time) claim
-        exp = token_info.get("exp")
-        if exp and time.time() >= exp:
-            raise Exception("Token has expired")
-
-        # Check nbf (not before) claim
-        nbf = token_info.get("nbf")
-        if nbf and time.time() < nbf:
-            raise Exception("Token not yet valid")
 
         required_scopes = config["required_scopes"]
         if required_scopes:
