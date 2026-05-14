@@ -6,8 +6,6 @@ from fastapi import Request
 from . import config
 
 _api_url_base: ContextVar[str | None] = ContextVar("_api_url_base", default=None)
-
-
 def _first_header_value(value: str | None) -> str:
     """Return the first comma-delimited header value with surrounding whitespace removed."""
     return (value or "").split(",")[0].strip()
