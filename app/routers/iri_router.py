@@ -166,8 +166,12 @@ class IriRouter(APIRouter):
         project_name = get_iri_facility_project()
         spec_account = None
         if job_spec is not None:
-            attributes = job_spec.get("attributes") or {}
-            spec_account = attributes.get("account")
+            attributes = job_spec.get("attributes")
+            if isinstance(attributes, dict):
+                spec_account = attributes.get("account")
+            elif attributes is not None:
+                # Leave malformed body handling to FastAPI/Pydantic validation.
+                return project_name
         if spec_account and project_name:
             raise HTTPException(
                 status_code=400,

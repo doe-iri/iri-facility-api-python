@@ -112,6 +112,34 @@ class FacilityProjectHeaderTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_compute_submit_malformed_attributes_does_not_500(self):
+        client = TestClient(APP)
+        resources_response = client.get("/api/v1/status/resources")
+        self.assertEqual(resources_response.status_code, 200)
+        resource_id = resources_response.json()[0]["id"]
+
+        response = client.post(
+            f"/api/v1/compute/job/{resource_id}",
+            headers={"authorization": "Bearer 12345"},
+            json={"executable": "/bin/echo", "arguments": ["hello"], "attributes": [None, None]},
+        )
+
+        self.assertIn(response.status_code, {400, 422})
+
+    def test_compute_update_malformed_attributes_does_not_500(self):
+        client = TestClient(APP)
+        resources_response = client.get("/api/v1/status/resources")
+        self.assertEqual(resources_response.status_code, 200)
+        resource_id = resources_response.json()[0]["id"]
+
+        response = client.put(
+            f"/api/v1/compute/job/{resource_id}/0",
+            headers={"authorization": "Bearer 12345"},
+            json={"executable": "/bin/echo", "arguments": ["hello"], "attributes": [None, None]},
+        )
+
+        self.assertIn(response.status_code, {400, 422})
+
 
 if __name__ == "__main__":
     unittest.main()
