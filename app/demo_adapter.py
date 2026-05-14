@@ -113,7 +113,7 @@ class DemoAdapter(
         self.project_allocations = []
         self.user_allocations = []
         self.facility = {}
-        self.locations = {}  # resource_id -> list[StorageMount]
+        self.locations = {}  # resource_id -> list[StorageInstance templates]
         self.sites = []
         self._init_state()
 
@@ -259,7 +259,7 @@ class DemoAdapter(
         # Perlmutter compute nodes: in-job semantics. Home is read-only inside a job;
         # archive (HPSS) is not accessible from compute, so it isn't mounted here at all.
         self.locations[pm.id] = [
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.home,
                 path="/global/homes/{first}/{user}",
                 access=_ro,
@@ -270,7 +270,7 @@ class DemoAdapter(
                 purge_policy_days=None,
                 shared=False,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.scratch,
                 path="/pscratch/sd/{first}/{user}",
                 access=_rw,
@@ -281,7 +281,7 @@ class DemoAdapter(
                 purge_policy_days=30,
                 shared=False,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.project,
                 path="/global/project/projectdirs/{project}/{user}",
                 access=_rw,
@@ -292,7 +292,7 @@ class DemoAdapter(
                 purge_policy_days=None,
                 shared=True,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.campaign,
                 path="/global/cfs/cdirs/{project}/campaign/{user}",
                 access=_rw,
@@ -308,7 +308,7 @@ class DemoAdapter(
         # HPSS tape system: archive only; user accesses it through this resource_id
         # (typically via login nodes or htar). Archive is rw from this resource.
         self.locations[hpss.id] = [
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.archive,
                 path="/home/{first}/{user}",
                 access=_rw,
@@ -324,7 +324,7 @@ class DemoAdapter(
         # CFS / GPFS resource (queried via login nodes / DTN-style endpoint): all tiers rw,
         # shared is read-only because it's the project-shared landing area.
         self.locations[cfs.id] = [
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.home,
                 path="/global/homes/{first}/{user}",
                 access=_rw,
@@ -335,7 +335,7 @@ class DemoAdapter(
                 purge_policy_days=None,
                 shared=False,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.scratch,
                 path="/pscratch/sd/{first}/{user}",
                 access=_rw,
@@ -346,7 +346,7 @@ class DemoAdapter(
                 purge_policy_days=30,
                 shared=False,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.project,
                 path="/global/project/projectdirs/{project}/{user}",
                 access=_rw,
@@ -357,7 +357,7 @@ class DemoAdapter(
                 purge_policy_days=None,
                 shared=True,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.campaign,
                 path="/global/cfs/cdirs/{project}/campaign/{user}",
                 access=_rw,
@@ -368,7 +368,7 @@ class DemoAdapter(
                 purge_policy_days=120,
                 shared=True,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.shared,
                 path="/global/cfs/cdirs/{project}/shared",
                 access=_ro,
@@ -379,7 +379,7 @@ class DemoAdapter(
                 purge_policy_days=None,
                 shared=True,
             ),
-            storage_models.StorageMount(
+            storage_models.StorageInstance(
                 logical_name=storage_models.LogicalName.temporary,
                 path="/tmp/{user}",
                 access=_rw,
@@ -804,20 +804,17 @@ class DemoAdapter(
 
     def _apply_intent_filter(
         self,
-        mount: storage_models.StorageMount,
+        instance: storage_models.StorageInstance,
         intent: storage_models.StorageIntent | None,
     ) -> bool:
-        """Return False if this mount should be excluded for the given intent."""
+        """Return False if this storage instance should be excluded for the given intent."""
         if intent == storage_models.StorageIntent.long_term_storage:
-            return mount.logical_name == storage_models.LogicalName.archive
+            return instance.logical_name == storage_models.LogicalName.archive
         if intent == storage_models.StorageIntent.staging:
-            return mount.logical_name != storage_models.LogicalName.archive
+            return instance.logical_name != storage_models.LogicalName.archive
         if intent == storage_models.StorageIntent.write:
-            return mount.access.write
+            return instance.access.write
         return True
-
-    async def get_logical_names(self) -> list[storage_models.LogicalName]:
-        return list(storage_models.LogicalName)
 
     async def get_locations(
         self,
@@ -827,7 +824,7 @@ class DemoAdapter(
         project: str | None,
         allocation: str | None,
         intent: storage_models.StorageIntent | None,
-    ) -> list[storage_models.StorageLocation]:
+    ) -> list[storage_models.StorageInstance]:
         templates = self.locations.get(resource.id, [])
         effective_project = project or allocation
 
@@ -849,7 +846,7 @@ class DemoAdapter(
             expand_over = project_codes if is_project_scoped else [None]
 
             for code in expand_over:
-                result.append(storage_models.StorageLocation(
+                result.append(storage_models.StorageInstance(
                     logical_name=m.logical_name,
                     path=self._resolve_path(m.path, user, code),
                     filesystem=m.filesystem,
@@ -859,42 +856,6 @@ class DemoAdapter(
                     purge_policy_days=m.purge_policy_days,
                     shared=m.shared,
                     access=m.access,
-                ))
-        return result
-
-    async def get_mounts(
-        self,
-        resource: status_models.Resource,
-        user: User,
-        project: str | None,
-        intent: storage_models.StorageIntent | None,
-    ) -> list[storage_models.StorageMount]:
-        templates = self.locations.get(resource.id, [])
-
-        if project and not self._user_member_of(user, project):
-            raise HTTPException(status_code=403, detail=f"User is not a member of project '{project}'")
-
-        project_codes = [project] if project else self._user_project_codes(user)
-
-        result = []
-        for m in templates:
-            if not self._apply_intent_filter(m, intent):
-                continue
-
-            is_project_scoped = "{project}" in m.path
-            expand_over = project_codes if is_project_scoped else [None]
-
-            for code in expand_over:
-                result.append(storage_models.StorageMount(
-                    logical_name=m.logical_name,
-                    path=self._resolve_path(m.path, user, code),
-                    access=m.access,
-                    filesystem=m.filesystem,
-                    performance_tier=m.performance_tier,
-                    quota_bytes=m.quota_bytes,
-                    available_bytes=m.available_bytes,
-                    purge_policy_days=m.purge_policy_days,
-                    shared=m.shared,
                 ))
         return result
 

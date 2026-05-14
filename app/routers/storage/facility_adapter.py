@@ -14,11 +14,6 @@ class FacilityAdapter(AuthenticatedAdapter):
     """
 
     @abstractmethod
-    async def get_logical_names(self) -> list[storage_models.LogicalName]:
-        """Return the logical filesystem tier names supported at this facility."""
-        pass
-
-    @abstractmethod
     async def get_locations(
         self,
         resource: status_models.Resource,
@@ -27,9 +22,11 @@ class FacilityAdapter(AuthenticatedAdapter):
         project: str | None,
         allocation: str | None,
         intent: storage_models.StorageIntent | None,
-    ) -> list[storage_models.StorageLocation]:
+    ) -> list[storage_models.StorageInstance]:
         """
-        Return resolved storage paths for the user at the given resource.
+        Return resolved storage paths for the user at the given resource. The returned
+        instances also capture the access semantics of that resource context, so callers
+        do not need a separate mounts endpoint.
         Results are optionally filtered by logical name, project/allocation, and intent.
 
         Intent semantics:
@@ -37,23 +34,5 @@ class FacilityAdapter(AuthenticatedAdapter):
           - long-term-storage: return only archive
           - write: exclude paths that are read-only in a job context
           - read: no filtering (all accessible paths)
-        """
-        pass
-
-    @abstractmethod
-    async def get_mounts(
-        self,
-        resource: status_models.Resource,
-        user: User,
-        project: str | None,
-        intent: storage_models.StorageIntent | None,
-    ) -> list[storage_models.StorageMount]:
-        """
-        Return all storage volumes mounted at the resource. The access permissions
-        in each StorageMount reflect what the user can do *through this resource_id*:
-        a compute resource shows in-job permissions; a login / DTN / Globus resource
-        shows what that endpoint can do. Callers select the appropriate resource_id
-        for the context they need (e.g. compute resource for jobs, Globus collection
-        for transfers).
         """
         pass

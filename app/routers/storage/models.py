@@ -29,10 +29,9 @@ class AccessPermissions(BaseModel):
     execute: bool = Field(..., description="Execute/traverse permission", example=True)
 
 
-class StorageLocation(BaseModel):
+class StorageInstance(BaseModel):
     """
-    Resolved storage path for a user at a resource, for a given logical filesystem tier.
-    Answers: given this user/project/intent, where should data live at this facility?
+    A concrete storage instance visible through a resource for a given logical filesystem tier.
     """
     logical_name: LogicalName = Field(
         ...,
@@ -76,59 +75,5 @@ class StorageLocation(BaseModel):
     )
     access: AccessPermissions = Field(
         ...,
-        description="Access permissions at this location",
-    )
-
-
-class StorageMount(BaseModel):
-    """
-    A storage volume mounted at a resource. The access permissions reflect what the
-    user can do *through this resource_id*: a compute resource shows in-job semantics,
-    a login/DTN/Globus resource shows the permissions available from that endpoint.
-    Callers query the appropriate resource_id for the context they need.
-    """
-    logical_name: LogicalName = Field(
-        ...,
-        description="Logical filesystem tier name",
-        example="scratch",
-    )
-    path: str = Field(
-        ...,
-        description="Absolute mount path visible to the user",
-        example="/pscratch/sd/j/jbalcas",
-    )
-    access: AccessPermissions = Field(
-        ...,
-        description="Access permissions for this volume through this resource_id "
-                    "(compute resource = in-job; login/DTN/Globus resource = outside-job).",
-    )
-    filesystem: str | None = Field(
-        default=None,
-        description="Underlying filesystem type or label",
-        example="lustre-scratch",
-    )
-    performance_tier: str | None = Field(
-        default=None,
-        description="Performance tier classification (high / medium / low / tape)",
-        example="high",
-    )
-    quota_bytes: int | None = Field(
-        default=None,
-        description="Total quota in bytes (None = unlimited or unknown)",
-        example=5000000000000,
-    )
-    available_bytes: int | None = Field(
-        default=None,
-        description="Available bytes remaining within the quota",
-        example=4200000000000,
-    )
-    purge_policy_days: int | None = Field(
-        default=None,
-        description="Days of inactivity before automatic purge; None means no purge policy",
-        example=30,
-    )
-    shared: bool = Field(
-        default=False,
-        description="True if the path is shared across multiple users or projects",
-        example=False,
+        description="Access permissions through the queried resource context",
     )
