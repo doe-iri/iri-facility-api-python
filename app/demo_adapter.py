@@ -180,6 +180,7 @@ class DemoAdapter(
             current_status=status_models.Status.degraded,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.compute,
+            supported_endpoints=[status_models.Endpoint.compute],
         )
 
         hpss = status_models.Resource(
@@ -192,6 +193,7 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
+            supported_endpoints=[status_models.Endpoint.filesystem],
         )
 
         cfs = status_models.Resource(
@@ -204,6 +206,7 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
+            supported_endpoints=[status_models.Endpoint.filesystem],
         )
 
         login = status_models.Resource(
@@ -412,6 +415,9 @@ class DemoAdapter(
 
     async def get_resource(self: "DemoAdapter", id_: str) -> status_models.Resource:
         return status_models.Resource.find_by_id(self.resources, id_)
+
+    async def get_resources_for_endpoint(self: "DemoAdapter", endpoint: status_models.Endpoint) -> list[status_models.Resource]:
+        return [r for r in self.resources if endpoint in r.supported_endpoints]
 
     async def get_events(
         self: "DemoAdapter",

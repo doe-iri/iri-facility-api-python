@@ -21,11 +21,15 @@ class FacilityAdapter(ABC):
         description: str | None = None,
         group: str | None = None,
         modified_since: datetime.datetime | None = None,
-        resource_type: status_models.ResourceType|None = None,
-        current_status: status_models.Status|None = None,
+        resource_type: status_models.ResourceType | None = None,
+        current_status: status_models.Status | None = None,
         capability: Capability | None = None,
         site_id: str | None = None,
     ) -> list[status_models.Resource]:
+        pass
+
+    @abstractmethod
+    async def get_resources_for_endpoint(self: "FacilityAdapter", endpoint: status_models.Endpoint) -> list[status_models.Resource]:
         pass
 
     @abstractmethod
