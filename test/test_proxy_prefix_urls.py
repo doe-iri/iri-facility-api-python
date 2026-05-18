@@ -16,7 +16,7 @@ class ProxyPrefixUrlTests(unittest.TestCase):
         client = TestClient(APP)
 
         response = client.get(
-            "/api/v1/status/resources",
+            "/api/v2/status/resources",
             headers={
                 "x-forwarded-host": "localhost.rig.american-science-cloud.org",
                 "x-forwarded-proto": "https",
@@ -31,18 +31,18 @@ class ProxyPrefixUrlTests(unittest.TestCase):
         first = resources[0]
         self.assertTrue(
             first["self_uri"].startswith(
-                "https://localhost.rig.american-science-cloud.org/esnet-east/api/v1/status/resources/"
+                "https://localhost.rig.american-science-cloud.org/esnet-east/api/v2/status/resources/"
             )
         )
         self.assertTrue(
             first["site_uri"].startswith(
-                "https://localhost.rig.american-science-cloud.org/esnet-east/api/v1/facility/sites/"
+                "https://localhost.rig.american-science-cloud.org/esnet-east/api/v2/facility/sites/"
             )
         )
         self.assertTrue(
             all(
                 capability_uri.startswith(
-                    "https://localhost.rig.american-science-cloud.org/esnet-east/api/v1/account/capabilities/"
+                    "https://localhost.rig.american-science-cloud.org/esnet-east/api/v2/account/capabilities/"
                 )
                 for capability_uri in first["capability_uris"]
             )

@@ -50,7 +50,7 @@ If using docker (see next section), your dockerfile could extend this reference 
 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
-- `API_URL`: the path to the api itself. Defaults to `api/v1`.
+- `API_URL`: the path to the api itself. Defaults to `api/v2`.
 ### OpenTelemetry
 
 The API supports OpenTelemetry for distributed tracing and metrics. Traces and metrics can be independently enabled or disabled.
