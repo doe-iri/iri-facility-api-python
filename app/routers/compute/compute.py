@@ -8,7 +8,7 @@ from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
-from ..status.status import router as status_router
+from ..status.status import router as status_router, models as status_models
 from . import facility_adapter, models
 
 router = iri_router.IriRouter(
@@ -16,6 +16,22 @@ router = iri_router.IriRouter(
     prefix="/compute",
     tags=["compute"],
 )
+
+
+@router.get(
+    "/resources",
+    response_model=list[status_models.Resource],
+    response_model_exclude_unset=True,
+    responses=DEFAULT_RESPONSES,
+    operation_id="getComputeResources",
+    openapi_extra=iri_meta_dict("planned"),
+)
+async def get_resources(
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+):
+    """Get a list of resources that can be used in this endpoint"""
+    return await status_router.adapter.get_resources_for_endpoint(status_models.Endpoint.compute)
 
 
 @router.post(
