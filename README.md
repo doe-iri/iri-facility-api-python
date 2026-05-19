@@ -86,6 +86,21 @@ Links to data, created by this api, will concatenate these values producing link
 
 - `IRI_API_PARAMS`: as described above, this is a way to customize the API meta-data
 - `IRI_API_ADAPTER_*`: these values specify the business logic for the per-api-group implementation of a facility_adapter. For example: `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter` would load the implementation of the `app.routers.status.facility_adapter.FacilityAdapter` abstract class to handle the `status` business logic for your facility.
+
+  The full list of router adapters and the abstract base class each must implement:
+
+  | Variable | Mounted at | Abstract base class your adapter must subclass |
+  |---|---|---|
+  | `IRI_API_ADAPTER_facility`   | `/facility/...`   | [`app.routers.facility.facility_adapter.FacilityAdapter`](app/routers/facility/facility_adapter.py) |
+  | `IRI_API_ADAPTER_status`     | `/status/...`     | [`app.routers.status.facility_adapter.FacilityAdapter`](app/routers/status/facility_adapter.py) |
+  | `IRI_API_ADAPTER_account`    | `/account/...`    | [`app.routers.account.facility_adapter.FacilityAdapter`](app/routers/account/facility_adapter.py) |
+  | `IRI_API_ADAPTER_compute`    | `/compute/...`    | [`app.routers.compute.facility_adapter.FacilityAdapter`](app/routers/compute/facility_adapter.py) |
+  | `IRI_API_ADAPTER_filesystem` | `/filesystem/...` | [`app.routers.filesystem.facility_adapter.FacilityAdapter`](app/routers/filesystem/facility_adapter.py) |
+  | `IRI_API_ADAPTER_storage`    | `/storage/...`    | [`app.routers.storage.facility_adapter.FacilityAdapter`](app/routers/storage/facility_adapter.py) |
+  | `IRI_API_ADAPTER_task`       | `/task/...`       | [`app.routers.task.facility_adapter.FacilityAdapter`](app/routers/task/facility_adapter.py) |
+
+  Each value is a `module.path.ClassName` string. `app.demo_adapter.DemoAdapter` implements all of them and is what `make dev` wires up by default. A router whose `IRI_API_ADAPTER_*` is not set is hidden from the API at startup unless `IRI_SHOW_MISSING_ROUTES=true`.
+
 - `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
 
 ### Logging
