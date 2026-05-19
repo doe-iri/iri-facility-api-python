@@ -3,10 +3,12 @@ import os
 import logging
 import importlib
 import time
+from typing import Any
 import globus_sdk
-from fastapi import Request, Depends, HTTPException, APIRouter
+from fastapi import Body, Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from ..request_context import get_iri_facility_project
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
@@ -158,6 +160,29 @@ class IriRouter(APIRouter):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return user
+
+    async def iri_header_project(self, request: Request, job_spec: dict[str, Any] | None = Body(default=None)) -> str | None:
+        """Expose and validate the forwarded facility-project header for compute routes."""
+        project_name = get_iri_facility_project()
+        spec_account = None
+        if job_spec is not None:
+            attributes = job_spec.get("attributes")
+            if isinstance(attributes, dict):
+                spec_account = attributes.get("account")
+            elif attributes is not None:
+                # Leave malformed body handling to FastAPI/Pydantic validation.
+                return project_name
+        if spec_account and project_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Specify project/account in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project, not both.",
+            )
+        if not spec_account and not project_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Project/account must be specified in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project.",
+            )
+        return project_name
 
 
 class AuthenticatedAdapter(ABC):

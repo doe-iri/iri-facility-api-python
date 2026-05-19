@@ -1,6 +1,6 @@
 """Compute resource API router"""
 
-from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi import Depends, Query, Request, status
 
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
@@ -47,6 +47,7 @@ async def submit_job(
     job_spec: models.JobSpec,
     request: Request,
     user: User = Depends(router.current_user),
+    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
@@ -54,6 +55,12 @@ async def submit_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
+    - **project/account resolution**:
+      The effective project/account for the submission must be supplied in exactly one place:
+      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
+      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
+      for the downstream submission and related job metadata. If both sources are present, or neither is present,
+      the request is rejected with `400 Bad Request`.
 
     This command will attempt to submit a job and return its id.
     """
@@ -79,6 +86,7 @@ async def update_job(
     job_spec: models.JobSpec,
     request: Request,
     user: User = Depends(router.current_user),
+    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
 ):
     """
@@ -87,6 +95,12 @@ async def update_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
+    - **project/account resolution**:
+      The effective project/account for the update must be supplied in exactly one place:
+      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
+      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
+      for downstream update handling and job metadata. If both sources are present, or neither is present,
+      the request is rejected with `400 Bad Request`.
 
     """
     # look up the resource (todo: maybe ensure it's available)
