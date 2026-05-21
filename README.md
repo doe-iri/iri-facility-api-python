@@ -163,19 +163,106 @@ ENV IRI_API_PARAMS='{ \
 }'
 ```
 
-## Globus auth integration
+## Authentication
 
-You can optionally use globus for authorization. Steps to use globus:
-- ask someone to add your globus account to the IRI Resource Server
-- log into globus and make a secret for yourself for the IRI Resource Server
-- if you want to create tokens during developent, also create a separate globus app
-- `cp local-template.env local.env` and fill in the missing values
-- to mint a token, run `make globus`, click the link and copy the code from the browser url bar back into the terminal
-- you can also run `make manage-globus` but be sure to not accidentally delete the `iri-api` scope. (Maybe it's better if you don't run this app)
-- now you can run `make` for the dev server and enjoy using your globus iri access tokens (in the demo adapter they will all resolve to the user `gtorok`)
-- for your facility:
-   - implement the `get_current_user_globus` method (see iri_adapter.py). Here you can look at the linked globus identities and session info to determine what the local username is
-   - make sure the values in `local.env` are available in the deployed app
+The IRI API supports three authentication paths, tried in order. The first path that
+successfully identifies a user short-circuits the chain. If all three fail, a `401` is
+returned with a combined error message from each failed attempt.
+
+```
+1. AmSC PingAM OIDC       JWKS-offline JWT validation    IRI_AUTH_AMSC=true  + OIDC_* vars
+2. Globus introspection   token introspection call        IRI_AUTH_GLOBUS=true + GLOBUS_RS_* vars
+3. Facility API key       adapter.get_current_user()      always active
+```
+
+Both external IdP paths default to **off** and must be explicitly opted in.
+Accepted truthy values: `true`, `1`, `on`, `yes`.
+Accepted falsy values: `false`, `0`, `off`, `no`.
+
+### AmSC PingAM OIDC
+
+Validates inbound JWTs offline via the IdP's JWKS — no introspection round-trip.
+Signing algorithms are derived from the discovery document's
+`id_token_signing_alg_values_supported` field; `HS*` (HMAC) algorithms are always
+rejected even if advertised.
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `IRI_AUTH_AMSC` | `false` | — | Enable this path. Must be `true` to activate. |
+| `OIDC_DISCOVERY_URI` | _(none)_ | ✓ | Full URL to the `.well-known/openid-configuration` endpoint. |
+| `OIDC_CLIENT_ID` | _(none)_ | ✓ | OIDC client ID. Used as the default expected audience. |
+| `OIDC_REQUIRED_AUDIENCE` | _(value of `OIDC_CLIENT_ID`)_ | — | Override the expected `aud` claim. Set this when tokens are issued for a different client ID than the one used for discovery (e.g. Kong's service-account client vs. the user-facing app client). |
+| `OIDC_REQUIRED_SCOPES` | _(none)_ | — | Space- or comma-separated scopes that must be present in the token. Also accepted as `OIDC_REQUIRED_SCOPE`. |
+| `OIDC_DISCOVERY_TIMEOUT_SECONDS` | `10` | — | HTTP timeout (seconds) for discovery + JWKS requests. |
+| `OIDC_DISCOVERY_CACHE_TTL_SECONDS` | `300` | — | Seconds to cache the JWKS keyset in memory before re-fetching. Cache hits/misses are logged at `INFO`. |
+
+Minimal example:
+```bash
+IRI_AUTH_AMSC=true
+OIDC_DISCOVERY_URI=https://identity.dev.amsc.ornl.gov/am/oauth2/.well-known/openid-configuration
+OIDC_CLIENT_ID=019de45f-94a0-77c8-918b-10f37667733d
+```
+
+### Globus token introspection
+
+Calls Globus Auth to introspect the bearer token. Enforces `active`, `exp`/`nbf`,
+the required IRI scope, and a recent `session_info.authentications` entry.
+Implement `get_current_user_globus(api_key, client_ip, globus_introspect)` in your
+facility adapter to map the Globus identity to a local user ID.
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `IRI_AUTH_GLOBUS` | `false` | — | Enable this path. Must be `true` to activate. |
+| `GLOBUS_RS_ID` | _(none)_ | ✓ | Globus resource-server client ID. |
+| `GLOBUS_RS_SECRET` | _(none)_ | ✓ | Globus resource-server client secret. |
+| `GLOBUS_RS_SCOPE_SUFFIX` | _(none)_ | ✓ | Appended to `https://auth.globus.org/scopes/{GLOBUS_RS_ID}/` to form the required scope. |
+
+Minimal example:
+```bash
+IRI_AUTH_GLOBUS=true
+GLOBUS_RS_ID=<resource-server-client-id>
+GLOBUS_RS_SECRET=<resource-server-client-secret>
+GLOBUS_RS_SCOPE_SUFFIX=<scope-suffix>
+```
+
+### Facility-specific API key
+
+Always active — no env flags. Delegates entirely to
+`adapter.get_current_user(api_key, client_ip)`. If this path also raises, all three
+failure messages are combined into the `401` detail.
+
+### Adapter methods called per path
+
+| Auth path | Adapter method called on success |
+|---|---|
+| AmSC PingAM OIDC | `get_current_user_oidc(api_key, client_ip, token_info)` |
+| Globus introspection | `get_current_user_globus(api_key, client_ip, globus_introspect)` |
+| Facility API key | `get_current_user(api_key, client_ip)` |
+
+After any path succeeds, `get_user(user_id, api_key, client_ip, token_info, globus_introspect)`
+is called to load the full user object. `token_info` and `globus_introspect` are `None`
+when the facility API key path won.
+
+### Example: both external IdPs enabled
+
+```bash
+IRI_AUTH_AMSC=true
+OIDC_DISCOVERY_URI=https://identity.dev.amsc.ornl.gov/am/oauth2/.well-known/openid-configuration
+OIDC_CLIENT_ID=019de45f-94a0-77c8-918b-10f37667733d
+OIDC_REQUIRED_AUDIENCE=019de45f-94a0-77c8-918b-10f37667733d  # optional if same as CLIENT_ID
+
+IRI_AUTH_GLOBUS=true
+GLOBUS_RS_ID=...
+GLOBUS_RS_SECRET=...
+GLOBUS_RS_SCOPE_SUFFIX=...
+```
+
+### Example: API key only (no external IdP)
+
+```bash
+# Leave IRI_AUTH_AMSC and IRI_AUTH_GLOBUS unset (or set to false).
+# Only facility-specific adapter.get_current_user() will be tried.
+```
 
 ## Next steps
 
