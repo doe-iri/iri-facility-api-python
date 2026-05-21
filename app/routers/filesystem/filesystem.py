@@ -7,6 +7,7 @@
 import base64
 from typing import Annotated
 from fastapi import Depends, HTTPException, status, Query, Request, File, UploadFile
+from ...types.http import forbidExtraQueryParams
 from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
@@ -22,6 +23,22 @@ router = iri_router.IriRouter(
     prefix="/filesystem",
     tags=["filesystem"],
 )
+
+
+@router.get(
+    "/resources",
+    response_model=list[status_models.Resource],
+    response_model_exclude_unset=True,
+    responses=DEFAULT_RESPONSES,
+    operation_id="getFilesystemResources",
+    openapi_extra=iri_meta_dict("planned"),
+)
+async def get_resources(
+    request: Request,
+    _forbid=Depends(forbidExtraQueryParams()),
+):
+    """Get a list of resources that can be used in this endpoint"""
+    return await status_router.adapter.get_resources_for_endpoint(status_models.Endpoint.filesystem)
 
 
 async def _user_resource(
@@ -250,7 +267,7 @@ async def get_ls_async(
         user=user,
         resource=resource,
         task=task_models.TaskCommand(
-            router=router.get_router_name(), 
+            router=router.get_router_name(),
             command="ls",
             args={"path": path, "show_hidden": show_hidden, "numeric_uid": numeric_uid, "recursive": recursive, "dereference": dereference}
         ),

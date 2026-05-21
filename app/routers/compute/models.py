@@ -28,7 +28,16 @@ class JobAttributes(IRIBaseModel):
 
     duration: int|None = Field(default=None, description="Duration in seconds", ge=1, examples=[30, 60, 120])
     queue_name: str|None = Field(default=None, min_length=1, description="Name of the queue or partition to submit the job to", example="debug")
-    account: str|None = Field(default=None, min_length=1, description="Account or project to charge for resource usage", example="proj123")
+    account: str|None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Account or project to charge for resource usage. "
+            "For compute submission/update requests, specify this here only when the caller is not relying on a trusted forwarded "
+            "`X-IRI-Facility-Project` header. If that header is present and valid, this field must be omitted."
+        ),
+        example="proj123",
+    )
     reservation_id: str|None = Field(default=None, min_length=1, description="ID of a reservation to use for the job", example="resv-42")
     custom_attributes: dict[str, str] = Field(default_factory=dict, description="Custom scheduler-specific attributes as key-value pairs", example={"constraint": "gpu"})
 
@@ -79,7 +88,14 @@ class JobSpec(IRIBaseModel):
     stdout_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard output", example="/home/user/output.txt")
     stderr_path: str|None = Field(default=None, min_length=1, description="Path to file to write standard error", example="/home/user/error.txt")
     resources: ResourceSpec|None = Field(default=None, description="Resource requirements for the job")
-    attributes: JobAttributes|None = Field(default=None, description="Additional job attributes such as duration, queue, and account")
+    attributes: JobAttributes|None = Field(
+        default=None,
+        description=(
+            "Additional job attributes such as duration, queue, and account. "
+            "For compute submission/update, the effective project/account must be supplied in exactly one place: "
+            "`attributes.account` or the trusted `X-IRI-Facility-Project` request header."
+        ),
+    )
     pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
     post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job completes", example="echo done")
     launcher: str|None = Field(default=None, min_length=1, description="Job launcher to use (e.g., 'mpirun', 'srun')", example="srun")

@@ -26,10 +26,13 @@ from .routers.facility import facility_adapter
 from .routers.facility import models as facility_models
 from .routers.filesystem import facility_adapter as filesystem_adapter
 from .routers.filesystem import models as filesystem_models
+from .routers.storage import facility_adapter as storage_adapter
+from .routers.storage import models as storage_models
 from .routers.status import facility_adapter as status_adapter
 from .routers.status import models as status_models
 from .routers.task import facility_adapter as task_adapter
 from .routers.task import models as task_models
+from .request_context import get_iri_facility_project
 from .types.models import Capability
 from .types.user import User
 from .types.scalars import AllocationUnit
@@ -96,7 +99,9 @@ def utc_timestamp() -> int:
 
 
 class DemoAdapter(
-    status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter, filesystem_adapter.FacilityAdapter, task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter
+    status_adapter.FacilityAdapter, account_adapter.FacilityAdapter, compute_adapter.FacilityAdapter,
+    filesystem_adapter.FacilityAdapter, storage_adapter.FacilityAdapter,
+    task_adapter.FacilityAdapter, facility_adapter.FacilityAdapter
 ):
     """A demo implementation of the FacilityAdapter that returns hardcoded data."""
     def __init__(self):
@@ -109,7 +114,7 @@ class DemoAdapter(
         self.project_allocations = []
         self.user_allocations = []
         self.facility = {}
-        self.locations = []
+        self.locations = {}  # resource_id -> list[StorageInstance templates]
         self.sites = []
         self._init_state()
 
@@ -180,6 +185,7 @@ class DemoAdapter(
             current_status=status_models.Status.degraded,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.compute,
+            supported_endpoints=[status_models.Endpoint.compute],
         )
 
         hpss = status_models.Resource(
@@ -192,6 +198,7 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
+            supported_endpoints=[status_models.Endpoint.filesystem],
         )
 
         cfs = status_models.Resource(
@@ -204,6 +211,7 @@ class DemoAdapter(
             current_status=status_models.Status.up,
             last_modified=day_ago,
             resource_type=status_models.ResourceType.storage,
+            supported_endpoints=[status_models.Endpoint.filesystem],
         )
 
         login = status_models.Resource(
@@ -242,6 +250,154 @@ class DemoAdapter(
         )
 
         self.resources = [pm, hpss, cfs, login, iris, sfapi]
+
+        _rw = storage_models.AccessPermissions(read=True, write=True, execute=True)
+        _ro = storage_models.AccessPermissions(read=True, write=False, execute=True)
+
+        # Paths use {user}, {first} (first letter of username), and {project} as placeholders.
+        # Project-scoped entries (containing {project}) are expanded per-project at query time.
+        # Each resource_id carries the access semantics for its own context — a compute
+        # resource shows in-job permissions, a login/DTN/Globus resource shows what that
+        # endpoint can do. There is no separate access_outside_of_job field.
+
+        # Perlmutter compute nodes: in-job semantics. Home is read-only inside a job;
+        # archive (HPSS) is not accessible from compute, so it isn't mounted here at all.
+        self.locations[pm.id] = [
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.home,
+                path="/global/homes/{first}/{user}",
+                access=_ro,
+                filesystem="gpfs-homes",
+                performance_tier="medium",
+                quota_bytes=40 * 1024**3,
+                available_bytes=28 * 1024**3,
+                purge_policy_days=None,
+                shared=False,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.scratch,
+                path="/pscratch/sd/{first}/{user}",
+                access=_rw,
+                filesystem="lustre-scratch",
+                performance_tier="high",
+                quota_bytes=20 * 1024**4,
+                available_bytes=14 * 1024**4,
+                purge_policy_days=30,
+                shared=False,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.project,
+                path="/global/project/projectdirs/{project}/{user}",
+                access=_rw,
+                filesystem="gpfs-project",
+                performance_tier="medium",
+                quota_bytes=2 * 1024**4,
+                available_bytes=1024**4,
+                purge_policy_days=None,
+                shared=True,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.campaign,
+                path="/global/cfs/cdirs/{project}/campaign/{user}",
+                access=_rw,
+                filesystem="gpfs-cfs",
+                performance_tier="medium",
+                quota_bytes=10 * 1024**4,
+                available_bytes=8 * 1024**4,
+                purge_policy_days=120,
+                shared=True,
+            ),
+        ]
+
+        # HPSS tape system: archive only; user accesses it through this resource_id
+        # (typically via login nodes or htar). Archive is rw from this resource.
+        self.locations[hpss.id] = [
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.archive,
+                path="/home/{first}/{user}",
+                access=_rw,
+                filesystem="hpss",
+                performance_tier="tape",
+                quota_bytes=None,
+                available_bytes=None,
+                purge_policy_days=None,
+                shared=False,
+            ),
+        ]
+
+        # CFS / GPFS resource (queried via login nodes / DTN-style endpoint): all tiers rw,
+        # shared is read-only because it's the project-shared landing area.
+        self.locations[cfs.id] = [
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.home,
+                path="/global/homes/{first}/{user}",
+                access=_rw,
+                filesystem="gpfs-homes",
+                performance_tier="medium",
+                quota_bytes=40 * 1024**3,
+                available_bytes=28 * 1024**3,
+                purge_policy_days=None,
+                shared=False,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.scratch,
+                path="/pscratch/sd/{first}/{user}",
+                access=_rw,
+                filesystem="lustre-scratch",
+                performance_tier="high",
+                quota_bytes=20 * 1024**4,
+                available_bytes=14 * 1024**4,
+                purge_policy_days=30,
+                shared=False,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.project,
+                path="/global/project/projectdirs/{project}/{user}",
+                access=_rw,
+                filesystem="gpfs-project",
+                performance_tier="medium",
+                quota_bytes=2 * 1024**4,
+                available_bytes=1024**4,
+                purge_policy_days=None,
+                shared=True,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.campaign,
+                path="/global/cfs/cdirs/{project}/campaign/{user}",
+                access=_rw,
+                filesystem="gpfs-cfs",
+                performance_tier="medium",
+                quota_bytes=10 * 1024**4,
+                available_bytes=8 * 1024**4,
+                purge_policy_days=120,
+                shared=True,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.shared,
+                path="/global/cfs/cdirs/{project}/shared",
+                access=_ro,
+                filesystem="gpfs-cfs",
+                performance_tier="medium",
+                quota_bytes=None,
+                available_bytes=None,
+                purge_policy_days=None,
+                shared=True,
+            ),
+            storage_models.StorageInstance(
+                logical_name=storage_models.LogicalName.temporary,
+                path="/tmp/{user}",
+                access=_rw,
+                filesystem="tmpfs",
+                performance_tier="high",
+                quota_bytes=512 * 1024**3,
+                available_bytes=480 * 1024**3,
+                purge_policy_days=7,
+                shared=False,
+            ),
+        ]
+
+        # Login nodes: same filesystem layout as CFS — outside-of-job semantics for everything.
+        self.locations[login.id] = self.locations[cfs.id]
 
         # Populate site resource_ids based on which resources are at each site
         site1.resource_ids = [r.id for r in self.resources if r.site_id == site1.id]
@@ -413,6 +569,9 @@ class DemoAdapter(
     async def get_resource(self: "DemoAdapter", id_: str) -> status_models.Resource:
         return status_models.Resource.find_by_id(self.resources, id_)
 
+    async def get_resources_for_endpoint(self: "DemoAdapter", endpoint: status_models.Endpoint) -> list[status_models.Resource]:
+        return [r for r in self.resources if endpoint in r.supported_endpoints]
+
     async def get_events(
         self: "DemoAdapter",
         offset: int,
@@ -551,6 +710,8 @@ class DemoAdapter(
         user: User,
         job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
+        facility_project = get_iri_facility_project()
+        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
@@ -558,7 +719,7 @@ class DemoAdapter(
                 time=utc_timestamp(),
                 message="job submitted",
                 exit_code=0,
-                meta_data={"account": "account1"},
+                meta_data={"account": account},
             ),
         )
 
@@ -569,6 +730,8 @@ class DemoAdapter(
         job_spec: compute_models.JobSpec,
         job_id: str,
     ) -> compute_models.Job:
+        facility_project = get_iri_facility_project()
+        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
@@ -576,7 +739,7 @@ class DemoAdapter(
                 time=utc_timestamp(),
                 message="job updated",
                 exit_code=0,
-                meta_data={"account": "account1"},
+                meta_data={"account": account},
             ),
         )
 
@@ -631,6 +794,90 @@ class DemoAdapter(
     ) -> bool:
         # call slurm/etc. to cancel job
         return True
+
+# ----------------------------------------------
+# Storage API
+# ----------------------------------------------
+
+    @staticmethod
+    def _slugify_project(name: str) -> str:
+        """Convert a project name to a path-safe slug (real facilities use codes like 'm1234')."""
+        return name.lower().replace(" ", "_")
+
+    def _user_project_codes(self, user: User) -> list[str]:
+        """Return the path-slug codes of all projects the user belongs to."""
+        return [self._slugify_project(p.name) for p in self.projects if user.id in p.user_ids]
+
+    def _user_member_of(self, user: User, project_code: str) -> bool:
+        """Authorization check: is the user a member of the named project?"""
+        return any(
+            user.id in p.user_ids and self._slugify_project(p.name) == project_code
+            for p in self.projects
+        )
+
+    def _resolve_path(self, template: str, user: User, project: str | None) -> str:
+        first = user.id[0] if user.id else "u"
+        path = template.replace("{user}", user.id).replace("{first}", first)
+        if project:
+            path = path.replace("{project}", project)
+        return path
+
+    def _apply_intent_filter(
+        self,
+        instance: storage_models.StorageInstance,
+        intent: storage_models.StorageIntent | None,
+    ) -> bool:
+        """Return False if this storage instance should be excluded for the given intent."""
+        if intent == storage_models.StorageIntent.long_term_storage:
+            return instance.logical_name == storage_models.LogicalName.archive
+        if intent == storage_models.StorageIntent.staging:
+            return instance.logical_name != storage_models.LogicalName.archive
+        if intent == storage_models.StorageIntent.write:
+            return instance.access.write
+        return True
+
+    async def get_locations(
+        self,
+        resource: status_models.Resource,
+        user: User,
+        logicalpath: storage_models.LogicalName | None,
+        project: str | None,
+        allocation: str | None,
+        intent: storage_models.StorageIntent | None,
+    ) -> list[storage_models.StorageInstance]:
+        templates = self.locations.get(resource.id, [])
+        effective_project = project or allocation
+
+        # Authorization: a user can only resolve paths for their own projects
+        if effective_project and not self._user_member_of(user, effective_project):
+            raise HTTPException(status_code=403, detail=f"User is not a member of project '{effective_project}'")
+
+        # Expand project-scoped paths across ALL of the user's projects when none specified
+        project_codes = [effective_project] if effective_project else self._user_project_codes(user)
+
+        result = []
+        for m in templates:
+            if logicalpath and m.logical_name != logicalpath:
+                continue
+            if not self._apply_intent_filter(m, intent):
+                continue
+
+            is_project_scoped = "{project}" in m.path
+            expand_over = project_codes if is_project_scoped else [None]
+
+            for code in expand_over:
+                result.append(storage_models.StorageInstance(
+                    logical_name=m.logical_name,
+                    path=self._resolve_path(m.path, user, code),
+                    filesystem=m.filesystem,
+                    performance_tier=m.performance_tier,
+                    quota_bytes=m.quota_bytes,
+                    available_bytes=m.available_bytes,
+                    purge_policy_days=m.purge_policy_days,
+                    shared=m.shared,
+                    access=m.access,
+                ))
+        return result
 
     def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
         """Validate that the given path is within the sandbox base directory and optionally check for symlinks."""

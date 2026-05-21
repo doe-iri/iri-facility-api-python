@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .. import config
+
 
 class Problem(BaseModel):
     model_config = ConfigDict(extra="allow", json_schema_extra={"description": 'Error structure for REST interface based on RFC 9457, "Problem Details for HTTP APIs."'})
@@ -20,7 +22,7 @@ class Problem(BaseModel):
     status: int = Field(..., ge=100, le=599, description="The HTTP status code for this occurrence.", example=404)
     title: str|None = Field(default=None, description="Short human-readable summary.", example="Not Found")
     detail: str|None = Field(default=None, description="Human-readable explanation.", example="Descriptive text.")
-    instance: str = Field(..., description="A URI reference identifying this occurrence.", example="http://localhost/api/v1/resource/123")
+    instance: str = Field(..., description="A URI reference identifying this occurrence.", example=f"http://localhost/{config.API_URL}/resource/123")
 
 
 def get_url_base(request: Request) -> str:
@@ -222,18 +224,18 @@ EXAMPLE_400 = {
     "title": "Invalid parameter",
     "status": 400,
     "detail": "modified_since must be in ISO 8601 format.",
-    "instance": "/api/v1/status/resources?modified_since=BADVALUE",
+    "instance": f"/{config.API_URL}/status/resources?modified_since=BADVALUE",
     "invalid_params": [{"name": "modified_since", "reason": "Invalid datetime format"}],
 }
 
-EXAMPLE_401 = {"type": "https://iri.example.com/problems/unauthorized", "title": "Unauthorized", "status": 401, "detail": "Bearer token is missing or invalid.", "instance": "/api/v1/status/resources"}
+EXAMPLE_401 = {"type": "https://iri.example.com/problems/unauthorized", "title": "Unauthorized", "status": 401, "detail": "Bearer token is missing or invalid.", "instance": f"/{config.API_URL}/status/resources"}
 
 EXAMPLE_403 = {
     "type": "https://iri.example.com/problems/forbidden",
     "title": "Forbidden",
     "status": 403,
     "detail": "Caller is authenticated but lacks required role.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 EXAMPLE_404 = {
@@ -241,7 +243,7 @@ EXAMPLE_404 = {
     "title": "Not Found",
     "status": 404,
     "detail": "The resource ID 'abc123' does not exist.",
-    "instance": "/api/v1/status/resources/abc123",
+    "instance": f"/{config.API_URL}/status/resources/abc123",
 }
 
 EXAMPLE_405 = {
@@ -249,7 +251,7 @@ EXAMPLE_405 = {
     "title": "Method Not Allowed",
     "status": 405,
     "detail": "HTTP method TRACE is not allowed for this endpoint.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 EXAMPLE_409 = {
@@ -257,7 +259,7 @@ EXAMPLE_409 = {
     "title": "Conflict",
     "status": 409,
     "detail": "A job with this ID already exists.",
-    "instance": "/api/v1/compute/job/perlmutter/123",
+    "instance": f"/{config.API_URL}/compute/job/perlmutter/123",
 }
 
 EXAMPLE_422 = {
@@ -265,7 +267,7 @@ EXAMPLE_422 = {
     "title": "Unprocessable Entity",
     "status": 422,
     "detail": "The PSIJ JobSpec is syntactically correct but invalid.",
-    "instance": "/api/v1/compute/job/perlmutter",
+    "instance": f"/{config.API_URL}/compute/job/perlmutter",
     "invalid_params": [{"name": "job_spec.executable", "reason": "Executable must be provided"}],
 }
 
@@ -274,7 +276,7 @@ EXAMPLE_500 = {
     "title": "Internal Server Error",
     "status": 500,
     "detail": "An unexpected error occurred.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 EXAMPLE_501 = {
@@ -282,7 +284,7 @@ EXAMPLE_501 = {
     "title": "Not Implemented",
     "status": 501,
     "detail": "This functionality is not implemented.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 EXAMPLE_503 = {
@@ -290,7 +292,7 @@ EXAMPLE_503 = {
     "title": "Service Unavailable",
     "status": 503,
     "detail": "The service is temporarily unavailable.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 EXAMPLE_504 = {
@@ -298,7 +300,7 @@ EXAMPLE_504 = {
     "title": "Gateway Timeout",
     "status": 504,
     "detail": "The server did not receive a timely response.",
-    "instance": "/api/v1/status/resources",
+    "instance": f"/{config.API_URL}/status/resources",
 }
 
 DEFAULT_RESPONSES = {

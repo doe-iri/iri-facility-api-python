@@ -17,7 +17,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from . import config
 from .apilogger import configure_logging
-from .request_context import set_api_url_base, _api_url_base
+from .request_context import _api_url_base, _iri_facility_project, set_api_url_base
 
 from app.routers.error_handlers import install_error_handlers
 from app.routers.facility import facility
@@ -25,6 +25,7 @@ from app.routers.status import status
 from app.routers.account import account
 from app.routers.compute import compute
 from app.routers.filesystem import filesystem
+from app.routers.storage import storage
 from app.routers.task import task
 
 configure_logging(config.LOG_LEVEL)
@@ -58,12 +59,14 @@ APP = FastAPI(servers=[{"url": config.API_URL_ROOT}], **config.API_CONFIG)
 
 class _ExternalRequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        token = _api_url_base.set(None)
+        url_token = _api_url_base.set(None)
+        facility_project_token = _iri_facility_project.set(None)
         try:
             set_api_url_base(request)
             return await call_next(request)
         finally:
-            _api_url_base.reset(token)
+            _api_url_base.reset(url_token)
+            _iri_facility_project.reset(facility_project_token)
 
 
 APP.add_middleware(_ExternalRequestContextMiddleware)
@@ -81,6 +84,7 @@ APP.include_router(status.router, prefix=api_prefix)
 APP.include_router(account.router, prefix=api_prefix)
 APP.include_router(compute.router, prefix=api_prefix)
 APP.include_router(filesystem.router, prefix=api_prefix)
+APP.include_router(storage.router, prefix=api_prefix)
 APP.include_router(task.router, prefix=api_prefix)
 
 logging.getLogger().info(f"API path: {api_prefix}")
