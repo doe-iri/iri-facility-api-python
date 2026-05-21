@@ -141,6 +141,44 @@ def _decode_oidc_jwt(api_key: str, discovery_uri: str, required_audience: str) -
     return dict(claims)
 
 
+async def _get_userinfo(bearer_token: str, discovery_uri: str, token_info: dict[str, Any]) -> dict[str, Any]:
+    """PingAM (and some other IdPs) issue access tokens that contain only sub.
+    Profile claims (name, email, given_name, ...) are available via the standard
+    UserInfo endpoint.
+
+    Fails gracefully — if the UserInfo call fails for any reason the original
+    token_info is returned unchanged and auth still succeeds.
+    """
+    _log = logging.getLogger(__name__)
+
+    # Fast path: profile claims already present (e.g. Keycloak embeds them)
+    if token_info.get("name") or token_info.get("email"):
+        return token_info
+
+    metadata, _ = _load_oidc_remote_state(discovery_uri)
+    userinfo_endpoint = metadata.get("userinfo_endpoint")
+    if not userinfo_endpoint:
+        _log.warning("OIDC discovery document missing userinfo_endpoint; profile claims unavailable")
+        return token_info
+
+    try:
+        async with httpx.AsyncClient(timeout=_DISCOVERY_TIMEOUT_SECONDS) as client:
+            resp = await client.get(
+                userinfo_endpoint,
+                headers={"Authorization": f"Bearer {bearer_token}", "Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            userinfo = resp.json()
+            _log.info("OIDC UserInfo returned claims: %s", list(userinfo.keys()))
+            for key, value in userinfo.items():
+                if key not in token_info:
+                    token_info[key] = value
+    except Exception:
+        _log.warning("Failed to fetch OIDC UserInfo; proceeding without profile claims", exc_info=True)
+
+    return token_info
+
+
 def get_client_ip(request: Request) -> str | None:
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
@@ -224,6 +262,9 @@ class IriRouter(APIRouter):
 
         logging.getLogger().info("PING OIDC JWT VALIDATION CLAIMS:")
         logging.getLogger().info(token_info)
+
+        # PingAM access tokens contain only sub; name/email/etc. come from the UserInfo endpoint.
+        token_info = await _get_userinfo(api_key, config["discovery_uri"], token_info)
 
         required_scopes = config["required_scopes"]
         if required_scopes:

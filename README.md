@@ -186,6 +186,16 @@ Signing algorithms are derived from the discovery document's
 `id_token_signing_alg_values_supported` field; `HS*` (HMAC) algorithms are always
 rejected even if advertised.
 
+After the JWT is validated, if profile claims (`name`, `email`, etc.) are absent from
+the token (common with PingAM, which issues minimal access tokens containing
+only `sub`), the IRI API automatically calls the IdP's `userinfo_endpoint` with the
+bearer token and merges the returned claims into `token_info`. This means
+`get_current_user_oidc(api_key, client_ip, token_info)` in the adapter will always
+receive a fully-enriched dict. IdPs that already embed profile claims in the token
+(e.g. Keycloak) skip the extra call. The UserInfo fetch fails gracefully — if the
+endpoint is unreachable the JWT claims are still passed through unchanged and
+authentication succeeds.
+
 | Variable | Default | Required | Description |
 |---|---|---|---|
 | `IRI_AUTH_AMSC` | `false` | — | Enable this path. Must be `true` to activate. |
