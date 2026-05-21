@@ -506,12 +506,21 @@ class DemoAdapter(
         """
         return "gtorok"
 
+    async def get_current_user_globus(
+            self: "DemoAdapter",
+            api_key: str,
+            client_ip: str,
+            globus_introspect: dict | None,
+        ) -> str:
+        return "gtorok"
+
     async def get_user(
         self: "DemoAdapter",
         user_id: str,
         api_key: str,
         client_ip: str | None,
         token_info: dict | None,
+        globus_introspect: dict | None,
     ) -> User:
         if user_id != self.user.id:
             raise HTTPException(status_code=403, detail="User not found")
