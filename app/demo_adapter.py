@@ -15,7 +15,6 @@ import subprocess
 import uuid
 
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from .routers.account import facility_adapter as account_adapter
@@ -368,8 +367,8 @@ class DemoAdapter(
             sites = [s for s in sites if s.last_modified > ms]
 
         o = offset or 0
-        l = limit or len(sites)
-        return sites[o : o + l]
+        limit_count = limit or len(sites)
+        return sites[o : o + limit_count]
 
     async def get_site(self: "DemoAdapter", site_id: str, modified_since: str | None = None) -> facility_models.Site:
         site = next((s for s in self.sites if s.id == site_id), None)
@@ -512,11 +511,25 @@ class DemoAdapter(
         """
         return "gtorok"
 
+    async def get_current_user_oidc(
+            self: "DemoAdapter",
+            api_key: str,
+            client_ip: str | None,
+            token_info: dict | None,
+        ) -> str:
+        """
+        Decode the api_key and return the authenticated user's id from information returned by an OIDC token.
+        This method is not called directly, rather authorized endpoints "depend" on it.
+        (https://fastapi.tiangolo.com/tutorial/dependencies/)
+        """
+        return token_info.get("sub", "gtorok") if token_info else "gtorok"
+
     async def get_user(
         self: "DemoAdapter",
         user_id: str,
         api_key: str,
         client_ip: str | None,
+        token_info: dict | None,
         globus_introspect: dict | None,
     ) -> User:
         if user_id != self.user.id:
