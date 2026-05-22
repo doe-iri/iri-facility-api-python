@@ -10,6 +10,7 @@ import globus_sdk
 import httpx
 from authlib.jose import JsonWebKey, JsonWebToken, KeySet
 from authlib.jose.errors import JoseError
+from cachetools import TTLCache
 from fastapi import Body, Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -20,7 +21,8 @@ bearer_scheme = HTTPBearer()
 _DISCOVERY_TIMEOUT_SECONDS = float(os.environ.get("OIDC_DISCOVERY_TIMEOUT_SECONDS", "10"))
 _DISCOVERY_CACHE_TTL_SECONDS = float(os.environ.get("OIDC_DISCOVERY_CACHE_TTL_SECONDS", "300"))
 _oidc_remote_cache_lock = threading.Lock()
-_oidc_remote_cache: dict[str, tuple[float, dict[str, Any], KeySet]] = {}
+_oidc_remote_cache: TTLCache[str, tuple[dict[str, Any], KeySet]] = TTLCache(maxsize=128, ttl=_DISCOVERY_CACHE_TTL_SECONDS)
+_oidc_remote_stale_cache: dict[str, tuple[dict[str, Any], KeySet]] = {}
 
 # Globus introspection (kept alongside AmSC PingAM OIDC). Each external
 # IdP path can be independently turned on/off with IRI_AUTH_AMSC / IRI_AUTH_GLOBUS.
@@ -88,35 +90,36 @@ async def _fetch_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], 
 
 
 async def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
-    """TTL-cached wrapper around fetching oidc remote state. 
+    """TTL-cached wrapper around fetching oidc remote state.
     On refresh failure we fall back to the last cached state so a transient
     IdP outage doesn't take the whole IRI service down.
     """
     _log = logging.getLogger(__name__)
-    now = time.time()
-    cached: tuple[float, dict[str, Any], KeySet] | None = None
+    cached: tuple[dict[str, Any], KeySet] | None = None
+    stale: tuple[dict[str, Any], KeySet] | None = None
     with _oidc_remote_cache_lock:
         cached = _oidc_remote_cache.get(discovery_uri)
-        if cached and now - cached[0] < _DISCOVERY_CACHE_TTL_SECONDS:
-            age = now - cached[0]
-            _log.info("OIDC JWKS cache HIT for %s (age %.0fs, TTL %.0fs)", discovery_uri, age, _DISCOVERY_CACHE_TTL_SECONDS)
-            return cached[1], cached[2]
+        stale = _oidc_remote_stale_cache.get(discovery_uri)
+        if cached:
+            _log.info("OIDC JWKS cache HIT for %s (TTL %.0fs)", discovery_uri, _DISCOVERY_CACHE_TTL_SECONDS)
+            return cached
 
     _log.info("OIDC JWKS cache MISS for %s — fetching discovery + JWKS", discovery_uri)
     try:
         metadata, key_set = await _fetch_oidc_remote_state(discovery_uri)
     except Exception:
-        if cached:
+        if stale:
             logging.getLogger(__name__).warning(
                 "OIDC discovery refresh failed for %s; reusing cached metadata + JWKS",
                 discovery_uri,
                 exc_info=True,
             )
-            return cached[1], cached[2]
+            return stale
         raise
 
     with _oidc_remote_cache_lock:
-        _oidc_remote_cache[discovery_uri] = (time.time(), metadata, key_set)
+        _oidc_remote_cache[discovery_uri] = (metadata, key_set)
+        _oidc_remote_stale_cache[discovery_uri] = (metadata, key_set)
     _log.info("OIDC JWKS cache STORED for %s (TTL %.0fs)", discovery_uri, _DISCOVERY_CACHE_TTL_SECONDS)
     return metadata, key_set
 
