@@ -73,21 +73,21 @@ def _oidc_auth_config() -> dict[str, str] | None:
     }
 
 
-def _fetch_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
+async def _fetch_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
     """Fetch the OIDC discovery."""
-    with httpx.Client(timeout=_DISCOVERY_TIMEOUT_SECONDS) as client:
-        metadata_resp = client.get(discovery_uri, headers={"Accept": "application/json"})
+    async with httpx.AsyncClient(timeout=_DISCOVERY_TIMEOUT_SECONDS) as client:
+        metadata_resp = await client.get(discovery_uri, headers={"Accept": "application/json"})
         metadata_resp.raise_for_status()
         metadata = metadata_resp.json()
         jwks_uri = metadata.get("jwks_uri")
         if not jwks_uri:
             raise RuntimeError("OIDC discovery document is missing jwks_uri")
-        jwks_resp = client.get(jwks_uri, headers={"Accept": "application/json"})
+        jwks_resp = await client.get(jwks_uri, headers={"Accept": "application/json"})
         jwks_resp.raise_for_status()
         return metadata, JsonWebKey.import_key_set(jwks_resp.json())
 
 
-def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
+async def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
     """TTL-cached wrapper around fetching oidc remote state. 
     On refresh failure we fall back to the last cached state so a transient
     IdP outage doesn't take the whole IRI service down.
@@ -104,7 +104,7 @@ def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]
 
     _log.info("OIDC JWKS cache MISS for %s — fetching discovery + JWKS", discovery_uri)
     try:
-        metadata, key_set = _fetch_oidc_remote_state(discovery_uri)
+        metadata, key_set = await _fetch_oidc_remote_state(discovery_uri)
     except Exception:
         if cached:
             logging.getLogger(__name__).warning(
@@ -116,14 +116,14 @@ def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]
         raise
 
     with _oidc_remote_cache_lock:
-        _oidc_remote_cache[discovery_uri] = (now, metadata, key_set)
+        _oidc_remote_cache[discovery_uri] = (time.time(), metadata, key_set)
     _log.info("OIDC JWKS cache STORED for %s (TTL %.0fs)", discovery_uri, _DISCOVERY_CACHE_TTL_SECONDS)
     return metadata, key_set
 
 
-def _decode_oidc_jwt(api_key: str, discovery_uri: str, required_audience: str) -> dict[str, Any]:
+async def _decode_oidc_jwt(api_key: str, discovery_uri: str, required_audience: str) -> dict[str, Any]:
     """Verify the JWT signature against the IdP's JWKS and enforce required claims."""
-    metadata, key_set = _load_oidc_remote_state(discovery_uri)
+    metadata, key_set = await _load_oidc_remote_state(discovery_uri)
     # Use algorithms from the discovery document; exclude HS* (HMAC) — a leaked
     # HMAC secret can forge tokens, so only asymmetric algorithms are acceptable.
     algs_advertised = metadata.get("id_token_signing_alg_values_supported") or []
@@ -137,9 +137,12 @@ def _decode_oidc_jwt(api_key: str, discovery_uri: str, required_audience: str) -
         "nbf": {"essential": True},
         "iat": {"essential": True},
     }
-    claims = JsonWebToken(algorithms).decode(api_key, key_set, claims_options=claims_options)
-    claims.validate()
-    return dict(claims)
+    def decode_and_validate() -> dict[str, Any]:
+        claims = JsonWebToken(algorithms).decode(api_key, key_set, claims_options=claims_options)
+        claims.validate()
+        return dict(claims)
+
+    return await asyncio.to_thread(decode_and_validate)
 
 
 async def _get_userinfo(bearer_token: str, discovery_uri: str, token_info: dict[str, Any]) -> dict[str, Any]:
@@ -156,7 +159,7 @@ async def _get_userinfo(bearer_token: str, discovery_uri: str, token_info: dict[
     if token_info.get("name") or token_info.get("email"):
         return token_info
 
-    metadata, _ = _load_oidc_remote_state(discovery_uri)
+    metadata, _ = await _load_oidc_remote_state(discovery_uri)
     userinfo_endpoint = metadata.get("userinfo_endpoint")
     if not userinfo_endpoint:
         _log.warning("OIDC discovery document missing userinfo_endpoint; profile claims unavailable")
@@ -250,8 +253,7 @@ class IriRouter(APIRouter):
             raise RuntimeError("OIDC auth is not configured")
 
         try:
-            token_info = await asyncio.to_thread(
-                _decode_oidc_jwt,
+            token_info = await _decode_oidc_jwt(
                 api_key,
                 config["discovery_uri"],
                 config["required_audience"],
