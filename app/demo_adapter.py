@@ -652,17 +652,25 @@ class DemoAdapter(
             raise HTTPException(status_code=401, detail="Invalid API key")
         return "gtorok"
 
+    async def get_current_user_oidc(
+            self: "DemoAdapter",
+            api_key: str,
+            client_ip: str,
+            token_info: dict | None,
+        ) -> str:
+        """
+        Decode the api_key and return the authenticated user's id from information returned by an OIDC token.
+        This method is not called directly, rather authorized endpoints "depend" on it.
+        (https://fastapi.tiangolo.com/tutorial/dependencies/)
+        """
+        return "gtorok"
+
     async def get_current_user_globus(
             self: "DemoAdapter",
             api_key: str,
             client_ip: str,
             globus_introspect: dict | None,
         ) -> str:
-        """
-        Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
-        This method is not called directly, rather authorized endpoints "depend" on it.
-        (https://fastapi.tiangolo.com/tutorial/dependencies/)
-        """
         return "gtorok"
 
     async def get_user(
@@ -670,6 +678,7 @@ class DemoAdapter(
         user_id: str,
         api_key: str,
         client_ip: str | None,
+        token_info: dict | None,
         globus_introspect: dict | None,
     ) -> User:
         if user_id != self.user.id:
