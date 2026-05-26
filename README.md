@@ -8,7 +8,7 @@ See it live:
    - API requests: https://api.iri.nersc.gov/api/v2/
 - ALCF instance:
    - API docs: https://api.alcf.anl.gov
-   - API requests: https://api.alcf.anl.gov/api/v2/
+   - API requests: https://api.alcf.anl.gov/api/v1/
 - ESnet instance: https://iri-dev.ppg.es.net
 
 ## Prerequisites
