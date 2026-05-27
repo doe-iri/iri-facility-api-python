@@ -6,7 +6,7 @@ from pydantic import Field, computed_field, field_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
-from ...types.scalars import ResourceType, ResourceTypeValue, canonicalize_resource_type, urn_has_complete_prefix
+from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
 
 
 class Status(enum.Enum):
@@ -46,8 +46,10 @@ class Resource(NamedObject):
         if group:
             items = [item for item in items if item.group == group]
         if resource_type:
-            resource_type = canonicalize_resource_type(resource_type)
-            items = [item for item in items if urn_has_complete_prefix(resource_type, item.resource_type)]
+            # resource_type may be a ResourceType enum (which is a str subclass) or a raw URN string.
+            # Do not call str() on a str(Enum) — it returns the repr, not the value.
+            rt_urn = validate_doe_iri_urn(resource_type.value if hasattr(resource_type, "value") else resource_type)
+            items = [item for item in items if urn_has_complete_prefix(rt_urn, item.resource_type)]
         if current_status:
             items = [item for item in items if item.current_status == current_status]
         if capability:
