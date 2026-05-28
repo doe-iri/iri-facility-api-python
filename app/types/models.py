@@ -3,7 +3,7 @@
 from pydantic import Field
 
 from .base import NamedObject
-from .scalars import AllocationUnit, StrictDateTime
+from .scalars import AllocationUnit, AllocationUnitValue, StrictDateTime
 
 
 class Capability(NamedObject):
@@ -20,4 +20,4 @@ class Capability(NamedObject):
 
     last_modified: StrictDateTime|None = Field(default=None, description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
 
-    units: list[AllocationUnit] = Field(..., description="Allocation units supported by this capability", example=["node_hours"])
+    units: list[AllocationUnitValue] = Field(..., description="Allocation units supported by this capability", example=[AllocationUnit.node_hours])
