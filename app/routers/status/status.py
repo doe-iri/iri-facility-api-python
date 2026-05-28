@@ -3,7 +3,7 @@ from typing import List
 from fastapi import Depends, HTTPException, Query, Request
 
 from ...types.http import forbidExtraQueryParams
-from ...types.scalars import AllocationUnitValue, StrictDateTime, doe_iri_domain_urn_min_length, doe_iri_domain_urn_schema_pattern
+from ...types.scalars import AllocationUnitValue, StrictDateTime, DOE_IRI_URN_MIN_LENGTH, DOE_IRI_URN_SCHEMA_PATTERN
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -35,10 +35,10 @@ async def get_resources(
     modified_since: StrictDateTime = Query(default=None),
     resource_type: models.ResourceTypeValue = Query(
         default=None,
-        min_length=doe_iri_domain_urn_min_length("resource"),
-        pattern=doe_iri_domain_urn_schema_pattern("resource"),
-        description="DOE IRI resource type URN. Legacy short tokens are accepted only as input compatibility aliases and are normalized to canonical URNs.",
-        examples=[models.ResourceType.compute, models.ResourceType.storage],
+        min_length=DOE_IRI_URN_MIN_LENGTH,
+        pattern=DOE_IRI_URN_SCHEMA_PATTERN,
+        description="DOE IRI resource type URN (urn:doe-iri:<domain>:<nss>). Facility-local extensions accepted.",
+        examples=[models.ResourceType.compute, models.ResourceType.storage, models.ResourceType.service],
     ),
     current_status: models.Status = Query(default=None),
     capability: List[AllocationUnitValue] = Query(default=None, min_length=1),

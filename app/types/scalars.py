@@ -94,6 +94,9 @@ _SEGMENT_CHAR = r"(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2}|[!$&'()*+,;=@]|/)"
 _DOMAIN_SPECIFIC_SEGMENT = rf"{_SEGMENT_CHAR}+"
 _DOMAIN_SPECIFIC_STRING = rf"{_DOMAIN_SPECIFIC_SEGMENT}(?::{_DOMAIN_SPECIFIC_SEGMENT})*"
 DOE_IRI_URN_PATTERN = re.compile(rf"^{DOE_IRI_URN_PREFIX}(?P<domain>{_DOMAIN}):(?P<nss>{_DOMAIN_SPECIFIC_STRING})$")
+# General URN pattern and minimum length — use these for query parameters that accept any domain.
+DOE_IRI_URN_SCHEMA_PATTERN = rf"^{DOE_IRI_URN_PREFIX}{_DOMAIN}:{_DOMAIN_SPECIFIC_STRING}$"
+DOE_IRI_URN_MIN_LENGTH = len(DOE_IRI_URN_PREFIX) + 1 + 1 + 1  # prefix + 1 domain char + colon + 1 nss char
 
 
 def validate_doe_iri_urn(value: str) -> str:
