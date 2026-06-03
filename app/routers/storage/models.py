@@ -1,6 +1,7 @@
 """Models for storage location and mount API endpoints."""
 from enum import Enum
 from pydantic import Field, BaseModel
+from typing import Optional
 
 
 class LogicalName(str, Enum):
@@ -77,3 +78,42 @@ class StorageInstance(BaseModel):
         ...,
         description="Access permissions through the queried resource context",
     )
+
+
+class AccessProtocol(str, Enum):
+    """Supported data access protocols."""
+    globus = "globus"
+    xrootd = "xrootd"
+    s3 = "s3"
+
+
+class AccessCapability(str, Enum):
+    """Data operations supported by an access endpoint."""
+    list = "list"
+    read = "read"
+    write = "write"
+    transfer = "transfer"
+    streaming = "streaming"
+
+
+class AccessEndpoint(BaseModel):
+    """
+    A single data access endpoint for a storage resource.
+    Protocol-specific connection fields are present only for the relevant protocol.
+    """
+    id: str = Field(..., description="Unique identifier for this access endpoint", example="globus-cfs-demo")
+    resource_id: str = Field(..., description="ID of the storage resource this endpoint belongs to")
+    protocol: AccessProtocol = Field(..., description="Data access protocol")
+    display_name: Optional[str] = Field(default=None, description="Human-readable name for this endpoint", example="Demo CFS Globus")
+    auth_type: str = Field(..., description="Authentication mechanism required to use this endpoint", example="globus")
+    capabilities: list[AccessCapability] = Field(..., description="Supported data operations")
+    # Globus-specific
+    endpoint_id: Optional[str] = Field(default=None, description="Globus endpoint UUID (Globus only)", example="5e0cdbd2-3f1a-4e57-beed-b95scbb83b7c")
+    uri: Optional[str] = Field(default=None, description="Full Globus URI (Globus only)", example="globus://5e0cdbd2-3f1a-4e57-beed-b95scbb83b7c/")
+    root_path: Optional[str] = Field(default=None, description="Root path within the endpoint (Globus only)", example="/")
+    # XRootD-specific
+    endpoint: Optional[str] = Field(default=None, description="XRootD server address (XRootD only)", example="root://cfs.demo.example/")
+    # S3-specific
+    bucket: Optional[str] = Field(default=None, description="S3 bucket name (S3 only)", example="demo-cfs")
+    region: Optional[str] = Field(default=None, description="AWS region (S3 only)", example="us-east-1")
+    endpoint_url: Optional[str] = Field(default=None, description="S3-compatible endpoint URL for non-AWS providers (S3 only)", example="https://s3.demo.example")
