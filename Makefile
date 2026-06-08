@@ -24,7 +24,8 @@ $(STAMP_DEPS): $(STAMP_VENV) pyproject.toml
 	$(UV) pip install --python $(BIN)/python \
 		ruff \
 		pylint \
-		bandit
+		bandit \
+		pytest
 	touch $(STAMP_DEPS)
 
 deps: $(STAMP_DEPS)
@@ -45,8 +46,29 @@ dev: deps
 	OPENTELEMETRY_ENABLED=true \
 	API_URL_ROOT='http://localhost:8000' fastapi dev
 
+REDIS_PORT      ?= 6379
+REDIS_CONTAINER := iri-redis
+
+redis: ## Start a local Redis container for idempotency (dev only)
+	docker run -d --name $(REDIS_CONTAINER) -p $(REDIS_PORT):6379 redis:7-alpine 2>/dev/null || \
+		docker start $(REDIS_CONTAINER) 2>/dev/null || true
+	@echo "Redis running on localhost:$(REDIS_PORT)"
+	@echo "Add to local.env:"
+	@echo "  export REDIS_URL=redis://localhost:$(REDIS_PORT)"
+	@echo "  export IDEMPOTENCY_TTL_SECONDS=86400  # cache TTL (default: 24h)"
+	@echo "  export LOCK_TTL_SECONDS=60            # in-flight lock TTL (default: 60s)"
+
+redis-stop: ## Stop the local Redis container
+	docker stop $(REDIS_CONTAINER) 2>/dev/null || true
+
+redis-clean: ## Stop and remove the local Redis container
+	docker rm -f $(REDIS_CONTAINER) 2>/dev/null || true
+
+
+test: deps ## Run unit tests
+	$(BIN)/python -m pytest test/ -v
+
 .PHONY: clean
-clean:
 	rm -rf iri_sandbox
 	rm -rf .venv
 
