@@ -12,22 +12,25 @@ Backing stores:
   - InMemoryIdempotencyStore  : in-process dict; dev/single-instance only.
   - RedisIdempotencyStore     : Redis-backed; required for multi-replica.
 
-Select via REDIS_URL env var (see config.py).  Install redis extras when using
-Redis: pip install -e ".[redis]"
+Select via REDIS_URL env var (see config.py).
 """
-import os
+
 import hashlib
 import json
 import logging
+import os
 import time
 
 import redis.asyncio as aioredis
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
+from redis.exceptions import WatchError
 
 log = logging.getLogger(__name__)
 
 _LOCK_PREFIX = "LOCKED:"
 _DONE_PREFIX = "DONE:"
-_LOCK_TTL_SECONDS = int(os.environ.get("LOCK_TTL_SECONDS", 60))  # max seconds a handler may hold the lock before it is considered dead
+_LOCK_TTL_SECONDS = int(os.environ.get("LOCK_TTL_SECONDS", 60))
 
 
 def build_cache_key(user_id: str, idempotency_key: str, endpoint: str) -> str:
@@ -40,6 +43,27 @@ def build_body_hash(body: dict | None) -> str:
     """Stable hash of the request body used to detect fingerprint mismatches."""
     raw = json.dumps(body, sort_keys=True, default=str)
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+async def run_with_idempotency(store, cache_key: str, body_hash: str, adapter_fn) -> JSONResponse:
+    """Run adapter_fn under idempotency control."""
+    action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
+
+    if action == "hit":
+        return JSONResponse(content=cached_body, status_code=cached_status or 200, headers={"Idempotency-Key-Reply": "hit"})
+    if action == "conflict":
+        raise HTTPException(status_code=409, detail="A request with this Idempotency-Key is already in progress.", headers={"Retry-After": "2"})
+    if action == "fingerprint_mismatch":
+        raise HTTPException(status_code=422, detail="Idempotency-Key reused with a different request body.")
+
+    try:
+        result = await adapter_fn()
+        body = result.model_dump(exclude_unset=True)
+        await store.store_result(cache_key, body_hash, body, 200)
+        return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
+    except Exception:
+        await store.release_lock(cache_key)
+        raise
 
 
 class InMemoryIdempotencyStore:
@@ -68,9 +92,9 @@ class InMemoryIdempotencyStore:
     async def check_and_lock(self, cache_key: str, body_hash: str) -> tuple[str, dict | None, int | None]:
         """Check state and acquire lock for a new request.
         Possible returns:
-          ("proceed", None, None)            -- new request; caller must call store_result or release_lock
-          ("hit", body_dict, status_int)     -- cached result; return it directly
-          ("conflict", None, None)           -- in-flight; caller should return 409
+          ("proceed", None, None)              -- new request; caller must call store_result or release_lock
+          ("hit", body_dict, status_int)       -- cached result; return it directly
+          ("conflict", None, None)             -- in-flight; caller should return 409
           ("fingerprint_mismatch", None, None) -- same key, different body; caller should return 422
         """
         value = self._get(cache_key)
@@ -91,12 +115,21 @@ class InMemoryIdempotencyStore:
         return ("conflict", None, None)
 
     async def store_result(self, cache_key: str, body_hash: str, response_body: dict, response_status: int) -> None:
-        """Overwrite the lock entry with the final response and extend TTL"""
+        """Overwrite the lock entry with the final response and extend TTL.
+
+        Single-threaded asyncio: no await between the check and set, so this is atomic.
+        """
+        value = self._get(cache_key)
+        if value != f"{_LOCK_PREFIX}{body_hash}":
+            return
         data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
         self._set(cache_key, f"{_DONE_PREFIX}{json.dumps(data)}", self._ttl)
 
     async def release_lock(self, cache_key: str) -> None:
-        """Delete the lock"""
+        """Delete the lock.
+
+        Single-threaded asyncio: no await between the check and delete, so this is atomic.
+        """
         value = self._get(cache_key)
         if value and value.startswith(_LOCK_PREFIX):
             self._delete(cache_key)
@@ -125,6 +158,7 @@ class RedisIdempotencyStore:
 
         value = await self._client.get(rkey)
         if value is None:
+            # Key expired between our SET NX and GET; try once more.
             is_new2 = await self._client.set(rkey, lock_value, nx=True, ex=_LOCK_TTL_SECONDS)
             if is_new2:
                 return ("proceed", None, None)
@@ -142,14 +176,47 @@ class RedisIdempotencyStore:
         return ("conflict", None, None)
 
     async def store_result(self, cache_key: str, body_hash: str, response_body: dict, response_status: int) -> None:
+        """Write DONE only if we still own the lock, using WATCH/MULTI/EXEC optimistic locking.
+
+        If the lock expired and another request acquired it between check_and_lock and here,
+        the WATCH detects the change and the SET is skipped.
+        """
+        rkey = self._rkey(cache_key)
+        expected_lock = f"{_LOCK_PREFIX}{body_hash}"
         data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
-        await self._client.set(self._rkey(cache_key), f"{_DONE_PREFIX}{json.dumps(data)}", ex=self._ttl)
+        done_value = f"{_DONE_PREFIX}{json.dumps(data)}"
+
+        async with self._client.pipeline() as pipe:
+            try:
+                await pipe.watch(rkey)
+                if await pipe.get(rkey) != expected_lock:
+                    await pipe.reset()
+                    return
+                pipe.multi()
+                pipe.set(rkey, done_value, ex=self._ttl)
+                await pipe.execute()
+            except WatchError:
+                pass  # key changed between watch and execute; another request owns it now
 
     async def release_lock(self, cache_key: str) -> None:
+        """Delete the lock only if it still holds a LOCKED: value, using WATCH/MULTI/EXEC.
+
+        Prevents deleting a lock that expired and was re-acquired by a different request.
+        """
         rkey = self._rkey(cache_key)
-        value = await self._client.get(rkey)
-        if value and value.startswith(_LOCK_PREFIX):
-            await self._client.delete(rkey)
+
+        async with self._client.pipeline() as pipe:
+            try:
+                await pipe.watch(rkey)
+                current = await pipe.get(rkey)
+                if not (current and current.startswith(_LOCK_PREFIX)):
+                    await pipe.reset()
+                    return
+                pipe.multi()
+                pipe.delete(rkey)
+                await pipe.execute()
+            except WatchError:
+                pass  # key changed between watch and execute; leave it alone
 
     async def close(self) -> None:
         await self._client.aclose()

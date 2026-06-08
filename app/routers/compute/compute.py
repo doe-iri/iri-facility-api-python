@@ -1,9 +1,8 @@
 """Compute resource API router"""
 
-from fastapi import Depends, Header, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import Depends, Header, Query, Request, status
 
-from ...idempotency import build_body_hash, build_cache_key
+from ...idempotency import build_body_hash, build_cache_key, run_with_idempotency
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
 from ...types.user import User
@@ -73,29 +72,12 @@ async def submit_job(
     resource = await status_router.adapter.get_resource(resource_id)
 
     if idempotency_key:
-        store = request.app.state.idempotency_store
-        cache_key = build_cache_key(user.id, idempotency_key, "submit_job")
-        body_hash = build_body_hash(job_spec.model_dump())
-
-        action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
-
-        if action == "hit":
-            return JSONResponse(content=cached_body, status_code=cached_status or 200, headers={"Idempotency-Key-Reply": "hit"})
-        if action == "conflict":
-            raise HTTPException(status_code=409, detail="A request with this Idempotency-Key is already in progress.", headers={"Retry-After": "2"})
-        if action == "fingerprint_mismatch":
-            raise HTTPException(status_code=422, detail="Idempotency-Key reused with a different request body.")
-
-        # action == "proceed": first request; run handler, cache result.
-        try:
-            result = await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
-            body = result.model_dump(exclude_unset=True)
-            await store.store_result(cache_key, body_hash, body, 200)
-            return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
-        except Exception:
-            await store.release_lock(cache_key)
-            raise
-
+        return await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, "submit_job"),
+            build_body_hash(job_spec.model_dump()),
+            lambda: router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec),
+        )
     return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
 
 
@@ -134,29 +116,12 @@ async def update_job(
     resource = await status_router.adapter.get_resource(resource_id)
 
     if idempotency_key:
-        store = request.app.state.idempotency_store
-        # Include job_id in the cache key so different jobs don't collide.
-        cache_key = build_cache_key(user.id, idempotency_key, f"update_job:{job_id}")
-        body_hash = build_body_hash(job_spec.model_dump())
-
-        action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
-
-        if action == "hit":
-            return JSONResponse(content=cached_body, status_code=cached_status or 200, headers={"Idempotency-Key-Reply": "hit"})
-        if action == "conflict":
-            raise HTTPException(status_code=409, detail="A request with this Idempotency-Key is already in progress.", headers={"Retry-After": "2"})
-        if action == "fingerprint_mismatch":
-            raise HTTPException(status_code=422, detail="Idempotency-Key reused with a different request body.")
-
-        try:
-            result = await router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id)
-            body = result.model_dump(exclude_unset=True)
-            await store.store_result(cache_key, body_hash, body, 200)
-            return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
-        except Exception:
-            await store.release_lock(cache_key)
-            raise
-
+        return await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, f"update_job:{job_id}"),
+            build_body_hash(job_spec.model_dump()),
+            lambda: router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id),
+        )
     return await router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id)
 
 
