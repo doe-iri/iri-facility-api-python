@@ -41,6 +41,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_access_endpoints(
         self,
         resource: status_models.Resource,
+        user: User,
         protocol: storage_models.AccessProtocol | None,
         endpoint_id: str | None,
     ) -> list[storage_models.AccessEndpoint]:

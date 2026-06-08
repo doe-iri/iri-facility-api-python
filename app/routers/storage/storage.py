@@ -70,13 +70,15 @@ async def get_locations(
 
 
 @router.get(
-    "/{resource_id}/access-endpoints",
+    "/access-endpoints/{resource_id}",
     summary="Get data access endpoints for a storage resource",
     description=(
-        "Return the list of data access endpoints for the given storage resource. "
-        "Each entry describes a protocol (Globus, XRootD, S3, ...) and the connection "
-        "details needed to use it. Protocol-specific fields (endpoint_id, uri, bucket, etc.) "
-        "are present only for the relevant protocol; unrelated fields are omitted.\n\n"
+        "Return the list of data access endpoints for the given storage resource for the "
+        "authenticated user. Each entry describes a protocol (Globus, XRootD, S3, ...) and "
+        "the connection details needed to use it. Adapters may use the authenticated identity "
+        "to include user-specific paths (e.g. home directories, per-user Globus collections). "
+        "Protocol-specific fields (endpoint_id, uri, bucket, etc.) are present only for the "
+        "relevant protocol; unrelated fields are omitted.\n\n"
         "Optionally filter by protocol and/or endpoint ID."
     ),
     status_code=http_status.HTTP_200_OK,
@@ -97,9 +99,10 @@ async def get_access_endpoints(
         str | None,
         Query(description="Filter by endpoint ID"),
     ] = None,
+    user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams("protocol", "endpoint_id")),
 ) -> list[models.AccessEndpoint]:
     resource = await status_router.adapter.get_resource(resource_id)
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-    return await router.adapter.get_access_endpoints(resource, protocol, endpoint_id)
+    return await router.adapter.get_access_endpoints(resource, user, protocol, endpoint_id)
