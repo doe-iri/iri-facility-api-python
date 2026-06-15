@@ -87,7 +87,8 @@ async def run_with_idempotency(store: IdempotencyStore, cache_key: str, body_has
         body = result.model_dump(exclude_unset=True)
         await store.store_result(cache_key, body_hash, body, 200)
         return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
-    except Exception:
+    except Exception as exc:
+        log.error("Adapter raised during idempotent call; releasing lock for key %s: %s", cache_key, exc)
         await store.release_lock(cache_key)
         raise
 
