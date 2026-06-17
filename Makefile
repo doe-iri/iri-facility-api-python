@@ -69,6 +69,7 @@ test: deps ## Run unit tests
 	$(BIN)/python -m pytest test/ -v
 
 .PHONY: clean
+clean:
 	rm -rf iri_sandbox
 	rm -rf .venv
 
