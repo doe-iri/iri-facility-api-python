@@ -42,7 +42,7 @@ from .types.user import User
 from .types.scalars import AllocationUnit
 from .apilogger import get_stream_logger
 from .config import LOG_LEVEL
-from .idempotency import IdempotencyStore
+from .idempotency import IdempotencyStore, LockState
 
 logger = get_stream_logger(__name__, LOG_LEVEL)
 
@@ -58,8 +58,6 @@ def paginate_list(items, offset: int | None, limit: int | None):
     return items
 
 
-_LOCK_PREFIX = "LOCKED:"
-_DONE_PREFIX = "DONE:"
 _LOCK_TTL_SECONDS = int(os.environ.get("LOCK_TTL_SECONDS", 60))
 
 
@@ -70,9 +68,9 @@ class InMemoryIdempotencyStore(IdempotencyStore):
 
     def __init__(self, ttl: int | None = None):
         self._ttl = ttl if ttl is not None else int(os.environ.get("IDEMPOTENCY_TTL_SECONDS", "86400"))
-        self._data: dict[str, tuple[str, float]] = {}
+        self._data: dict[str, tuple[dict, float]] = {}
 
-    def _get(self, key: str) -> str | None:
+    def _get(self, key: str) -> dict | None:
         entry = self._data.get(key)
         if entry is None:
             return None
@@ -82,24 +80,23 @@ class InMemoryIdempotencyStore(IdempotencyStore):
             return None
         return value
 
-    def _set(self, key: str, value: str, ttl: int) -> None:
+    def _set(self, key: str, value: dict, ttl: int) -> None:
         self._data[key] = (value, time.monotonic() + ttl)
 
     def _delete(self, key: str) -> None:
         self._data.pop(key, None)
 
     async def check_and_lock(self, cache_key: str, body_hash: str) -> tuple[str, dict | None, int | None]:
-        value = self._get(cache_key)
+        data = self._get(cache_key)
 
-        if value is None:
-            self._set(cache_key, f"{_LOCK_PREFIX}{body_hash}", _LOCK_TTL_SECONDS)
+        if data is None:
+            self._set(cache_key, {"state": LockState.LOCKED, "body_hash": body_hash}, _LOCK_TTL_SECONDS)
             return ("proceed", None, None)
 
-        if value.startswith(_LOCK_PREFIX):
+        if data["state"] == LockState.LOCKED:
             return ("conflict", None, None)
 
-        if value.startswith(_DONE_PREFIX):
-            data = json.loads(value[len(_DONE_PREFIX):])
+        if data["state"] == LockState.DONE:
             if data["body_hash"] != body_hash:
                 return ("fingerprint_mismatch", None, None)
             return ("hit", data["response_body"], data["response_status"])
@@ -107,15 +104,14 @@ class InMemoryIdempotencyStore(IdempotencyStore):
         return ("conflict", None, None)
 
     async def store_result(self, cache_key: str, body_hash: str, response_body: dict, response_status: int) -> None:
-        value = self._get(cache_key)
-        if value != f"{_LOCK_PREFIX}{body_hash}":
+        data = self._get(cache_key)
+        if data is None or data.get("state") != LockState.LOCKED or data.get("body_hash") != body_hash:
             return
-        data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
-        self._set(cache_key, f"{_DONE_PREFIX}{json.dumps(data)}", self._ttl)
+        self._set(cache_key, {"state": LockState.DONE, "body_hash": body_hash, "response_body": response_body, "response_status": response_status}, self._ttl)
 
-    async def release_lock(self, cache_key: str) -> None:
-        value = self._get(cache_key)
-        if value and value.startswith(_LOCK_PREFIX):
+    async def delete_lock(self, cache_key: str) -> None:
+        data = self._get(cache_key)
+        if data is not None and data.get("state") == LockState.LOCKED:
             self._delete(cache_key)
 
     async def close(self) -> None:
@@ -140,25 +136,25 @@ class RedisIdempotencyStore(IdempotencyStore):
 
     async def check_and_lock(self, cache_key: str, body_hash: str) -> tuple[str, dict | None, int | None]:
         rkey = self._rkey(cache_key)
-        lock_value = f"{_LOCK_PREFIX}{body_hash}"
+        lock_value = json.dumps({"state": LockState.LOCKED, "body_hash": body_hash})
 
         is_new = await self._client.set(rkey, lock_value, nx=True, ex=_LOCK_TTL_SECONDS)
         if is_new:
             return ("proceed", None, None)
 
-        value = await self._client.get(rkey)
-        if value is None:
+        raw = await self._client.get(rkey)
+        if raw is None:
             # Key expired between our SET NX and GET; try once more.
             is_new2 = await self._client.set(rkey, lock_value, nx=True, ex=_LOCK_TTL_SECONDS)
             if is_new2:
                 return ("proceed", None, None)
             return ("conflict", None, None)
 
-        if value.startswith(_LOCK_PREFIX):
+        data = json.loads(raw)
+        if data["state"] == LockState.LOCKED:
             return ("conflict", None, None)
 
-        if value.startswith(_DONE_PREFIX):
-            data = json.loads(value[len(_DONE_PREFIX):])
+        if data["state"] == LockState.DONE:
             if data["body_hash"] != body_hash:
                 return ("fingerprint_mismatch", None, None)
             return ("hit", data["response_body"], data["response_status"])
@@ -168,9 +164,8 @@ class RedisIdempotencyStore(IdempotencyStore):
     async def store_result(self, cache_key: str, body_hash: str, response_body: dict, response_status: int) -> None:
         """Write DONE only if we still own the lock, using WATCH/MULTI/EXEC optimistic locking."""
         rkey = self._rkey(cache_key)
-        expected_lock = f"{_LOCK_PREFIX}{body_hash}"
-        data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
-        done_value = f"{_DONE_PREFIX}{json.dumps(data)}"
+        expected_lock = json.dumps({"state": LockState.LOCKED, "body_hash": body_hash})
+        done_value = json.dumps({"state": LockState.DONE, "body_hash": body_hash, "response_body": response_body, "response_status": response_status})
 
         async with self._client.pipeline() as pipe:
             try:
@@ -184,15 +179,19 @@ class RedisIdempotencyStore(IdempotencyStore):
             except WatchError:
                 pass  # key changed between watch and execute; another request owns it now
 
-    async def release_lock(self, cache_key: str) -> None:
-        """Delete the lock only if it still holds a LOCKED: value, using WATCH/MULTI/EXEC."""
+    async def delete_lock(self, cache_key: str) -> None:
+        """Delete the lock entry only if still in LOCKED state, using WATCH/MULTI/EXEC."""
         rkey = self._rkey(cache_key)
 
         async with self._client.pipeline() as pipe:
             try:
                 await pipe.watch(rkey)
                 current = await pipe.get(rkey)
-                if not (current and current.startswith(_LOCK_PREFIX)):
+                if not current:
+                    await pipe.reset()
+                    return
+                data = json.loads(current)
+                if data.get("state") != LockState.LOCKED:
                     await pipe.reset()
                     return
                 pipe.multi()

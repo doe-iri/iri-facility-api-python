@@ -20,11 +20,17 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from enum import Enum
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 log = logging.getLogger(__name__)
+
+
+class LockState(str, Enum):
+    LOCKED = "LOCKED"
+    DONE = "DONE"
 
 
 def build_cache_key(user_id: str, idempotency_key: str, endpoint: str) -> str:
@@ -61,9 +67,9 @@ class IdempotencyStore(ABC):
         """
 
     @abstractmethod
-    async def release_lock(self, cache_key: str) -> None:
-        """Release the lock when the adapter raises an exception.
-        Must be owner-checked: no-op if the key no longer holds a LOCKED: value.
+    async def delete_lock(self, cache_key: str) -> None:
+        """Delete the lock entry when the adapter raises an exception.
+        Must be owner-checked: no-op if the key is no longer in LOCKED state.
         """
 
     @abstractmethod
@@ -89,7 +95,7 @@ async def run_with_idempotency(store: IdempotencyStore, cache_key: str, body_has
         return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
     except Exception as exc:
         log.error("Adapter raised during idempotent call; releasing lock for key %s: %s", cache_key, exc)
-        await store.release_lock(cache_key)
+        await store.delete_lock(cache_key)
         raise
 
 
