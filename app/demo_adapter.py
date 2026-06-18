@@ -115,6 +115,7 @@ class DemoAdapter(
         self.user_allocations = []
         self.facility = {}
         self.locations = {}  # resource_id -> list[StorageInstance templates]
+        self.access_endpoints = {}  # resource_id -> list[AccessEndpoint]
         self.sites = []
         self._init_state()
 
@@ -398,6 +399,74 @@ class DemoAdapter(
 
         # Login nodes: same filesystem layout as CFS — outside-of-job semantics for everything.
         self.locations[login.id] = self.locations[cfs.id]
+
+        globus_cfs_id = demo_uuid("endpoint", "globus-cfs")
+        globus_hpss_id = demo_uuid("endpoint", "globus-hpss")
+
+        self.access_endpoints[cfs.id] = [
+            storage_models.AccessEndpoint(
+                id="globus-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.globus,
+                display_name="Demo CFS Globus",
+                endpoint_id=globus_cfs_id,
+                uri=f"globus://{globus_cfs_id}/",
+                root_path="/",
+                auth_type="globus",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                    storage_models.AccessCapability.transfer,
+                ],
+            ),
+            storage_models.AccessEndpoint(
+                id="xrootd-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.xrootd,
+                display_name="Demo CFS XRootD",
+                endpoint="root://cfs.demo.example/",
+                auth_type="x509",
+                capabilities=[
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.streaming,
+                ],
+            ),
+            storage_models.AccessEndpoint(
+                id="s3-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.s3,
+                display_name="Demo CFS S3",
+                bucket="demo-cfs",
+                region="us-east-1",
+                endpoint_url="https://s3.demo.example",
+                auth_type="aws_s3",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                ],
+            ),
+        ]
+
+        self.access_endpoints[hpss.id] = [
+            storage_models.AccessEndpoint(
+                id="globus-hpss-demo",
+                resource_id=hpss.id,
+                protocol=storage_models.AccessProtocol.globus,
+                display_name="Demo HPSS Globus",
+                endpoint_id=globus_hpss_id,
+                uri=f"globus://{globus_hpss_id}/",
+                root_path="/home",
+                auth_type="globus",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                    storage_models.AccessCapability.transfer,
+                ],
+            ),
+        ]
 
         # Populate site resource_ids based on which resources are at each site
         site1.resource_ids = [r.id for r in self.resources if r.site_id == site1.id]
@@ -869,6 +938,20 @@ class DemoAdapter(
                     access=m.access,
                 ))
         return result
+
+    async def get_access_endpoints(
+        self,
+        resource: status_models.Resource,
+        user: User,
+        protocol: storage_models.AccessProtocol | None,
+        endpoint_id: str | None,
+    ) -> list[storage_models.AccessEndpoint]:
+        endpoints = self.access_endpoints.get(resource.id, [])
+        if protocol:
+            endpoints = [e for e in endpoints if e.protocol == protocol]
+        if endpoint_id:
+            endpoints = [e for e in endpoints if e.id == endpoint_id]
+        return endpoints
 
     def validate_path(self, path: str, allow_symlinks: bool = True) -> str:
         """Validate that the given path is within the sandbox base directory and optionally check for symlinks."""

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi import Depends, HTTPException, Query, Request, status as http_status
 
 from ...types.http import forbidExtraQueryParams
 from ...types.user import User
@@ -32,7 +32,7 @@ router = iri_router.IriRouter(
         "- `write`: excludes paths that are read-only in a compute-job context\n"
         "- `read`: no filtering\n"
     ),
-    status_code=status.HTTP_200_OK,
+    status_code=http_status.HTTP_200_OK,
     response_model=list[models.StorageInstance],
     responses=DEFAULT_RESPONSES,
     operation_id="getStorageLocations",
@@ -67,3 +67,42 @@ async def get_locations(
     if logicalpath and not locations:
         raise HTTPException(status_code=404, detail=f"No storage location found for logical name '{logicalpath}'")
     return locations
+
+
+@router.get(
+    "/access-endpoints/{resource_id}",
+    summary="Get data access endpoints for a storage resource",
+    description=(
+        "Return the list of data access endpoints for the given storage resource for the "
+        "authenticated user. Each entry describes a protocol (Globus, XRootD, S3, ...) and "
+        "the connection details needed to use it. Adapters may use the authenticated identity "
+        "to include user-specific paths (e.g. home directories, per-user Globus collections). "
+        "Protocol-specific fields (endpoint_id, uri, bucket, etc.) are present only for the "
+        "relevant protocol; unrelated fields are omitted.\n\n"
+        "Optionally filter by protocol and/or endpoint ID."
+    ),
+    status_code=http_status.HTTP_200_OK,
+    response_model=list[models.AccessEndpoint],
+    response_model_exclude_none=True,
+    responses=DEFAULT_RESPONSES,
+    operation_id="getStorageAccessEndpoints",
+    openapi_extra=iri_meta_dict("in_development", "required"),
+)
+async def get_access_endpoints(
+    resource_id: str,
+    request: Request,
+    protocol: Annotated[
+        models.AccessProtocol | None,
+        Query(description="Filter by access protocol"),
+    ] = None,
+    endpoint_id: Annotated[
+        str | None,
+        Query(description="Filter by endpoint ID"),
+    ] = None,
+    user: User = Depends(router.current_user),
+    _forbid=Depends(forbidExtraQueryParams("protocol", "endpoint_id")),
+) -> list[models.AccessEndpoint]:
+    resource = await status_router.adapter.get_resource(resource_id)
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return await router.adapter.get_access_endpoints(resource, user, protocol, endpoint_id)

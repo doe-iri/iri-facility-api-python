@@ -36,3 +36,19 @@ class FacilityAdapter(AuthenticatedAdapter):
           - read: no filtering (all accessible paths)
         """
         pass
+
+    @abstractmethod
+    async def get_access_endpoints(
+        self,
+        resource: status_models.Resource,
+        user: User,
+        protocol: storage_models.AccessProtocol | None,
+        endpoint_id: str | None,
+    ) -> list[storage_models.AccessEndpoint]:
+        """
+        Return the list of data access endpoints for the given storage resource.
+        Each entry describes a protocol (Globus, XRootD, S3, ...) and the connection
+        details needed to use it.
+        Results are optionally filtered by protocol and/or endpoint ID.
+        """
+        pass
