@@ -1,7 +1,8 @@
 """Compute resource API router"""
 
-from fastapi import Depends, Query, Request, status
+from fastapi import Depends, Header, Query, Request, status
 
+from ...idempotency import build_body_hash, build_cache_key, run_with_idempotency
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
 from ...types.user import User
@@ -49,6 +50,7 @@ async def submit_job(
     user: User = Depends(router.current_user),
     project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
     """
     Submit a job on a compute resource
@@ -61,14 +63,21 @@ async def submit_job(
       If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
       for the downstream submission and related job metadata. If both sources are present, or neither is present,
       the request is rejected with `400 Bad Request`.
+    - **Idempotency-Key**: optional client-generated UUID. A retry with the same key and body
+      returns the original response without re-submitting the job. Same key with a different body
+      returns 422. An in-flight duplicate returns 409.
 
     This command will attempt to submit a job and return its id.
     """
-    # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    # the handler can use whatever means it wants to submit the job and then fill in its id
-    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+    if idempotency_key:
+        return await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, "submit_job"),
+            build_body_hash(job_spec.model_dump()),
+            lambda: router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec),
+        )
     return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
 
 
@@ -88,6 +97,7 @@ async def update_job(
     user: User = Depends(router.current_user),
     project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
     """
     Update a previously submitted job for a resource.
@@ -101,13 +111,17 @@ async def update_job(
       If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
       for downstream update handling and job metadata. If both sources are present, or neither is present,
       the request is rejected with `400 Bad Request`.
-
+    - **Idempotency-Key**: optional client-generated UUID. Same semantics as submit_job.
     """
-    # look up the resource (todo: maybe ensure it's available)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    # the handler can use whatever means it wants to submit the job and then fill in its id
-    # see: https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#submitting-jobs
+    if idempotency_key:
+        return await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, f"update_job:{job_id}"),
+            build_body_hash(job_spec.model_dump()),
+            lambda: router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id),
+        )
     return await router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id)
 
 

@@ -138,6 +138,46 @@ Logs always go to stdout. Optionally, logs can also be written to a rotating fil
 
 For local development, `make` writes logs to `runtime-logs.log` by default and keeps `5` daily rotated files. Use `make LOG_FILE=/tmp/iri-api.log`, `make IRI_LOG_FILE=/tmp/iri-api.log`, or `make LOG_ROTATION_DAYS=10` to override those defaults. You can also put the same variables in `local.env`.
 
+## Idempotency
+
+Compute `submit_job` and `update_job` endpoints support an optional `Idempotency-Key` request header. When provided, the server caches the first successful response for that key and returns it on any subsequent request with the same key and body — without calling the facility adapter again. This makes it safe for clients to retry on timeout without risking duplicate job submissions.
+
+### Behaviour
+
+| Scenario | Response |
+|---|---|
+| First request | Calls adapter, caches result. Response header: `Idempotency-Key-Reply: miss` |
+| Retry, same body | Returns cached result. Response header: `Idempotency-Key-Reply: hit` |
+| Retry, different body | `422 Unprocessable Entity` |
+| Concurrent duplicate (in-flight) | `409 Conflict` with `Retry-After: 2` |
+| Adapter raises | Lock released; client may retry safely |
+
+### Backing store
+
+| `REDIS_URL` set? | Store used | Suitable for |
+|---|---|---|
+| No (default) | In-process dict | Dev / single-instance |
+| Yes | Redis | Multi-replica production |
+
+For multi-replica deployments, Redis is required. Run a local Redis instance with `make redis`.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `REDIS_URL` | _(unset)_ | Redis connection URL (e.g. `redis://localhost:6379`). When unset, uses in-memory store. |
+| `IDEMPOTENCY_TTL_SECONDS` | `86400` | How long a cached response is retained after a successful call (24 hours). |
+| `LOCK_TTL_SECONDS` | `60` | Maximum seconds an in-flight request holds the lock. If the IRI process crashes mid-request, the lock auto-expires after this interval so the next retry is treated as a fresh request. Set higher if your facility's scheduler API is known to be slow. |
+
+### Quick start (dev)
+
+```bash
+make redis                          # start Redis container on :6379
+# add to local.env:
+export REDIS_URL=redis://localhost:6379
+make                                # start IRI dev server
+```
+
 ## Docker support
 
 You can either use the docker images created on github.com or build the image yourself.
