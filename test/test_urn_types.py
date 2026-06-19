@@ -63,6 +63,11 @@ class EnumBehaviorTests(unittest.TestCase):
         self.assertEqual(ResourceType.service, "urn:doe-iri:service:generic")
         self.assertTrue(ResourceType.service.startswith("urn:doe-iri:service:"))
 
+    def test_website_lives_in_service_domain(self):
+        """spec §3.1: legacy 'website' enum → urn:doe-iri:service:website."""
+        self.assertEqual(ResourceType.website, "urn:doe-iri:service:website")
+        self.assertTrue(ResourceType.website.startswith("urn:doe-iri:service:"))
+
     def test_all_allocation_units_in_allocation_domain(self):
         for member in AllocationUnit:
             self.assertTrue(member.value.startswith("urn:doe-iri:allocation:"), member.value)

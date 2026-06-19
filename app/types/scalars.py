@@ -157,7 +157,7 @@ class ResourceType(str, Enum):
     Note: `service` lives in the `service` domain per spec, not `resource`.
     ResourceTypeValue accepts any valid DOE IRI URN to allow facility extensions.
     """
-    website = "urn:doe-iri:resource:website"
+    website = "urn:doe-iri:service:website"
     service = "urn:doe-iri:service:generic"
     compute = "urn:doe-iri:resource:compute"
     system = "urn:doe-iri:resource:system"

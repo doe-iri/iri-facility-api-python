@@ -196,7 +196,7 @@ class PostCompressRequest(FilesystemRequestBase):
     target_path: str = Field(..., description="Path to the compressed file", example="/home/user/file.tar.gz")
     match_pattern: str|None = Field(default=None, description="Regex pattern to filter files to compress", example=".*\\.txt$")
     dereference: bool = Field(default=False, description="If set to `true`, it follows symbolic links and archive the files they point to instead of the links themselves.", example=True)
-    compression: CompressionTypeValue = Field(default=CompressionType.gzip, description="DOE IRI URN for the compression type. Legacy short tokens are accepted only as input compatibility aliases and are normalized.", example=CompressionType.gzip)
+    compression: CompressionTypeValue = Field(default=CompressionType.gzip, description="DOE IRI URN for the compression type (urn:doe-iri:compression:<type>).", example=CompressionType.gzip)
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -220,7 +220,7 @@ class PostExtractResponse(BaseModel):
 class PostExtractRequest(FilesystemRequestBase):
     """Represents a request to extract a compressed file."""
     target_path: str = Field(..., description="Path to the directory where to extract the compressed file", example="/home/user/dir")
-    compression: CompressionTypeValue = Field(default=CompressionType.gzip, description="DOE IRI URN for the compression type. Legacy short tokens are accepted only as input compatibility aliases and are normalized.", example=CompressionType.gzip)
+    compression: CompressionTypeValue = Field(default=CompressionType.gzip, description="DOE IRI URN for the compression type (urn:doe-iri:compression:<type>).", example=CompressionType.gzip)
     model_config = {
         "json_schema_extra": {
             "examples": [
