@@ -74,6 +74,10 @@ audit: deps
 bandit: deps
 	$(BIN)/bandit -r app || true
 
+test: deps
+	$(UV) pip install --python $(BIN)/python -e ".[dev]"
+	$(BIN)/python -m pytest test/ -v
+
 # Full validation bundle
 lint: clean format ruff pylint audit bandit
 

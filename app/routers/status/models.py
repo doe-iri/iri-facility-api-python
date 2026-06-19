@@ -6,6 +6,7 @@ from pydantic import Field, computed_field, field_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
+from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
 
 
 class Status(enum.Enum):
@@ -16,18 +17,8 @@ class Status(enum.Enum):
     unknown = "unknown"
 
 
-class ResourceType(enum.Enum):
-    """Represents the type of a resource."""
-    website = "website"
-    service = "service"
-    compute = "compute"
-    system = "system"
-    storage = "storage"
-    network = "network"
-    unknown = "unknown"
-
-
-class Endpoint(enum.Enum):
+class Endpoint(str, enum.Enum):
+    """Router endpoint a resource supports (used internally to route compute/filesystem requests)."""
     compute = "compute"
     filesystem = "filesystem"
 
@@ -42,7 +33,7 @@ class Resource(NamedObject):
     capability_ids: list[str] = Field(default_factory=list, exclude=True)
     group: str|None = Field(default=None, description="Logical grouping of the resource", example="frontend")
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
-    resource_type: ResourceType = Field(..., description="Type of the resource", example="service")
+    resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
 
     @computed_field(description="URI of the site where this resource is located")
@@ -63,9 +54,10 @@ class Resource(NamedObject):
         if group:
             items = [item for item in items if item.group == group]
         if resource_type:
-            if isinstance(resource_type, str):
-                resource_type = ResourceType(resource_type)
-            items = [item for item in items if item.resource_type == resource_type]
+            # resource_type may be a ResourceType enum (which is a str subclass) or a raw URN string.
+            # Do not call str() on a str(Enum) — it returns the repr, not the value.
+            rt_urn = validate_doe_iri_urn(resource_type.value if hasattr(resource_type, "value") else resource_type)
+            items = [item for item in items if urn_has_complete_prefix(rt_urn, item.resource_type)]
         if current_status:
             items = [item for item in items if item.current_status == current_status]
         if capability:

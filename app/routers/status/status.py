@@ -3,7 +3,7 @@ from typing import List
 from fastapi import Depends, HTTPException, Query, Request
 
 from ...types.http import forbidExtraQueryParams
-from ...types.scalars import AllocationUnit, StrictDateTime
+from ...types.scalars import AllocationUnitValue, StrictDateTime, DOE_IRI_URN_MIN_LENGTH, DOE_IRI_URN_SCHEMA_PATTERN
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
@@ -33,9 +33,15 @@ async def get_resources(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=0, le=1000),
     modified_since: StrictDateTime = Query(default=None),
-    resource_type: models.ResourceType = Query(default=None),
+    resource_type: models.ResourceTypeValue = Query(
+        default=None,
+        min_length=DOE_IRI_URN_MIN_LENGTH,
+        pattern=DOE_IRI_URN_SCHEMA_PATTERN,
+        description="DOE IRI resource type URN (urn:doe-iri:<domain>:<nss>). Facility-local extensions accepted.",
+        examples=[models.ResourceType.compute, models.ResourceType.storage, models.ResourceType.service],
+    ),
     current_status: models.Status = Query(default=None),
-    capability: List[AllocationUnit] = Query(default=None, min_length=1),
+    capability: List[AllocationUnitValue] = Query(default=None, min_length=1),
     _forbid=Depends(forbidExtraQueryParams("name", "description", "group", "offset", "limit", "modified_since", "resource_type", "current_status", "capability", multiParams={"capability"})),
 ) -> list[models.Resource]:
     return await router.adapter.get_resources(
