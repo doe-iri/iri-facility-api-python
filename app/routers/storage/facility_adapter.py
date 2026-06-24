@@ -9,8 +9,8 @@ from ..iri_router import AuthenticatedAdapter
 class FacilityAdapter(AuthenticatedAdapter):
     """
     Facility-specific storage location adapter.
-    Use the `IRI_API_ADAPTER_storage` environment variable
-    (defaults to `app.demo_adapter.DemoAdapter`) to install your implementation.
+    Use the `IRI_API_ADAPTER_storage` environment variable to install your
+    facility adapter before the API starts.
     """
 
     @abstractmethod

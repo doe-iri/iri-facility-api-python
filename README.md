@@ -60,7 +60,7 @@ This behavior is specific to compute submission/update handling; read-only endpo
 
 The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
 
-As a default implementation, this project supplies the [demo adapter](app/demo_adapter.py) which implements every facility adapter with fake data.
+A reference implementation that fakes every facility adapter is provided by the separate [`iri-facility-api-demo-adapter`](https://github.com/doe-iri/iri-facility-api-demo-adapter) repo, included here as a git submodule under `examples/demo-adapter`. `make dev` installs it and wires it up automatically. This repo itself ships no adapter -- it is a pure framework.
 
 ### Customizing the API meta-data
 You can optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
@@ -120,9 +120,9 @@ Links to data, created by this api, will concatenate these values producing link
   | `IRI_API_ADAPTER_storage`    | `/storage/...`    | [`app.routers.storage.facility_adapter.FacilityAdapter`](app/routers/storage/facility_adapter.py) |
   | `IRI_API_ADAPTER_task`       | `/task/...`       | [`app.routers.task.facility_adapter.FacilityAdapter`](app/routers/task/facility_adapter.py) |
 
-  Each value is a `module.path.ClassName` string. `app.demo_adapter.DemoAdapter` implements all of them and is what `make dev` wires up by default. A router whose `IRI_API_ADAPTER_*` is not set is hidden from the API at startup unless `IRI_SHOW_MISSING_ROUTES=true`.
+  Each value is a `module.path.ClassName` string. The demo adapter's `demo_adapter.combined.DemoAdapter` (from the `examples/demo-adapter` submodule) implements all of them and is what `make dev` wires up by default. A router whose `IRI_API_ADAPTER_*` is not set is hidden from the API at startup; if `IRI_SHOW_MISSING_ROUTES=true` an unconfigured router instead fails fast at startup (the framework has no built-in fallback adapter).
 
-- `IRI_SHOW_MISSING_ROUTES`: hide api groups that don't have an `IRI_API_ADAPTER_*` environment variable defined, if set to `true`. This way if your facility only wishes to expose some api groups but not others, they can be hidden. (Defaults to `false`.)
+- `IRI_SHOW_MISSING_ROUTES`: by default (`false`), api groups without an `IRI_API_ADAPTER_*` environment variable are silently hidden, so a facility can expose only the groups it implements. If set to `true`, an unconfigured group instead makes startup fail fast, surfacing the missing adapter as a configuration error rather than silently dropping the route.
 
 ### Logging
 
@@ -154,18 +154,24 @@ Compute `submit_job` and `update_job` endpoints support an optional `Idempotency
 
 ### Backing store
 
-| `REDIS_URL` set? | Store used | Suitable for |
-|---|---|---|
-| No (default) | In-process dict | Dev / single-instance |
-| Yes | Redis | Multi-replica production |
+The core library ships no backing store. Configure one with `IRI_IDEMPOTENCY_STORE`;
+if it is unset, a request that sends `Idempotency-Key` returns `501`.
 
-For multi-replica deployments, Redis is required. Run a local Redis instance with `make redis`.
+The demo adapter package provides reference stores:
+
+| Store | Configure with | Suitable for |
+|---|---|---|
+| In-process dict | `IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.InMemoryIdempotencyStore` | Dev / single-instance |
+| Redis | `IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.RedisIdempotencyStore` plus `REDIS_URL` | Multi-replica production |
+
+For multi-replica deployments, use the Redis store. Run a local Redis instance with `make redis`.
 
 ### Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
-| `REDIS_URL` | _(unset)_ | Redis connection URL (e.g. `redis://localhost:6379`). When unset, uses in-memory store. |
+| `IRI_IDEMPOTENCY_STORE` | _(unset)_ | Dotted path to an idempotency store class. The demo adapter provides in-memory and Redis reference stores. |
+| `REDIS_URL` | _(unset)_ | Redis connection URL (e.g. `redis://localhost:6379`) when using `RedisIdempotencyStore`. |
 | `IDEMPOTENCY_TTL_SECONDS` | `86400` | How long a cached response is retained after a successful call (24 hours). |
 | `LOCK_TTL_SECONDS` | `60` | Maximum seconds an in-flight request holds the lock. If the IRI process crashes mid-request, the lock auto-expires after this interval so the next retry is treated as a fresh request. Set higher if your facility's scheduler API is known to be slow. |
 
@@ -174,6 +180,7 @@ For multi-replica deployments, Redis is required. Run a local Redis instance wit
 ```bash
 make redis                          # start Redis container on :6379
 # add to local.env:
+export IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.RedisIdempotencyStore
 export REDIS_URL=redis://localhost:6379
 make                                # start IRI dev server
 ```

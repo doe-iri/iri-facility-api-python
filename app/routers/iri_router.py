@@ -54,16 +54,22 @@ class IriRouter(APIRouter):
 
     @staticmethod
     def _get_adapter_name(router_name: str) -> str | None:
-        """Return the adapter name, or None if it's not configured and IRI_SHOW_MISSING_ROUTES is true"""
-        # if there is no adapter specified for this router,
-        # and IRI_SHOW_MISSING_ROUTES is not true,
-        # hide the router
-        env_var = f"IRI_API_ADAPTER_{router_name}"
-        if env_var not in os.environ and os.environ.get("IRI_SHOW_MISSING_ROUTES") not in ["true", "1", "on", "yes"]:
-            return None
+        """Return the configured adapter dotted-path for a router, or None to hide it.
 
-        # find and load the actual implementation
-        return os.environ.get(env_var, "app.demo_adapter.DemoAdapter")
+        IRI_API_ADAPTER_<router> set        -> return it.
+        unset + IRI_SHOW_MISSING_ROUTES off -> return None (router hidden).
+        unset + IRI_SHOW_MISSING_ROUTES on  -> raise; the library ships no demo
+            fallback, so a shown route with no adapter is a misconfiguration.
+        """
+        env_var = f"IRI_API_ADAPTER_{router_name}"
+        if env_var in os.environ:
+            return os.environ[env_var]
+        if os.environ.get("IRI_SHOW_MISSING_ROUTES") in ["true", "1", "on", "yes"]:
+            raise RuntimeError(
+                f"{env_var} is not set but IRI_SHOW_MISSING_ROUTES is enabled; "
+                f"configure an adapter for '{router_name}' or disable IRI_SHOW_MISSING_ROUTES."
+            )
+        return None
 
     @staticmethod
     def create_adapter(router_name, router_adapter):
