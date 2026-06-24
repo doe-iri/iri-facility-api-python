@@ -51,7 +51,8 @@ OTEL_METRIC_EXPORT_INTERVAL = int(os.environ.get("OTEL_METRIC_EXPORT_INTERVAL", 
 
 # Idempotency store
 # IRI_IDEMPOTENCY_STORE: fully-qualified class to use as the backing store.
-#   Example: IRI_IDEMPOTENCY_STORE=app.demo_adapter.DemoRedisIdempotencyStore
+#   Example: IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.RedisIdempotencyStore
+#   If unset, idempotency is disabled (an Idempotency-Key request returns 501).
 IRI_IDEMPOTENCY_STORE = os.environ.get("IRI_IDEMPOTENCY_STORE", "")
 IDEMPOTENCY_TTL_SECONDS = int(os.environ.get("IDEMPOTENCY_TTL_SECONDS", "86400"))
 LOCK_TTL_SECONDS = int(os.environ.get("LOCK_TTL_SECONDS", "60"))
@@ -72,7 +73,7 @@ logger.info(f"OTEL_SAMPLE_RATE={OTEL_SAMPLE_RATE}")
 logger.info(f"OTEL_TRACES_ENABLED={OTEL_TRACES_ENABLED}")
 logger.info(f"OTEL_METRICS_ENABLED={OTEL_METRICS_ENABLED}")
 logger.info(f"OTEL_METRIC_EXPORT_INTERVAL={OTEL_METRIC_EXPORT_INTERVAL}")
-logger.info(f"IRI_IDEMPOTENCY_STORE={IRI_IDEMPOTENCY_STORE if IRI_IDEMPOTENCY_STORE else '(unset, using in-memory store)'}")
+logger.info(f"IRI_IDEMPOTENCY_STORE={IRI_IDEMPOTENCY_STORE if IRI_IDEMPOTENCY_STORE else '(unset, idempotency disabled)'}")
 logger.info(f"IDEMPOTENCY_TTL_SECONDS={IDEMPOTENCY_TTL_SECONDS}")
 logger.info(f"LOCK_TTL_SECONDS={LOCK_TTL_SECONDS}")
 logger.info("="*40)
