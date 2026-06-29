@@ -54,16 +54,6 @@ class StorageInstance(BaseModel):
         description="Performance tier classification (high / medium / low / tape)",
         example="high",
     )
-    quota_bytes: int | None = Field(
-        default=None,
-        description="Total quota in bytes (None = unlimited or unknown)",
-        example=5000000000000,
-    )
-    available_bytes: int | None = Field(
-        default=None,
-        description="Available bytes remaining within the quota",
-        example=4200000000000,
-    )
     purge_policy_days: int | None = Field(
         default=None,
         description="Days of inactivity before automatic purge; None means no purge policy",
