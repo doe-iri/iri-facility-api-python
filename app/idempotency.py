@@ -8,10 +8,11 @@ Behaviour by Idempotency-Key header:
   - Same key, different body -> 422 Unprocessable Entity.
   - Adapter raises    -> lock is released; client may retry safely.
 
-The backing store is defined via IRI_IDEMPOTENCY_STORE (see create_store).
-Reference implementations:
-  - InMemoryIdempotencyStore  : in-process dict; dev/single-instance only.
-  - RedisIdempotencyStore     : Redis-backed;
+The backing store is defined via IRI_IDEMPOTENCY_STORE (see create_store). The
+library ships no built-in store; reference implementations are provided by the demo
+adapter (demo_adapter.compute.idempotency.InMemoryIdempotencyStore /
+RedisIdempotencyStore). If IRI_IDEMPOTENCY_STORE is unset, idempotency is disabled
+and a request that sends an Idempotency-Key receives 501.
 """
 
 import hashlib
@@ -77,8 +78,13 @@ class IdempotencyStore(ABC):
         """Release connections and resources at application shutdown."""
 
 
-async def run_with_idempotency(store: IdempotencyStore, cache_key: str, body_hash: str, adapter_fn) -> JSONResponse:
+async def run_with_idempotency(store: IdempotencyStore | None, cache_key: str, body_hash: str, adapter_fn) -> JSONResponse:
     """Run adapter_fn under idempotency control."""
+    if store is None:
+        raise HTTPException(
+            status_code=501,
+            detail="Idempotency-Key provided but no idempotency store is configured (set IRI_IDEMPOTENCY_STORE).",
+        )
     action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
 
     if action == "hit":
@@ -99,14 +105,20 @@ async def run_with_idempotency(store: IdempotencyStore, cache_key: str, body_has
         raise
 
 
-def create_store() -> IdempotencyStore:
-    """Return the idempotency store configured via IRI_IDEMPOTENCY_STORE.
+def create_store() -> IdempotencyStore | None:
+    """Return the idempotency store configured via IRI_IDEMPOTENCY_STORE, or None.
 
     The named class is imported and instantiated with no arguments — it reads any
-    connection strings or config it needs from env vars.
-    Defaults to app.demo_adapter.InMemoryIdempotencyStore (single-instance; not for production).
+    connection strings or config it needs from env vars. If IRI_IDEMPOTENCY_STORE is
+    unset, returns None: idempotency is disabled and a request carrying an
+    Idempotency-Key gets 501 (see run_with_idempotency). Reference store
+    implementations live in the demo adapter
+    (demo_adapter.compute.idempotency.InMemoryIdempotencyStore / RedisIdempotencyStore).
     """
-    class_path = os.environ.get("IRI_IDEMPOTENCY_STORE", "app.demo_adapter.InMemoryIdempotencyStore")
+    class_path = os.environ.get("IRI_IDEMPOTENCY_STORE", "")
+    if not class_path:
+        log.info("Idempotency store: (unset) — idempotency disabled")
+        return None
     parts = class_path.rsplit(".", 1)
     module = importlib.import_module(parts[0])
     StoreClass = getattr(module, parts[1])

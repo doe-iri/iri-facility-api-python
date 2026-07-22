@@ -26,6 +26,9 @@ $(STAMP_DEPS): $(STAMP_VENV) pyproject.toml
 		pylint \
 		bandit \
 		pytest
+	git submodule update --init examples/demo-adapter
+	$(UV) pip install --python $(BIN)/python -e examples/demo-adapter --no-deps
+	$(UV) pip install --python $(BIN)/python 'redis>=7.2.0,<8.0.0'
 	touch $(STAMP_DEPS)
 
 deps: $(STAMP_DEPS)
@@ -33,13 +36,14 @@ deps: $(STAMP_DEPS)
 dev: deps
 	@source $(BIN)/activate && \
 	[ -f local.env ] && source local.env || true && \
-	IRI_API_ADAPTER_facility=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_status=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_storage=app.demo_adapter.DemoAdapter \
-	IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
+	IRI_API_ADAPTER_facility=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_status=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_account=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_compute=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_filesystem=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_storage=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_task=demo_adapter.combined.DemoAdapter \
+	IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.InMemoryIdempotencyStore \
 	IRI_LOG_FILE="$${IRI_LOG_FILE:-$${LOG_FILE:-$(IRI_LOG_FILE)}}" \
 	IRI_LOG_ROTATION_DAYS="$${IRI_LOG_ROTATION_DAYS:-$${LOG_ROTATION_DAYS:-$(IRI_LOG_ROTATION_DAYS)}}" \
 	DEMO_QUEUE_UPDATE_SECS=2 \

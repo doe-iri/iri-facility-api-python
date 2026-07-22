@@ -10,9 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repository (with demo-adapter submodule)
       uses: actions/checkout@v4
       with:
+        submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout schema validator repository
@@ -31,24 +32,37 @@ jobs:
     - name: Install uv
       run: pip install uv
 
-    - name: Build an image
+    - name: Build the main image
       run: docker build --platform=linux/amd64 -t iri-facility-api-base .
 
-    - name: Run Facility API container
+    # Mount the demo adapter from the examples/demo-adapter submodule so schemathesis runs
+    # against the PR's main code backed by the demo data.
+    - name: Run Facility API container (main image + demo adapter submodule)
       run: |
         docker run -d \
           -p 8000:8000 \
           --platform=linux/amd64 \
           --name iri-facility-api-base \
-          -e IRI_API_ADAPTER_facility=app.demo_adapter.DemoAdapter \
-          -e IRI_API_ADAPTER_status=app.demo_adapter.DemoAdapter \
-          -e IRI_API_ADAPTER_account=app.demo_adapter.DemoAdapter \
-          -e IRI_API_ADAPTER_compute=app.demo_adapter.DemoAdapter \
-          -e IRI_API_ADAPTER_filesystem=app.demo_adapter.DemoAdapter \
-          -e IRI_API_ADAPTER_task=app.demo_adapter.DemoAdapter \
+          -v "$GITHUB_WORKSPACE/examples/demo-adapter:/demo-adapter" \
+          -e PYTHONPATH=/demo-adapter \
+          -e IRI_API_ADAPTER_facility=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_status=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_account=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_compute=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_filesystem=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_storage=demo_adapter.combined.DemoAdapter \
+          -e IRI_API_ADAPTER_task=demo_adapter.combined.DemoAdapter \
+          -e IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.InMemoryIdempotencyStore \
           -e API_URL_ROOT=http://127.0.0.1:8000 \
           -e IRI_API_TOKEN=12345 \
-          iri-facility-api-base
+          iri-facility-api-base \
+          sh -c "uv pip install --system 'redis>=7.2.0,<8.0.0' && fastapi run app/main.py --port 8000"
+
+    - name: Create venv & install validator dependencies
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install -r schema-validator/verification/requirements.txt
 
     - name: Wait for API to be ready
       run: |
@@ -62,16 +76,10 @@ jobs:
         echo "API did not start"
         exit 1
 
-    - name: Create venv & install validator dependencies
-      run: |
-        uv venv
-        source .venv/bin/activate
-        uv pip install -r schema-validator/verification/requirements.txt
-
     - name: Run Schemathesis validation (local spec)
       id: schemathesis_local
       env:
-        IRI_API_TOKEN: "12345" # This is dummy token for testing (mock adapter)
+        IRI_API_TOKEN: "12345" # This is dummy token for testing (demo adapter)
       run: |
         set +e
         source .venv/bin/activate

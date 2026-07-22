@@ -19,8 +19,8 @@ OPS_SIZE_LIMIT = to_int("OPS_SIZE_LIMIT", 5 * 1024 * 1024)
 class FacilityAdapter(AuthenticatedAdapter):
     """
     Facility-specific code is handled by the implementation of this interface.
-    Use the `IRI_API_ADAPTER` environment variable (defaults to `app.demo_adapter.FacilityAdapter`)
-    to install your facility adapter before the API starts.
+    Use the `IRI_API_ADAPTER_<domain>` environment variable to install your
+    facility adapter before the API starts.
     """
 
     @abstractmethod

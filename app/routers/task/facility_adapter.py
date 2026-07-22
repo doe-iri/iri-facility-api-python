@@ -13,8 +13,8 @@ logger = get_stream_logger(__name__)
 class FacilityAdapter(AuthenticatedAdapter):
     """
     Facility-specific code is handled by the implementation of this interface.
-    Use the `IRI_API_ADAPTER` environment variable (defaults to `app.demo_adapter.FacilityAdapter`)
-    to install your facility adapter before the API starts.
+    Use the `IRI_API_ADAPTER_<domain>` environment variable to install your
+    facility adapter before the API starts.
     """
 
     @abstractmethod

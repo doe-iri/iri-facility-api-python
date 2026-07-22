@@ -1,0 +1,4 @@
+[submodule "examples/demo-adapter"]
+	path = examples/demo-adapter
+	url = git@github.com:doe-iri/iri-facility-api-demo-adapter.git
+	branch = syncmaintodemo
