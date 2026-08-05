@@ -62,8 +62,8 @@ class NamedObject(IRIBaseModel):
         """Computed self URI property."""
         return f"{get_url_prefix()}{self._self_path()}"
 
-    name: str|None = Field(default=None, description="The long name of the object.", example="Perlmutter GPU")
-    description: str|None = Field(default=None, description="Human-readable description of the object.", example="High-performance GPU compute resource")
+    name: str|None = Field(default=None, description="The long name of the object.", example="Facility Cluster")
+    description: str|None = Field(default=None, description="Human-readable description of the object.", example="High-performance compute resource")
     last_modified: StrictDateTime = Field(..., description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
 
     @classmethod
