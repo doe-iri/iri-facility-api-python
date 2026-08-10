@@ -14,6 +14,11 @@ class IRIBaseModel(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    attributes: dict[str, object] | None = Field(
+        default=None,
+        description=("Optional, type-specific metadata for this object"),
+    )
+
     @model_serializer(mode="wrap")
     def _hide_extra(self, handler, info):
         data = handler(self)
@@ -24,6 +29,11 @@ class IRIBaseModel(BaseModel):
         for k in extra:
             if k not in model_fields and k not in computed_fields:
                 data.pop(k, None)
+
+        # do not put null attributes
+        if "attributes" in model_fields and data.get("attributes") is None:
+            data.pop("attributes", None)
+
         return data
 
     def get_extra(self, key, default=None):
