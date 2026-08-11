@@ -42,7 +42,7 @@ class StorageInstance(BaseModel):
     path: str = Field(
         ...,
         description="Absolute resolved path for this user at the resource",
-        example="/pscratch/sd/j/jbalcas",
+        example="/scratch/project/username",
     )
     filesystem: str | None = Field(
         default=None,
@@ -91,19 +91,19 @@ class AccessEndpoint(BaseModel):
     A single data access endpoint for a storage resource.
     Protocol-specific connection fields are present only for the relevant protocol.
     """
-    id: str = Field(..., description="Unique identifier for this access endpoint", example="globus-cfs-demo")
+    id: str = Field(..., description="Unique identifier for this access endpoint", example="00000000-0000-0000-0000-000000000000")
     resource_id: str = Field(..., description="ID of the storage resource this endpoint belongs to")
     protocol: AccessProtocol = Field(..., description="Data access protocol")
-    display_name: Optional[str] = Field(default=None, description="Human-readable name for this endpoint", example="Demo CFS Globus")
+    display_name: Optional[str] = Field(default=None, description="Human-readable name for this endpoint", example="Globus endpoint example")
     auth_type: str = Field(..., description="Authentication mechanism required to use this endpoint", example="globus")
     capabilities: list[AccessCapability] = Field(..., description="Supported data operations")
     # Globus-specific
-    endpoint_id: Optional[str] = Field(default=None, description="Globus endpoint UUID (Globus only)", example="5e0cdbd2-3f1a-4e57-beed-b95scbb83b7c")
-    uri: Optional[str] = Field(default=None, description="Full Globus URI (Globus only)", example="globus://5e0cdbd2-3f1a-4e57-beed-b95scbb83b7c/")
+    endpoint_id: Optional[str] = Field(default=None, description="Globus endpoint UUID (Globus only)", example="00000000-0000-0000-0000-000000000000")
+    uri: Optional[str] = Field(default=None, description="Full Globus URI (Globus only)", example="globus://00000000-0000-0000-0000-000000000000/")
     root_path: Optional[str] = Field(default=None, description="Root path within the endpoint (Globus only)", example="/")
     # XRootD-specific
-    endpoint: Optional[str] = Field(default=None, description="XRootD server address (XRootD only)", example="root://cfs.demo.example/")
+    endpoint: Optional[str] = Field(default=None, description="XRootD server address (XRootD only)", example="root://endpoint.example/")
     # S3-specific
-    bucket: Optional[str] = Field(default=None, description="S3 bucket name (S3 only)", example="demo-cfs")
+    bucket: Optional[str] = Field(default=None, description="S3 bucket name (S3 only)", example="bucket-example")
     region: Optional[str] = Field(default=None, description="AWS region (S3 only)", example="us-east-1")
-    endpoint_url: Optional[str] = Field(default=None, description="S3-compatible endpoint URL for non-AWS providers (S3 only)", example="https://s3.demo.example")
+    endpoint_url: Optional[str] = Field(default=None, description="S3-compatible endpoint URL for non-AWS providers (S3 only)", example="https://s3.endpoint.example")
