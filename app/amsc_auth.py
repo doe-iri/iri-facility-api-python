@@ -3,19 +3,19 @@
 1. Validate the Keycard is well-formed and currently valid: JWKS signature verification, issuer/audience/expiry checks (``validate_amsc_token``).
 2. Validate the claims carried inside it (amsc_project_context, sub) are present.
 3. Optionally call the AmSC userinfo endpoint (Ping) to catch tokens revoked since issuance.
-4. Map the tokens amsc_project_context to a local facility username via a facility-maintained YAML file.
+4. Map the tokens amsc_project_context to a local facility username via a facility-maintained JSON file.
    AmSC project with no local mapping entry is a hard authentication failure (401).
 
 To turns this on with AMSC_TOKEN_ENABLED=true and supply issuer/audience/JWKS/mapping configuration.
 """
 import asyncio
+import json
 import os
 import time
 from typing import Any
 
 import httpx
 import jwt
-import yaml
 from jwt import PyJWKClient
 
 from .apilogger import get_stream_logger
@@ -214,7 +214,7 @@ async def validate_amsc_token(token: str) -> dict:
 # Step 3: optional userinfo freshness check
 # ---------------------------------------------------------------------------
 
-async def check_amsc_userinfo(token: str) -> None:
+async def check_amsc_userinfo(token: str) -> dict:
     """Call the AmSC userinfo endpoint (Ping) to confirm the token is still live."""
     url = await _userinfo_url()
     if not url:
@@ -229,9 +229,21 @@ async def check_amsc_userinfo(token: str) -> None:
     if response.status_code != 200:
         raise ValueError(f"AmSC userinfo check failed: Ping returned status {response.status_code}")
 
+    try:
+        userinfo = response.json()
+    except ValueError:
+        userinfo = {}
+    logger.info(
+        "amsc_auth: userinfo check confirmed live AmSC identity sub=%s name=%s email=%s",
+        userinfo.get("sub"),
+        userinfo.get("name"),
+        userinfo.get("email"),
+    )
+    return userinfo
+
 
 # ---------------------------------------------------------------------------
-# Step 4: amsc_project_context -> local facility username mapping (YAML)
+# Step 4: amsc_project_context -> local facility username mapping (JSON)
 # ---------------------------------------------------------------------------
 
 _mapping_cache: dict[str, str] = {}
@@ -252,7 +264,7 @@ def _load_project_mapping() -> dict[str, str]:
     if mtime == _mapping_mtime and _mapping_cache:
         return _mapping_cache
     with open(path, "r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle) or {}
+        data = json.load(handle) or {}
     mapping = data.get("project_mapping") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"AmSC project mapping file {path}: 'project_mapping' must be a mapping")

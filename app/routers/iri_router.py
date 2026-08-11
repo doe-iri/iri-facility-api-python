@@ -3,13 +3,11 @@ import os
 import logging
 import importlib
 import time
-from typing import Any
 import globus_sdk
-from fastapi import Body, Request, Depends, HTTPException, APIRouter
+from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from .. import amsc_auth
-from ..request_context import get_iri_facility_project
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
@@ -134,7 +132,9 @@ class IriRouter(APIRouter):
         """Validate an AmSC Keycard (signature/claims, optional Ping userinfo check) and return its claims."""
         claims = await amsc_auth.validate_amsc_token(token)
         if amsc_auth.userinfo_check_enabled():
-            await amsc_auth.check_amsc_userinfo(token)
+            userinfo = await amsc_auth.check_amsc_userinfo(token)
+            claims["amsc_name"] = userinfo.get("name")
+            claims["amsc_email"] = userinfo.get("email")
         return claims
 
 
@@ -153,6 +153,15 @@ class IriRouter(APIRouter):
                 try:
                     amsc_claims = await self.get_amsc_info(token)
                     user_id = await self.adapter.get_current_user_amsc(token, ip_address, amsc_claims)
+                    logging.getLogger().info(
+                        "AmSC authenticated request: sub=%s amsc_project_context=%s jti=%s name=%s email=%s -> local_user=%s",
+                        amsc_claims.get("sub"),
+                        amsc_claims.get("amsc_project_context"),
+                        amsc_claims.get("jti"),
+                        amsc_claims.get("amsc_name"),
+                        amsc_claims.get("amsc_email"),
+                        user_id,
+                    )
                 except Exception as amsc_exc:
                     logging.getLogger().exception("AmSC error:", exc_info=amsc_exc)
                     exc_msg = f"AmSC authentication failed: {str(amsc_exc)}. || "
@@ -182,29 +191,6 @@ class IriRouter(APIRouter):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return user
-
-    async def iri_header_project(self, request: Request, job_spec: dict[str, Any] | None = Body(default=None)) -> str | None:
-        """Expose and validate the forwarded facility-project header for compute routes."""
-        project_name = get_iri_facility_project()
-        spec_account = None
-        if job_spec is not None:
-            attributes = job_spec.get("attributes")
-            if isinstance(attributes, dict):
-                spec_account = attributes.get("account")
-            elif attributes is not None:
-                # Leave malformed body handling to FastAPI/Pydantic validation.
-                return project_name
-        if spec_account and project_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Specify project/account in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project, not both.",
-            )
-        if not spec_account and not project_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Project/account must be specified in exactly one place: job_spec.attributes.account or X-IRI-Facility-Project.",
-            )
-        return project_name
 
 
 class AuthenticatedAdapter(ABC):

@@ -37,27 +37,6 @@ The reference implementation is meant to be customized for your facility's IRI i
 ### Customizing the business logic for your facility
 The IRI API handles the "boilerplate" of setting up the rest API. It delegates to the per-facility business logic via interface definitions. These interfaces are implemented as abstract classes, one per api group (status, account, etc.). Each router directory defines a FacilityAdapter class (eg. [the status adapter](app/routers/status/facility_adapter.py)) that is expected to be implemented by the facility who is exposing an IRI API instance.
 
-## Forwarded Project Header For Compute Requests
-
-Compute submission and update requests support a trusted forwarded header named `X-IRI-Facility-Project`.
-
-This header is intended for deployments where an upstream trusted component has already resolved the caller's project/account into the facility-native value required by the downstream scheduler or execution system.
-
-When `X-IRI-Facility-Project` is present and valid:
-
-- IRI treats that header value as the effective project/account for the compute request.
-- The downstream compute adapter receives the request as if that value were the facility-native account to use for job submission or update.
-- Implementations may surface that effective value in returned job metadata, scheduler requests, labels, annotations, or similar downstream submission context.
-
-For compute submit/update requests, the effective project/account must be specified in exactly one place:
-
-- `job_spec.attributes.account`, or
-- `X-IRI-Facility-Project`
-
-If both are provided, IRI returns `400 Bad Request`.
-If neither is provided, IRI returns `400 Bad Request`.
-This behavior is specific to compute submission/update handling; read-only endpoints are unchanged.
-
 The specific implementations can be specified via the `IRI_API_ADAPTER_*` environment variables. For example the adapter for the `status` api would be given by setting `IRI_API_ADAPTER_status` to the full python module and class implementing `app.routers.status.facility_adapter.FacilityAdapter`. (eg. `IRI_API_ADAPTER_status=myfacility.MyFacilityStatusAdapter`)
 
 A reference implementation that fakes every facility adapter is provided by the separate [`iri-facility-api-demo-adapter`](https://github.com/doe-iri/iri-facility-api-demo-adapter) repo, included here as a git submodule under `examples/demo-adapter`. `make dev` installs it and wires it up automatically. This repo itself ships no adapter -- it is a pure framework.
@@ -126,7 +105,7 @@ Links to data, created by this api, will concatenate these values producing link
 
 ### AmSC authentication
 
-Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing Globus and facility-specific auth paths: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a YAML file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
+Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing Globus and facility-specific auth paths: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
 
 | Variable | Default | Description |
 |---|---|---|
@@ -142,7 +121,7 @@ Optional, off by default. When enabled, `IriRouter.current_user` validates an Am
 | `AMSC_USERINFO_VALIDATION_ENABLED` | `false` | When `true`, every AmSC-authenticated request also calls the userinfo endpoint (Ping) with the caller's token to catch revocation that offline JWT validation cannot see. Fail-closed: if Ping is unreachable or rejects the token, the request is denied. |
 | `AMSC_USERINFO_URL` | _(derived from discovery)_ | Explicit userinfo endpoint, overrides the discovery endpoint. |
 | `AMSC_USERINFO_TIMEOUT_SECONDS` | `5` | Timeout for the discovery endpoint fetch and the userinfo call. |
-| `AMSC_PROJECT_MAPPING_FILE` | _(required when enabled)_ | Path to a YAML file mapping each AmSC `amsc_project_context` this facility has provisioned to a local facility username. See [`examples/demo-adapter/amsc_project_mapping.yaml`](examples/demo-adapter/amsc_project_mapping.yaml) for the format. An `amsc_project_context` with no entry is a 401, not a silent fallback. |
+| `AMSC_PROJECT_MAPPING_FILE` | _(required when enabled)_ | Path to a JSON file mapping each AmSC `amsc_project_context` this facility has provisioned to a local facility username. See [`examples/demo-adapter/amsc_project_mapping.json`](examples/demo-adapter/amsc_project_mapping.json) for the format. An `amsc_project_context` with no entry is a 401, not a silent fallback. |
 
 Startup fails fast with a clear error if `AMSC_TOKEN_ENABLED=true` but required configuration is missing.
 

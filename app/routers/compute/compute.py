@@ -48,7 +48,6 @@ async def submit_job(
     job_spec: models.JobSpec,
     request: Request,
     user: User = Depends(router.current_user),
-    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
@@ -57,12 +56,6 @@ async def submit_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
-    - **project/account resolution**:
-      The effective project/account for the submission must be supplied in exactly one place:
-      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
-      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
-      for the downstream submission and related job metadata. If both sources are present, or neither is present,
-      the request is rejected with `400 Bad Request`.
     - **Idempotency-Key**: optional client-generated UUID. A retry with the same key and body
       returns the original response without re-submitting the job. Same key with a different body
       returns 422. An in-flight duplicate returns 409.
@@ -95,7 +88,6 @@ async def update_job(
     job_spec: models.JobSpec,
     request: Request,
     user: User = Depends(router.current_user),
-    project_name: str | None = Depends(router.iri_header_project),
     _forbid=Depends(forbidExtraQueryParams()),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
@@ -105,12 +97,6 @@ async def update_job(
 
     - **resource**: the name of the compute resource to use
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
-    - **project/account resolution**:
-      The effective project/account for the update must be supplied in exactly one place:
-      `job_spec.attributes.account` or the trusted `X-IRI-Facility-Project` request header.
-      If the forwarded header is present and valid, IRI treats its value as the effective facility-native project/account
-      for downstream update handling and job metadata. If both sources are present, or neither is present,
-      the request is rejected with `400 Bad Request`.
     - **Idempotency-Key**: optional client-generated UUID. Same semantics as submit_job.
     """
     resource = await status_router.adapter.get_resource(resource_id)
