@@ -124,6 +124,30 @@ Links to data, created by this api, will concatenate these values producing link
 
 - `IRI_SHOW_MISSING_ROUTES`: by default (`false`), api groups without an `IRI_API_ADAPTER_*` environment variable are silently hidden, so a facility can expose only the groups it implements. If set to `true`, an unconfigured group instead makes startup fail fast, surfacing the missing adapter as a configuration error rather than silently dropping the route.
 
+### AmSC authentication
+
+Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing Globus and facility-specific auth paths: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a YAML file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
+
+| Variable | Default | Description |
+|---|---|---|
+| `AMSC_TOKEN_ENABLED` | `false` | Enabled/Disable AmSC auth. When `false`, every other `AMSC_*` variable below is ignored. |
+| `AMSC_TOKEN_ISSUER` | _(required when enabled)_ | Expected `iss` claim (the AmSC Identity Provider, Ping). |
+| `AMSC_TOKEN_AUDIENCE` | _(required when enabled)_ | Comma-separated list of accepted `aud` values -- this facility's RIG-scoped audience identifier. AmSC uses full url, like `https://api.iri.nersc.gov/` |
+| `AMSC_TOKEN_SKIP_AUDIENCE_CHECK` | `false` | **Local-dev only -- never set in a real facility deployment.** Skips `aud` verification entirely; `AMSC_TOKEN_AUDIENCE` becomes optional while this is `true`. Exists because a local/fake IdP (e.g. RIG's Tier-1 audience-scoped exchange in a sandbox) has no real PingAM issuance path for a facility running on localhost, so it can't mint a token whose `aud` matches. Signature, issuer, expiry, `sub`, and `amsc_project_context` are still enforced. |
+| `AMSC_OIDC_DISCOVERY_URL` | _(unset)_ | `.well-known/openid-configuration` URL used to resolve the JWKS and userinfo endpoints. Either this needs to be provided or the explicit `AMSC_JWKS_URL` (and `AMSC_USERINFO_URL` if the userinfo check is enabled) must be set. |
+| `AMSC_JWKS_URL` | _(derived from discovery)_ | Explicit JWKS endpoint, overrides the discovery endpoint. |
+| `AMSC_TOKEN_ALGORITHMS` | _(derived from discovery)_ | Comma-separated list of accepted JWT signing algorithms. If unset, derived from the discovery output `id_token_signing_alg_values_supported`. Falls back to `RS256,ES256,RS384,RS512,ES384,ES512` if discovery is unset, unreachable, or has nothing usable after filtering. |
+| `AMSC_TOKEN_LEEWAY_SECONDS` | `30` | Clock-skew leeway applied to `exp`/`nbf` checks. |
+| `AMSC_TOKEN_JWKS_CACHE_TTL_SECONDS` | `3600` | How long JWKS keys and the discovery endpoint are cached before refetching. |
+| `AMSC_USERINFO_VALIDATION_ENABLED` | `false` | When `true`, every AmSC-authenticated request also calls the userinfo endpoint (Ping) with the caller's token to catch revocation that offline JWT validation cannot see. Fail-closed: if Ping is unreachable or rejects the token, the request is denied. |
+| `AMSC_USERINFO_URL` | _(derived from discovery)_ | Explicit userinfo endpoint, overrides the discovery endpoint. |
+| `AMSC_USERINFO_TIMEOUT_SECONDS` | `5` | Timeout for the discovery endpoint fetch and the userinfo call. |
+| `AMSC_PROJECT_MAPPING_FILE` | _(required when enabled)_ | Path to a YAML file mapping each AmSC `amsc_project_context` this facility has provisioned to a local facility username. See [`examples/demo-adapter/amsc_project_mapping.yaml`](examples/demo-adapter/amsc_project_mapping.yaml) for the format. An `amsc_project_context` with no entry is a 401, not a silent fallback. |
+
+Startup fails fast with a clear error if `AMSC_TOKEN_ENABLED=true` but required configuration is missing.
+
+The default `AuthenticatedAdapter.get_current_user_amsc` resolves the mapping file; override possible on facility adapter if needed.
+
 ### Logging
 
 Logs always go to stdout. Optionally, logs can also be written to a rotating file.

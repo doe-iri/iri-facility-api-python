@@ -8,6 +8,7 @@ import globus_sdk
 from fastapi import Body, Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from .. import amsc_auth
 from ..request_context import get_iri_facility_project
 from ..types.user import User
 
@@ -129,6 +130,14 @@ class IriRouter(APIRouter):
         return introspect
 
 
+    async def get_amsc_info(self, token: str) -> dict:
+        """Validate an AmSC Keycard (signature/claims, optional Ping userinfo check) and return its claims."""
+        claims = await amsc_auth.validate_amsc_token(token)
+        if amsc_auth.userinfo_check_enabled():
+            await amsc_auth.check_amsc_userinfo(token)
+        return claims
+
+
     async def current_user(
         self,
         request: Request,
@@ -140,13 +149,20 @@ class IriRouter(APIRouter):
         globus_introspect = None
         exc_msg = ""
         try:
-            if GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
+            if amsc_auth.enabled():
+                try:
+                    amsc_claims = await self.get_amsc_info(token)
+                    user_id = await self.adapter.get_current_user_amsc(token, ip_address, amsc_claims)
+                except Exception as amsc_exc:
+                    logging.getLogger().exception("AmSC error:", exc_info=amsc_exc)
+                    exc_msg = f"AmSC authentication failed: {str(amsc_exc)}. || "
+            if not user_id and GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
                 try:
                     globus_introspect = await self.get_globus_info(token)
                     user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_introspect)
                 except Exception as globus_exc:
                     logging.getLogger().exception("Globus error:", exc_info=globus_exc)
-                    exc_msg = f"Globus authentication failed: {str(globus_exc)}. || "
+                    exc_msg += f"Globus authentication failed: {str(globus_exc)}. || "
             if not user_id:
                 user_id = await self.adapter.get_current_user(token, ip_address)
         except Exception as exc:
@@ -209,6 +225,15 @@ class AuthenticatedAdapter(ABC):
         (https://fastapi.tiangolo.com/tutorial/dependencies/)
         """
         pass
+
+    async def get_current_user_amsc(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, amsc_claims: dict) -> str:
+        """
+        Return the authenticated users local id for an already-validated AmSC Keycard.
+
+        Default implementation: map the token's active `amsc_project_context`
+        claim to a local facility username via the configured YAML mapping file.
+        """
+        return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"])
 
     @abstractmethod
     async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None, globus_introspect: dict | None) -> User:
