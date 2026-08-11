@@ -162,6 +162,7 @@ class ResourceType(str, Enum):
     compute = "urn:doe-iri:resource:compute"
     system = "urn:doe-iri:resource:system"
     storage = "urn:doe-iri:resource:storage"
+    storage_system = "urn:doe-iri:resource:storage:system"
     network = "urn:doe-iri:resource:network"
     unknown = "urn:doe-iri:resource:unknown"
 

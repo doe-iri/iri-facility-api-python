@@ -38,7 +38,7 @@ async def get_resources(
         min_length=DOE_IRI_URN_MIN_LENGTH,
         pattern=DOE_IRI_URN_SCHEMA_PATTERN,
         description="DOE IRI resource type URN (urn:doe-iri:<domain>:<nss>). Facility-local extensions accepted.",
-        examples=[models.ResourceType.compute, models.ResourceType.storage, models.ResourceType.service],
+        examples=[models.ResourceType.compute, models.ResourceType.storage, models.ResourceType.storage_system, models.ResourceType.service],
     ),
     current_status: models.Status = Query(default=None),
     capability: List[AllocationUnitValue] = Query(default=None, min_length=1),
