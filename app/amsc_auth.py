@@ -60,6 +60,22 @@ def _skip_audience_check() -> bool:
     return _isittrue(os.environ.get("AMSC_TOKEN_SKIP_AUDIENCE_CHECK"))
 
 
+def _validate_exact_audience(claims: dict) -> None:
+    """Reject any token whose `aud` is not an exact match for this facility."""
+    if _skip_audience_check():
+        return
+    configured = set(_audience())
+    raw_aud = claims.get("aud")
+    if isinstance(raw_aud, list):
+        token_aud = set(raw_aud)
+    elif raw_aud:
+        token_aud = {raw_aud}
+    else:
+        token_aud = set()
+    if not token_aud or not token_aud.issubset(configured):
+        raise ValueError("AmSC token audience is not an exact match for this facility")
+
+
 async def _algorithms() -> list[str]:
     """Accepted JWT signing algorithms.
 
@@ -189,9 +205,9 @@ async def validate_amsc_token(token: str) -> dict:
             signing_key,
             algorithms=algorithms,
             issuer=issuer,
-            audience=audience,
             leeway=_leeway_seconds(),
-            options={"require": ["exp"], "verify_aud": not skip_audience},
+            # `aud` is verified separately below with an exact-match check;
+            options={"require": ["exp"], "verify_aud": False},
         )
     except jwt.ExpiredSignatureError as exc:
         raise ValueError("AmSC token has expired") from exc
@@ -201,6 +217,8 @@ async def validate_amsc_token(token: str) -> dict:
     # Claims only (never the raw token) -- lets us see exactly what an upstream
     # IdP/exchange put in the token when a required claim is unexpectedly absent.
     logger.debug(f"amsc_auth: decoded AmSC token claims: {claims}")
+
+    _validate_exact_audience(claims)
 
     if not claims.get("sub"):
         raise ValueError("AmSC token is missing the required sub (AUID) claim")
