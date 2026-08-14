@@ -31,11 +31,7 @@ class JobAttributes(IRIBaseModel):
     account: str|None = Field(
         default=None,
         min_length=1,
-        description=(
-            "Account or project to charge for resource usage. "
-            "For compute submission/update requests, specify this here only when the caller is not relying on a trusted forwarded "
-            "`X-IRI-Facility-Project` header. If that header is present and valid, this field must be omitted."
-        ),
+        description="Account or project to charge for resource usage.",
         example="proj123",
     )
     reservation_id: str|None = Field(default=None, min_length=1, description="ID of a reservation to use for the job", example="resv-42")
@@ -90,11 +86,7 @@ class JobSpec(IRIBaseModel):
     resources: ResourceSpec|None = Field(default=None, description="Resource requirements for the job")
     attributes: JobAttributes|None = Field(
         default=None,
-        description=(
-            "Additional job attributes such as duration, queue, and account. "
-            "For compute submission/update, the effective project/account must be supplied in exactly one place: "
-            "`attributes.account` or the trusted `X-IRI-Facility-Project` request header."
-        ),
+        description="Additional job attributes such as duration, queue, and account.",
     )
     pre_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run before launching the job", example="module load cuda")
     post_launch: str|None = Field(default=None, min_length=1, description="Script or commands to run after the job completes", example="echo done")

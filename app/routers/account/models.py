@@ -63,6 +63,12 @@ class ProjectAllocation(IRIBaseModel):
         return f"{get_url_prefix()}/account/capabilities/{self.capability_id}"
 
 
+class WhoAmI(IRIBaseModel):
+    """The authenticated caller's username"""
+
+    username: str = Field(..., description="Unique identifier of the authenticated user.", example="user-123")
+
+
 class UserAllocation(IRIBaseModel):
     """
     A user's allcation in a project.

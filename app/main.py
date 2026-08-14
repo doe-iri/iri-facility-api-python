@@ -20,7 +20,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from . import config
 from .apilogger import configure_logging
 from .idempotency import create_store
-from .request_context import _api_url_base, _iri_facility_project, set_api_url_base
+from .request_context import set_api_url_base, _api_url_base
 
 from app.routers.error_handlers import install_error_handlers
 from app.routers.facility import facility
@@ -69,14 +69,12 @@ APP = FastAPI(servers=[{"url": config.API_URL_ROOT}], lifespan=_lifespan, **conf
 
 class _ExternalRequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        url_token = _api_url_base.set(None)
-        facility_project_token = _iri_facility_project.set(None)
+        token = _api_url_base.set(None)
         try:
             set_api_url_base(request)
             return await call_next(request)
         finally:
-            _api_url_base.reset(url_token)
-            _iri_facility_project.reset(facility_project_token)
+            _api_url_base.reset(token)
 
 
 APP.add_middleware(_ExternalRequestContextMiddleware)

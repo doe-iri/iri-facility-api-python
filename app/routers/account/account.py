@@ -58,6 +58,21 @@ async def get_capability(
 
 
 @router.get(
+    "/whoami",
+    summary="Get the authenticated user's username",
+    description="Authenticate the caller and return their username.",
+    responses=DEFAULT_RESPONSES,
+    operation_id="whoami",
+    openapi_extra=iri_meta_dict("production", "required")
+)
+async def whoami(
+    request: Request,
+    user: User = Depends(router.current_user),
+) -> models.WhoAmI:
+    return models.WhoAmI(username=user.id)
+
+
+@router.get(
     "/projects",
     summary="Get the projects of the current user",
     description="Get a list of projects for the currently authenticated user at this facility.",
