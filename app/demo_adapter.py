@@ -511,19 +511,6 @@ class DemoAdapter(
         """
         return "gtorok"
 
-    async def get_current_user_oidc(
-            self: "DemoAdapter",
-            api_key: str,
-            client_ip: str | None,
-            token_info: dict | None,
-        ) -> str:
-        """
-        Decode the api_key and return the authenticated user's id from information returned by an OIDC token.
-        This method is not called directly, rather authorized endpoints "depend" on it.
-        (https://fastapi.tiangolo.com/tutorial/dependencies/)
-        """
-        return token_info.get("sub", "gtorok") if token_info else "gtorok"
-
     async def get_user(
         self: "DemoAdapter",
         user_id: str,
