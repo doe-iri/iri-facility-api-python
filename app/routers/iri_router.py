@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import asyncio
 import os
 import logging
 import importlib
@@ -7,9 +6,6 @@ import threading
 import time
 from typing import Any
 import globus_sdk
-import httpx
-from authlib.jose import JsonWebKey, JsonWebToken, KeySet
-from authlib.jose.errors import JoseError
 from cachetools import TTLCache
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -17,12 +13,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
-_DISCOVERY_TIMEOUT_SECONDS = float(os.environ.get("OIDC_DISCOVERY_TIMEOUT_SECONDS", "10"))
-_DISCOVERY_CACHE_TTL_SECONDS = float(os.environ.get("OIDC_DISCOVERY_CACHE_TTL_SECONDS", "300"))
-_oidc_remote_cache_lock = threading.Lock()
-_oidc_remote_cache: TTLCache[str, tuple[dict[str, Any], KeySet]] = TTLCache(maxsize=128, ttl=_DISCOVERY_CACHE_TTL_SECONDS)
-_oidc_remote_stale_cache: dict[str, tuple[dict[str, Any], KeySet]] = {}
-
 
 GLOBUS_RS_ID = os.environ.get("GLOBUS_RS_ID")
 GLOBUS_RS_SECRET = os.environ.get("GLOBUS_RS_SECRET")
@@ -41,55 +31,6 @@ def _globus_enabled() -> bool:
     """Globus introspection: on if IRI_AUTH_GLOBUS != off AND GLOBUS_RS_ID/SECRET/SCOPE_SUFFIX configured."""
     return bool(_env_true("IRI_AUTH_GLOBUS", False) and GLOBUS_RS_ID
                 and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX)
-
-
-async def _fetch_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
-    """Fetch the OIDC discovery."""
-    async with httpx.AsyncClient(timeout=_DISCOVERY_TIMEOUT_SECONDS) as client:
-        metadata_resp = await client.get(discovery_uri, headers={"Accept": "application/json"})
-        metadata_resp.raise_for_status()
-        metadata = metadata_resp.json()
-        jwks_uri = metadata.get("jwks_uri")
-        if not jwks_uri:
-            raise RuntimeError("OIDC discovery document is missing jwks_uri")
-        jwks_resp = await client.get(jwks_uri, headers={"Accept": "application/json"})
-        jwks_resp.raise_for_status()
-        return metadata, JsonWebKey.import_key_set(jwks_resp.json())
-
-
-async def _load_oidc_remote_state(discovery_uri: str) -> tuple[dict[str, Any], KeySet]:
-    """TTL-cached wrapper around fetching oidc remote state.
-    On refresh failure we fall back to the last cached state so a transient
-    IdP outage doesn't take the whole IRI service down.
-    """
-    _log = logging.getLogger(__name__)
-    cached: tuple[dict[str, Any], KeySet] | None = None
-    stale: tuple[dict[str, Any], KeySet] | None = None
-    with _oidc_remote_cache_lock:
-        cached = _oidc_remote_cache.get(discovery_uri)
-        stale = _oidc_remote_stale_cache.get(discovery_uri)
-        if cached:
-            _log.info("OIDC JWKS cache HIT for %s (TTL %.0fs)", discovery_uri, _DISCOVERY_CACHE_TTL_SECONDS)
-            return cached
-
-    _log.info("OIDC JWKS cache MISS for %s; fetching discovery + JWKS", discovery_uri)
-    try:
-        metadata, key_set = await _fetch_oidc_remote_state(discovery_uri)
-    except Exception:
-        if stale:
-            logging.getLogger(__name__).warning(
-                "OIDC discovery refresh failed for %s; reusing cached metadata + JWKS",
-                discovery_uri,
-                exc_info=True,
-            )
-            return stale
-        raise
-
-    with _oidc_remote_cache_lock:
-        _oidc_remote_cache[discovery_uri] = (metadata, key_set)
-        _oidc_remote_stale_cache[discovery_uri] = (metadata, key_set)
-    _log.info("OIDC JWKS cache STORED for %s (TTL %.0fs)", discovery_uri, _DISCOVERY_CACHE_TTL_SECONDS)
-    return metadata, key_set
 
 
 def get_client_ip(request: Request) -> str | None:
