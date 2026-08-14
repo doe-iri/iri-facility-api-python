@@ -24,7 +24,8 @@ $(STAMP_DEPS): $(STAMP_VENV) pyproject.toml
 	$(UV) pip install --python $(BIN)/python \
 		ruff \
 		pylint \
-		bandit
+		bandit \
+		pytest
 	touch $(STAMP_DEPS)
 
 deps: $(STAMP_DEPS)
@@ -43,6 +44,9 @@ dev: deps
 	DEMO_QUEUE_UPDATE_SECS=2 \
 	OPENTELEMETRY_ENABLED=true \
 	API_URL_ROOT='http://localhost:8000' fastapi dev
+
+test: deps ## Run unit tests
+	$(BIN)/python -m pytest --ignore=test/test_filesystem.py test/ -v
 
 .PHONY: clean
 clean:
