@@ -105,7 +105,7 @@ Links to data, created by this api, will concatenate these values producing link
 
 ### AmSC authentication
 
-Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing Globus and facility-specific auth paths: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
+Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing facility-specific auth path: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
 
 | Variable | Default | Description |
 |---|---|---|
@@ -248,20 +248,6 @@ ENV IRI_API_PARAMS='{ \
     } \
 }'
 ```
-
-## Globus auth integration
-
-You can optionally use globus for authorization. Steps to use globus:
-- ask someone to add your globus account to the IRI Resource Server
-- log into globus and make a secret for yourself for the IRI Resource Server
-- if you want to create tokens during developent, also create a separate globus app
-- `cp local-template.env local.env` and fill in the missing values
-- to mint a token, run `make globus`, click the link and copy the code from the browser url bar back into the terminal
-- you can also run `make manage-globus` but be sure to not accidentally delete the `iri-api` scope. (Maybe it's better if you don't run this app)
-- now you can run `make` for the dev server and enjoy using your globus iri access tokens (in the demo adapter they will all resolve to the user `gtorok`)
-- for your facility:
-   - implement the `get_current_user_globus` method (see iri_adapter.py). Here you can look at the linked globus identities and session info to determine what the local username is
-   - make sure the values in `local.env` are available in the deployed app
 
 ## Next steps
 

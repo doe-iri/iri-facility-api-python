@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 import os
 import logging
 import importlib
-import time
-import globus_sdk
 from fastapi import Request, Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -11,11 +9,6 @@ from .. import amsc_auth
 from ..types.user import User
 
 bearer_scheme = HTTPBearer()
-
-
-GLOBUS_RS_ID = os.environ.get("GLOBUS_RS_ID")
-GLOBUS_RS_SECRET = os.environ.get("GLOBUS_RS_SECRET")
-GLOBUS_RS_SCOPE_SUFFIX = os.environ.get("GLOBUS_RS_SCOPE_SUFFIX")
 
 
 def get_client_ip(request: Request) -> str | None:
@@ -87,47 +80,6 @@ class IriRouter(APIRouter):
         return AdapterClass()
 
 
-    async def get_globus_info(self, api_key: str) -> dict:
-        """Returns the linked identities and the session info objects"""
-        # Introspect the IRI API token using resource server credentials
-        globus_client = globus_sdk.ConfidentialAppAuthClient(GLOBUS_RS_ID, GLOBUS_RS_SECRET)
-        # grab identity_set_detail for linked identities and session_info to see how the user logged in
-        introspect = globus_client.oauth2_token_introspect(api_key, include="identity_set_detail,session_info")
-        logging.getLogger().info("IRI TOKEN INTROSPECTION:")
-        logging.getLogger().info(introspect)
-        if not introspect.get("active"):
-            raise Exception("Inactive token")
-
-        # Check exp (expiration time) claim
-        exp = introspect.get("exp")
-        if exp and time.time() >= exp:
-            raise Exception("Token has expired")
-
-        # Check nbf (not before) claim
-        nbf = introspect.get("nbf")
-        if nbf and time.time() < nbf:
-            raise Exception("Token not yet valid")
-
-        # Check if token has the required IRI scope
-        token_scope = introspect.get("scope", "").split()
-        GLOBUS_SCOPE = f"https://auth.globus.org/scopes/{GLOBUS_RS_ID}/{GLOBUS_RS_SCOPE_SUFFIX}"
-        if GLOBUS_SCOPE not in token_scope:
-            raise Exception(f"Token missing required scope: {GLOBUS_SCOPE}")
-
-        session_info = introspect.get("session_info")
-
-        if not session_info:
-            raise Exception("No recent login was found in the token (missing session_info). "
-                            "Please re-authenticate to obtain a valid session.")
-
-        authentications = session_info.get("authentications")
-        if not authentications:
-            raise Exception("No recent login was found in the token (empty session_info.authentications). "
-                            "Please re-authenticate to obtain a valid session.")
-
-        return introspect
-
-
     async def get_amsc_info(self, token: str) -> dict:
         """Validate an AmSC Keycard (signature/claims, optional Ping userinfo check) and return its claims."""
         claims = await amsc_auth.validate_amsc_token(token)
@@ -146,7 +98,6 @@ class IriRouter(APIRouter):
         token = credentials.credentials
         ip_address = get_client_ip(request)
         user_id = None
-        globus_introspect = None
         exc_msg = ""
         try:
             if amsc_auth.enabled():
@@ -165,13 +116,6 @@ class IriRouter(APIRouter):
                 except Exception as amsc_exc:
                     logging.getLogger().exception("AmSC error:", exc_info=amsc_exc)
                     exc_msg = f"AmSC authentication failed: {str(amsc_exc)}. || "
-            if not user_id and GLOBUS_RS_ID and GLOBUS_RS_SECRET and GLOBUS_RS_SCOPE_SUFFIX:
-                try:
-                    globus_introspect = await self.get_globus_info(token)
-                    user_id = await self.adapter.get_current_user_globus(token, ip_address, globus_introspect)
-                except Exception as globus_exc:
-                    logging.getLogger().exception("Globus error:", exc_info=globus_exc)
-                    exc_msg += f"Globus authentication failed: {str(globus_exc)}. || "
             if not user_id:
                 user_id = await self.adapter.get_current_user(token, ip_address)
         except Exception as exc:
@@ -185,7 +129,6 @@ class IriRouter(APIRouter):
             user_id=user_id,
             api_key=token,
             client_ip=ip_address,
-            globus_introspect=globus_introspect,
         )
 
         if not user:
@@ -203,15 +146,6 @@ class AuthenticatedAdapter(ABC):
         """
         pass
 
-    @abstractmethod
-    async def get_current_user_globus(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, globus_introspect: dict | None) -> str:
-        """
-        Decode the api_key and return the authenticated user's id from information returned by introspecting a globus token.
-        This method is not called directly, rather authorized endpoints "depend" on it.
-        (https://fastapi.tiangolo.com/tutorial/dependencies/)
-        """
-        pass
-
     async def get_current_user_amsc(self: "AuthenticatedAdapter", api_key: str, client_ip: str | None, amsc_claims: dict) -> str:
         """
         Return the authenticated users local id for an already-validated AmSC Keycard.
@@ -222,7 +156,7 @@ class AuthenticatedAdapter(ABC):
         return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"])
 
     @abstractmethod
-    async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None, globus_introspect: dict | None) -> User:
+    async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None) -> User:
         """
         Retrieve additional user information (name, email, etc.) for the given user_id.
         """

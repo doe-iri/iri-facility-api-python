@@ -29,7 +29,12 @@ deployment.
 ## Prerequisites
 
 - Python 3.13 (matches `pyproject.toml`)
-- `requests`, `globus-sdk` (already in the project's `pyproject.toml`)
+- `requests`, `globus-sdk` -- **not** part of the server's own dependencies
+  (`pyproject.toml`); install them yourself before running any of these
+  scripts:
+  ```bash
+  uv pip install requests "globus-sdk>=4.3.1"
+  ```
 - Optional: `python-dotenv` — if installed, a `.env` file in the working
   directory is loaded automatically.
 
