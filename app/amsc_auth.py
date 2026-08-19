@@ -1,5 +1,6 @@
 """AmSC Keycard authentication support.
 
+
 1. Validate the Keycard is well-formed and currently valid: JWKS signature verification, issuer/audience/expiry checks (``validate_amsc_token``).
 2. Validate the claims carried inside it (amsc_project_context, sub) are present.
 3. Optionally call the AmSC userinfo endpoint (Ping) to catch tokens revoked since issuance.
