@@ -103,9 +103,26 @@ Links to data, created by this api, will concatenate these values producing link
 
 - `IRI_SHOW_MISSING_ROUTES`: by default (`false`), api groups without an `IRI_API_ADAPTER_*` environment variable are silently hidden, so a facility can expose only the groups it implements. If set to `true`, an unconfigured group instead makes startup fail fast, surfacing the missing adapter as a configuration error rather than silently dropping the route.
 
+### Facility-specific authentication
+
+Required. Every domain whose `FacilityAdapter` extends `AuthenticatedAdapter` (`account`, `compute`, `filesystem`, `storage`, `task` -- see the base class in [`app/routers/iri_router.py`](app/routers/iri_router.py)) requires callers to send `Authorization: Bearer <token>` on every request; `facility` and `status` are public and need no token.
+
+This framework ships no business logic of its own for Authentication methods. Each adapter must implement:
+
+```python
+class AuthenticatedAdapter(ABC):
+    async def get_current_user(self, api_key: str, client_ip: str | None) -> str:
+        """Validate api_key, return the authenticated user's id (or raise)."""
+
+    async def get_user(self, user_id: str, api_key: str, client_ip: str | None) -> User:
+        """Look up name/email/etc. for the id returned by get_current_user."""
+```
+
+The demo adapter's [`DemoAuthMixin`](https://github.com/doe-iri/iri-facility-api-demo-adapter/blob/main/demo_adapter/common.py) shows the minimal shape (checks a static key, returns a fixed user). Real deployments validate against the facility trusted mechanism -- for example, NERSC and ALCF validate a Globus token in `get_current_user`.
+
 ### AmSC authentication
 
-Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) in addition to the existing facility-specific auth path: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
+Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) *before* falling back to the facility-specific auth path above: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
 
 | Variable | Default | Description |
 |---|---|---|
