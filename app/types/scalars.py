@@ -160,9 +160,13 @@ class ResourceType(str, Enum):
     website = "urn:doe-iri:service:website"
     service = "urn:doe-iri:service:generic"
     compute = "urn:doe-iri:resource:compute"
+    compute_system = "urn:doe-iri:resource:compute:system"
     system = "urn:doe-iri:resource:system"
     storage = "urn:doe-iri:resource:storage"
     storage_system = "urn:doe-iri:resource:storage:system"
+    storage_filesystem = "urn:doe-iri:resource:storage:filesystem"
+    storage_mount = "urn:doe-iri:resource:storage:mount"
+    service_dtn = "urn:doe-iri:resource:service:dtn"
     network = "urn:doe-iri:resource:network"
     unknown = "urn:doe-iri:resource:unknown"
 
