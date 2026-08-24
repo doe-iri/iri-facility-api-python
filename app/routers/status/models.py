@@ -2,11 +2,15 @@
 import datetime
 import enum
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
+from ...apilogger import get_stream_logger
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
+from ...types.hal import PROFILE_ACCOUNT_CAPABILITY, PROFILE_FACILITY_SITE, PROFILE_STATUS_RESOURCE, RELATION_METADATA, build_hal_link
 from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
+
+LOGGER = get_stream_logger(__name__)
 
 
 class Status(enum.Enum):
@@ -35,6 +39,35 @@ class Resource(NamedObject):
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
+    related_resource_ids: dict[str, list[str]] = Field(
+        default_factory=dict,
+        exclude=True,
+        description="Resource-to-Resource relation targets, keyed by registered relation name (e.g. 'has-mount', 'mounted-on'). See app.types.hal.RELATION_METADATA for the registered set.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_related_resource_ids(self):
+        for relation, target_ids in self.related_resource_ids.items():
+            spec = RELATION_METADATA.get(relation)
+            if spec is None:
+                raise ValueError(
+                    f"related_resource_ids: '{relation}' is not a registered Resource-to-Resource relation "
+                    f"(see app.types.hal.RELATION_METADATA)"
+                )
+            if spec.cardinality == "one" and len(target_ids) > 1:
+                raise ValueError(
+                    f"related_resource_ids: relation '{relation}' has cardinality 'one' but got "
+                    f"{len(target_ids)} targets: {target_ids}"
+                )
+            source_types = spec.source_type if isinstance(spec.source_type, tuple) else (spec.source_type,)
+            if not any(urn_has_complete_prefix(t, self.resource_type) for t in source_types):
+                LOGGER.warning(
+                    "Resource %s declares relation 'iri:%s', whose registered source type is %s, "
+                    "but resource_type is %s (allowed: a producer MAY report a broader parent type "
+                    "per status/resource.md section 5.3)",
+                    self.id, relation, source_types, self.resource_type,
+                )
+        return self
 
     @computed_field(description="URI of the site where this resource is located")
     @property
@@ -47,6 +80,30 @@ class Resource(NamedObject):
     def capability_uris(self) -> list[str]:
         """Return the list of capability URIs for this resource."""
         return [f"{get_url_prefix()}/account/capabilities/{e}" for e in self.capability_ids]
+
+    def _link_profile(self) -> str | None:
+        return PROFILE_STATUS_RESOURCE
+
+    def _extra_links(self) -> dict:
+        links: dict = {
+            "iri:located-at": build_hal_link(self.site_uri, profile=PROFILE_FACILITY_SITE),
+        }
+        if self.capability_ids:
+            links["iri:has-capability"] = [
+                build_hal_link(uri, profile=PROFILE_ACCOUNT_CAPABILITY) for uri in self.capability_uris
+            ]
+        if urn_has_complete_prefix("urn:doe-iri:resource:compute:system", self.resource_type) and "compute" in self.supported_endpoints:
+            links["iri:submit-job"] = {"href": f"{get_url_prefix()}/compute/job/{self.id}"}
+        for relation, target_ids in self.related_resource_ids.items():
+            if not target_ids:
+                continue
+            spec = RELATION_METADATA[relation]  # validated in _validate_related_resource_ids
+            targets = [
+                build_hal_link(f"{get_url_prefix()}/status/resources/{target_id}", profile=spec.target_profile)
+                for target_id in target_ids
+            ]
+            links[f"iri:{relation}"] = targets[0] if spec.cardinality == "one" else targets
+        return links
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, group=None, resource_type=None, current_status=None, capability=None, site_id=None) -> list:
