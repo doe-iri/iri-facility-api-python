@@ -37,7 +37,7 @@ configure_logging(config.LOG_LEVEL)
 # OpenTelemetry Configuration
 # ------------------------------------------------------------------
 if config.OPENTELEMETRY_ENABLED:
-    resource = Resource.create({"service.name": "iri-facility-api", "service.version": config.API_VERSION, "service.endpoint": config.API_URL_ROOT})
+    resource = Resource.create({"service.name": config.OTEL_SERVICE_NAME, "service.version": config.API_VERSION, "service.endpoint": config.API_URL_ROOT})
 
     if config.OTEL_TRACES_ENABLED:
         samplerate = "1.0" if config.OPENTELEMETRY_DEBUG else config.OTEL_SAMPLE_RATE
