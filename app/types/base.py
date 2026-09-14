@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validat
 
 from .. import config
 from ..request_context import get_url_prefix
+from .hal import IRI_CURIE, build_hal_link
 from .scalars import StrictDateTime
 
 
@@ -61,6 +62,16 @@ class NamedObject(IRIBaseModel):
     def _self_path(self) -> str:
         raise NotImplementedError
 
+    def _link_profile(self) -> str | None:
+        """Semantic profile URI advertised on this representation's `self` link.
+        None means no profile is advertised
+        """
+        return None
+
+    def _extra_links(self) -> dict:
+        """Relation-specific HAL links beyond `self`/`curies`. Override per model."""
+        return {}
+
     @field_validator("last_modified", mode="before")
     @classmethod
     def _norm_dt_field(cls, v):
@@ -71,6 +82,16 @@ class NamedObject(IRIBaseModel):
     def self_uri(self) -> str:
         """Computed self URI property."""
         return f"{get_url_prefix()}{self._self_path()}"
+
+    @computed_field(description="HAL hypermedia links for this representation.")
+    @property
+    def _links(self) -> dict:
+        links: dict = {
+            "self": build_hal_link(self.self_uri, profile=self._link_profile()),
+            "curies": [IRI_CURIE],
+        }
+        links.update(self._extra_links())
+        return links
 
     name: str|None = Field(default=None, description="The long name of the object.", example="Facility Cluster")
     description: str|None = Field(default=None, description="Human-readable description of the object.", example="High-performance compute resource")

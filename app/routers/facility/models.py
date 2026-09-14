@@ -3,6 +3,7 @@ from pydantic import Field, HttpUrl, computed_field
 
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
+from ...types.hal import PROFILE_FACILITY, PROFILE_FACILITY_SITE, build_hal_link
 
 
 class Site(NamedObject):
@@ -27,6 +28,14 @@ class Site(NamedObject):
     def resource_uris(self) -> list[str]:
         """Return the list of resource URIs for this site."""
         return [f"{get_url_prefix()}/status/resources/{resource_id}" for resource_id in self.resource_ids]
+
+    def _link_profile(self) -> str | None:
+        return PROFILE_FACILITY_SITE
+
+    def _extra_links(self) -> dict:
+        if not self.resource_ids:
+            return {}
+        return {"iri:has-resource": [build_hal_link(uri, profile=None) for uri in self.resource_uris]}
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
@@ -54,3 +63,11 @@ class Facility(NamedObject):
     def site_uris(self) -> list[str]:
         """Return the list of site URIs for this facility."""
         return [f"{get_url_prefix()}/facility/sites/{site_id}" for site_id in self.site_ids]
+
+    def _link_profile(self) -> str | None:
+        return PROFILE_FACILITY
+
+    def _extra_links(self) -> dict:
+        if not self.site_ids:
+            return {}
+        return {"iri:has-site": [build_hal_link(uri, profile=PROFILE_FACILITY_SITE) for uri in self.site_uris]}
