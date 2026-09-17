@@ -9,7 +9,8 @@ It generates:
             "level": "required",
             "required_if_capability": "dpu"
         }
-    }
+    },
+    "x-iri-relation": ["https://iri.science/rels/submit-job"]
 }
 """
 
@@ -18,8 +19,13 @@ def iri_meta_dict(
     maturity: str | None = None,
     implementation_level: str | None = None,
     required_if: str | None = None,
+    relations: list[str] | None = None,
 ) -> dict:
-    """Generate the IRI OpenAPI extension metadata."""
+    """Generate the IRI OpenAPI extension metadata.
+
+    `relations` binds this operation to one or more registered DOE-IRI operation-affordance
+    relations (ADR 0007), as canonical relation URIs from app.types.hal.OPERATION_RELATIONS.
+    """
 
     out_obj = {}
 
@@ -32,7 +38,12 @@ def iri_meta_dict(
     if required_if is not None:
         out_obj.setdefault("implementation", {})["required_if_capability"] = required_if
 
-    if not out_obj:
-        return {}
+    extra = {}
 
-    return {"x-iri": out_obj}
+    if out_obj:
+        extra["x-iri"] = out_obj
+
+    if relations:
+        extra["x-iri-relation"] = list(relations)
+
+    return extra

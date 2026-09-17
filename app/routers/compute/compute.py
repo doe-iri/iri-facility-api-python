@@ -3,6 +3,7 @@
 from fastapi import Depends, Header, Query, Request, status
 
 from ...idempotency import build_body_hash, build_cache_key, run_with_idempotency
+from ...types.hal import OPERATION_RELATIONS
 from ...types.http import forbidExtraQueryParams
 from ...types.scalars import StrictHTTPBool
 from ...types.user import User
@@ -41,7 +42,7 @@ async def get_resources(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="launchJob",
-    openapi_extra=iri_meta_dict("production", "required")
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["submit-job"]])
 )
 async def submit_job(
     resource_id: str,
@@ -80,7 +81,7 @@ async def submit_job(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="updateJob",
-    openapi_extra=iri_meta_dict("production", "required")
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["update-job"]])
 )
 async def update_job(
     resource_id: str,
@@ -117,7 +118,7 @@ async def update_job(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJob",
-    openapi_extra=iri_meta_dict("production", "required")
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["query-job"]])
 )
 async def get_job_status(
     resource_id: str,
@@ -144,7 +145,7 @@ async def get_job_status(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJobs",
-    openapi_extra=iri_meta_dict("production", "required")
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["list-jobs"]])
 )
 async def get_job_statuses(
     resource_id: str,
@@ -174,7 +175,7 @@ async def get_job_statuses(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="cancelJob",
-    openapi_extra=iri_meta_dict("production", "required")
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["cancel-job"]])
 )
 async def cancel_job(
     resource_id: str,

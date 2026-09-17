@@ -40,6 +40,38 @@ def resource_type_profile(resource_type: str) -> str | None:
     return RESOURCE_TYPE_PROFILE.get(resource_type)
 
 
+# Canonical relation URIs for registered DOE-IRI operation-affordance relations (ADR 0007).
+# Bind one of these to an Operation Object via iri_meta.iri_meta_dict(relations=[...]) so
+# clients can resolve a HAL relation to its Operation Object without depending on operationId.
+OPERATION_RELATIONS: dict[str, str] = {
+    "submit-job": IRI_RELS_TEMPLATE.format(rel="submit-job"),
+    "query-job": IRI_RELS_TEMPLATE.format(rel="query-job"),
+    "list-jobs": IRI_RELS_TEMPLATE.format(rel="list-jobs"),
+    "update-job": IRI_RELS_TEMPLATE.format(rel="update-job"),
+    "cancel-job": IRI_RELS_TEMPLATE.format(rel="cancel-job"),
+    "chmod": IRI_RELS_TEMPLATE.format(rel="chmod"),
+    "chown": IRI_RELS_TEMPLATE.format(rel="chown"),
+    "file": IRI_RELS_TEMPLATE.format(rel="file"),
+    "stat": IRI_RELS_TEMPLATE.format(rel="stat"),
+    "mkdir": IRI_RELS_TEMPLATE.format(rel="mkdir"),
+    "symlink": IRI_RELS_TEMPLATE.format(rel="symlink"),
+    "ls": IRI_RELS_TEMPLATE.format(rel="ls"),
+    "head": IRI_RELS_TEMPLATE.format(rel="head"),
+    "view": IRI_RELS_TEMPLATE.format(rel="view"),
+    "tail": IRI_RELS_TEMPLATE.format(rel="tail"),
+    "checksum": IRI_RELS_TEMPLATE.format(rel="checksum"),
+    "rm": IRI_RELS_TEMPLATE.format(rel="rm"),
+    "compress": IRI_RELS_TEMPLATE.format(rel="compress"),
+    "extract": IRI_RELS_TEMPLATE.format(rel="extract"),
+    "mv": IRI_RELS_TEMPLATE.format(rel="mv"),
+    "cp": IRI_RELS_TEMPLATE.format(rel="cp"),
+    "download": IRI_RELS_TEMPLATE.format(rel="download"),
+    "upload": IRI_RELS_TEMPLATE.format(rel="upload"),
+}
+
+SERVICE_DESC_MEDIA_TYPE = "application/vnd.oai.openapi+json"
+
+
 def build_hal_link(href: str, profile: str | None = None, media_type: str | None = "application/hal+json") -> dict:
     """Build one HAL link object, omitting unset optional fields."""
     link: dict[str, str] = {"href": href}

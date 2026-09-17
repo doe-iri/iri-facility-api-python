@@ -7,7 +7,14 @@ from pydantic import Field, computed_field, field_validator, model_validator
 from ...apilogger import get_stream_logger
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
-from ...types.hal import PROFILE_ACCOUNT_CAPABILITY, PROFILE_FACILITY_SITE, PROFILE_STATUS_RESOURCE, RELATION_METADATA, build_hal_link
+from ...types.hal import (
+    PROFILE_ACCOUNT_CAPABILITY,
+    PROFILE_FACILITY_SITE,
+    PROFILE_STATUS_RESOURCE,
+    RELATION_METADATA,
+    SERVICE_DESC_MEDIA_TYPE,
+    build_hal_link,
+)
 from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
 
 LOGGER = get_stream_logger(__name__)
@@ -93,7 +100,8 @@ class Resource(NamedObject):
                 build_hal_link(uri, profile=PROFILE_ACCOUNT_CAPABILITY) for uri in self.capability_uris
             ]
         if urn_has_complete_prefix("urn:doe-iri:resource:compute:system", self.resource_type) and "compute" in self.supported_endpoints:
-            links["iri:submit-job"] = {"href": f"{get_url_prefix()}/compute/job/{self.id}"}
+            links["iri:submit-job"] = build_hal_link(f"{get_url_prefix()}/compute/job/{self.id}", media_type=None)
+            links["service-desc"] = build_hal_link(f"{get_url_prefix()}/openapi.json", media_type=SERVICE_DESC_MEDIA_TYPE)
         for relation, target_ids in self.related_resource_ids.items():
             if not target_ids:
                 continue
