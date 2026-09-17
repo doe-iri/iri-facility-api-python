@@ -72,13 +72,20 @@ OPERATION_RELATIONS: dict[str, str] = {
 SERVICE_DESC_MEDIA_TYPE = "application/vnd.oai.openapi+json"
 
 
-def build_hal_link(href: str, profile: str | None = None, media_type: str | None = "application/hal+json") -> dict:
+def build_hal_link(
+    href: str,
+    profile: str | None = None,
+    media_type: str | None = "application/hal+json",
+    templated: bool = False,
+) -> dict:
     """Build one HAL link object, omitting unset optional fields."""
-    link: dict[str, str] = {"href": href}
+    link: dict[str, str | bool] = {"href": href}
     if media_type is not None:
         link["type"] = media_type
     if profile is not None:
         link["profile"] = profile
+    if templated:
+        link["templated"] = True
     return link
 
 
