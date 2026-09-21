@@ -225,3 +225,21 @@ CompressionTypeValue = Annotated[
         )
     ),
 ]
+
+ComputeUrnValue = Annotated[
+    str,
+    BeforeValidator(lambda v: _validate_urn_domain(v, "compute", "compute URN")),
+    WithJsonSchema(
+        _domain_urn_schema(
+            "compute",
+            "DOE IRI compute-domain URN, e.g. a container capability discovery "
+            "value (container-runtime, container-image-format, "
+            "container-acquisition, etc.) or an existing system-capability, "
+            "cpu-architecture, or gpu-programming-interface value.",
+            [
+                "urn:doe-iri:compute:container-runtime:apptainer",
+                "urn:doe-iri:compute:container-acquisition:pre-stage-required",
+            ],
+        )
+    ),
+]

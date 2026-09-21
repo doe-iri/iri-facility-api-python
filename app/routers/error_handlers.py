@@ -25,6 +25,17 @@ class Problem(BaseModel):
     instance: str = Field(..., description="A URI reference identifying this occurrence.", example=f"http://localhost/{config.API_URL}/resource/123")
 
 
+def allowed_methods_for_path(app: FastAPI, path: str) -> list[str]:
+    """Return the sorted union of HTTP methods registered across all routes matching `path`"""
+    methods: set[str] = set()
+    for route in app.routes:
+        route_methods = getattr(route, "methods", None)
+        path_regex = getattr(route, "path_regex", None)
+        if route_methods and path_regex is not None and path_regex.match(path):
+            methods.update(route_methods)
+    return sorted(methods)
+
+
 def get_url_base(request: Request) -> str:
     """Return the base URL for the API."""
     # If behind a proxy (and x-forwarded-* headers present), use the forwarded host and protocol
@@ -145,13 +156,14 @@ def install_error_handlers(app: FastAPI):
             )
 
         if exc.status_code == 405:
+            allow = allowed_methods_for_path(request.app, request.url.path)
             return problem_response(
                 request=request,
                 status=405,
                 title="Method Not Allowed",
                 detail=err_msg or "HTTP method is not allowed for this resource.",
                 problem_type="method-not-allowed",
-                extra_headers={"Allow": "GET, HEAD"},
+                extra_headers={"Allow": ", ".join(allow)} if allow else {},
             )
 
         if exc.status_code == 409:
@@ -189,13 +201,14 @@ def install_error_handlers(app: FastAPI):
             )
 
         if exc.status_code == 405:
+            allow = allowed_methods_for_path(request.app, request.url.path)
             return problem_response(
                 request=request,
                 status=405,
                 title="Method Not Allowed",
                 detail=err_msg or "HTTP method is not allowed for this resource.",
                 problem_type="method-not-allowed",
-                extra_headers={"Allow": "GET, HEAD"},
+                extra_headers={"Allow": ", ".join(allow)} if allow else {},
             )
 
         return problem_response(

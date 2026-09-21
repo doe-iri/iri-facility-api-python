@@ -7,10 +7,41 @@ from pydantic import Field, computed_field, field_validator, model_validator
 from ...apilogger import get_stream_logger
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
-from ...types.hal import PROFILE_ACCOUNT_CAPABILITY, PROFILE_FACILITY_SITE, PROFILE_STATUS_RESOURCE, RELATION_METADATA, build_hal_link
+from ...types.hal import (
+    PROFILE_ACCOUNT_CAPABILITY,
+    PROFILE_FACILITY_SITE,
+    PROFILE_STATUS_RESOURCE,
+    RELATION_METADATA,
+    SERVICE_DESC_MEDIA_TYPE,
+    build_hal_link,
+)
 from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
 
 LOGGER = get_stream_logger(__name__)
+
+# RFC: Migrating Resource.supported_endpoints to HAL Operation Affordances (Section 3.2).
+# (filesystem router path segment, registered relation name) -- see registry/relations/README.md.
+# The path segment is the real OpenAPI path/operationId spelling (unchanged); the relation
+# name is the registered `iri:*` name, which is not always the same string.
+_FILESYSTEM_OPERATIONS = (
+    ("chmod", "change-file-mode"),
+    ("chown", "change-file-owner"),
+    ("file", "identify-file"),
+    ("stat", "stat-file"),
+    ("mkdir", "create-directory"),
+    ("symlink", "create-symlink"),
+    ("ls", "list-directory"),
+    ("head", "read-file-head"),
+    ("view", "view-file"),
+    ("tail", "read-file-tail"),
+    ("checksum", "checksum-file"),
+    ("rm", "remove-path"),
+    ("compress", "compress-paths"),
+    ("extract", "extract-archive"),
+    ("mv", "move-path"),
+    ("cp", "copy-path"),
+    ("download", "download-file"),
+)
 
 
 class Status(enum.Enum):
@@ -92,8 +123,23 @@ class Resource(NamedObject):
             links["iri:has-capability"] = [
                 build_hal_link(uri, profile=PROFILE_ACCOUNT_CAPABILITY) for uri in self.capability_uris
             ]
+        advertises_operations = False
         if urn_has_complete_prefix("urn:doe-iri:resource:compute:system", self.resource_type) and "compute" in self.supported_endpoints:
-            links["iri:submit-job"] = {"href": f"{get_url_prefix()}/compute/job/{self.id}"}
+            compute_base = f"{get_url_prefix()}/compute"
+            links["iri:submit-job"] = build_hal_link(f"{compute_base}/job/{self.id}", media_type=None)
+            links["iri:update-job"] = build_hal_link(f"{compute_base}/job/{self.id}/{{job_id}}", media_type=None, templated=True)
+            links["iri:get-job"] = build_hal_link(f"{compute_base}/status/{self.id}/{{job_id}}", media_type=None, templated=True)
+            links["iri:query-jobs"] = build_hal_link(f"{compute_base}/status/{self.id}", media_type=None)
+            links["iri:cancel-job"] = build_hal_link(f"{compute_base}/cancel/{self.id}/{{job_id}}", media_type=None, templated=True)
+            advertises_operations = True
+        if "filesystem" in self.supported_endpoints:
+            fs_base = f"{get_url_prefix()}/filesystem"
+            for op, relation in _FILESYSTEM_OPERATIONS:
+                links[f"iri:{relation}"] = build_hal_link(f"{fs_base}/{op}/{self.id}", media_type=None)
+            links["iri:upload-file"] = build_hal_link(f"{fs_base}/upload/{self.id}{{?path}}", media_type=None, templated=True)
+            advertises_operations = True
+        if advertises_operations:
+            links["service-desc"] = build_hal_link(f"{get_url_prefix()}/openapi.json", media_type=SERVICE_DESC_MEDIA_TYPE)
         for relation, target_ids in self.related_resource_ids.items():
             if not target_ids:
                 continue

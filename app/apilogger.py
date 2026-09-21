@@ -40,6 +40,17 @@ def _rotation_days() -> int:
     return max(days, 0)
 
 
+def _route_uvicorn_loggers_to_root(log_level: int) -> None:
+    """Strip uvicorn's own handlers from its loggers and let them move to root."""
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uv_logger = logging.getLogger(name)
+        for handler in uv_logger.handlers[:]:
+            uv_logger.removeHandler(handler)
+            handler.close()
+        uv_logger.propagate = True
+        uv_logger.setLevel(log_level)
+
+
 def configure_logging(level: str | int | None = None) -> None:
     """
     Configure root logging for the API.
@@ -52,6 +63,8 @@ def configure_logging(level: str | int | None = None) -> None:
     log_level = _level(level or os.environ.get("LOG_LEVEL"))
     root = logging.getLogger()
     root.setLevel(log_level)
+
+    _route_uvicorn_loggers_to_root(log_level)
 
     if _CONFIGURED:
         for handler in root.handlers:

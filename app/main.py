@@ -59,6 +59,7 @@ if config.OPENTELEMETRY_ENABLED:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    configure_logging(config.LOG_LEVEL)
     app.state.idempotency_store = create_store()
     yield
     await app.state.idempotency_store.close()
