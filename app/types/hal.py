@@ -40,33 +40,39 @@ def resource_type_profile(resource_type: str) -> str | None:
     return RESOURCE_TYPE_PROFILE.get(resource_type)
 
 
-# Canonical relation URIs for registered DOE-IRI operation-affordance relations (ADR 0007).
+# Canonical relation URIs for registered DOE-IRI operation-affordance relations
+# (rfc-resource-operation-affordances.md). Keys are the exact relation names from
+# registry/relations/README.md -- NOT OpenAPI operationIds or router path segments,
+# which for the 18 filesystem operations are shorter legacy strings (see
+# status/models.py `_FILESYSTEM_OPERATIONS` for that path-segment -> relation mapping).
 # Bind one of these to an Operation Object via iri_meta.iri_meta_dict(relations=[...]) so
 # clients can resolve a HAL relation to its Operation Object without depending on operationId.
 OPERATION_RELATIONS: dict[str, str] = {
     "submit-job": IRI_RELS_TEMPLATE.format(rel="submit-job"),
-    "query-job": IRI_RELS_TEMPLATE.format(rel="query-job"),
-    "list-jobs": IRI_RELS_TEMPLATE.format(rel="list-jobs"),
     "update-job": IRI_RELS_TEMPLATE.format(rel="update-job"),
+    "get-job": IRI_RELS_TEMPLATE.format(rel="get-job"),
+    "query-jobs": IRI_RELS_TEMPLATE.format(rel="query-jobs"),
     "cancel-job": IRI_RELS_TEMPLATE.format(rel="cancel-job"),
-    "chmod": IRI_RELS_TEMPLATE.format(rel="chmod"),
-    "chown": IRI_RELS_TEMPLATE.format(rel="chown"),
-    "file": IRI_RELS_TEMPLATE.format(rel="file"),
-    "stat": IRI_RELS_TEMPLATE.format(rel="stat"),
-    "mkdir": IRI_RELS_TEMPLATE.format(rel="mkdir"),
-    "symlink": IRI_RELS_TEMPLATE.format(rel="symlink"),
-    "ls": IRI_RELS_TEMPLATE.format(rel="ls"),
-    "head": IRI_RELS_TEMPLATE.format(rel="head"),
-    "view": IRI_RELS_TEMPLATE.format(rel="view"),
-    "tail": IRI_RELS_TEMPLATE.format(rel="tail"),
-    "checksum": IRI_RELS_TEMPLATE.format(rel="checksum"),
-    "rm": IRI_RELS_TEMPLATE.format(rel="rm"),
-    "compress": IRI_RELS_TEMPLATE.format(rel="compress"),
-    "extract": IRI_RELS_TEMPLATE.format(rel="extract"),
-    "mv": IRI_RELS_TEMPLATE.format(rel="mv"),
-    "cp": IRI_RELS_TEMPLATE.format(rel="cp"),
-    "download": IRI_RELS_TEMPLATE.format(rel="download"),
-    "upload": IRI_RELS_TEMPLATE.format(rel="upload"),
+    "change-file-mode": IRI_RELS_TEMPLATE.format(rel="change-file-mode"),
+    "change-file-owner": IRI_RELS_TEMPLATE.format(rel="change-file-owner"),
+    "identify-file": IRI_RELS_TEMPLATE.format(rel="identify-file"),
+    "stat-file": IRI_RELS_TEMPLATE.format(rel="stat-file"),
+    "create-directory": IRI_RELS_TEMPLATE.format(rel="create-directory"),
+    "create-symlink": IRI_RELS_TEMPLATE.format(rel="create-symlink"),
+    "list-directory": IRI_RELS_TEMPLATE.format(rel="list-directory"),
+    "read-file-head": IRI_RELS_TEMPLATE.format(rel="read-file-head"),
+    "view-file": IRI_RELS_TEMPLATE.format(rel="view-file"),
+    "read-file-tail": IRI_RELS_TEMPLATE.format(rel="read-file-tail"),
+    "checksum-file": IRI_RELS_TEMPLATE.format(rel="checksum-file"),
+    "remove-path": IRI_RELS_TEMPLATE.format(rel="remove-path"),
+    "compress-paths": IRI_RELS_TEMPLATE.format(rel="compress-paths"),
+    "extract-archive": IRI_RELS_TEMPLATE.format(rel="extract-archive"),
+    "move-path": IRI_RELS_TEMPLATE.format(rel="move-path"),
+    "copy-path": IRI_RELS_TEMPLATE.format(rel="copy-path"),
+    "download-file": IRI_RELS_TEMPLATE.format(rel="download-file"),
+    "upload-file": IRI_RELS_TEMPLATE.format(rel="upload-file"),
+    "resolve-storage-locations": IRI_RELS_TEMPLATE.format(rel="resolve-storage-locations"),
+    "get-storage-access-endpoints": IRI_RELS_TEMPLATE.format(rel="get-storage-access-endpoints"),
 }
 
 SERVICE_DESC_MEDIA_TYPE = "application/vnd.oai.openapi+json"

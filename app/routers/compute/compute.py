@@ -118,7 +118,7 @@ async def update_job(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJob",
-    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["query-job"]])
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["get-job"]])
 )
 async def get_job_status(
     resource_id: str,
@@ -145,7 +145,7 @@ async def get_job_status(
     response_model_exclude_unset=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getJobs",
-    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["list-jobs"]])
+    openapi_extra=iri_meta_dict("production", "required", relations=[OPERATION_RELATIONS["query-jobs"]])
 )
 async def get_job_statuses(
     resource_id: str,

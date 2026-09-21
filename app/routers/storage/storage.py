@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, Request, status as http_status
 
+from ...types.hal import OPERATION_RELATIONS
 from ...types.http import forbidExtraQueryParams
 from ...types.user import User
 from .. import iri_router
@@ -36,7 +37,7 @@ router = iri_router.IriRouter(
     response_model=list[models.StorageInstance],
     responses=DEFAULT_RESPONSES,
     operation_id="getStorageLocations",
-    openapi_extra=iri_meta_dict("in_development", "optional"),
+    openapi_extra=iri_meta_dict("in_development", "optional", relations=[OPERATION_RELATIONS["resolve-storage-locations"]]),
 )
 async def get_locations(
     resource_id: str,
@@ -86,7 +87,7 @@ async def get_locations(
     response_model_exclude_none=True,
     responses=DEFAULT_RESPONSES,
     operation_id="getStorageAccessEndpoints",
-    openapi_extra=iri_meta_dict("in_development", "required"),
+    openapi_extra=iri_meta_dict("in_development", "required", relations=[OPERATION_RELATIONS["get-storage-access-endpoints"]]),
 )
 async def get_access_endpoints(
     resource_id: str,
