@@ -58,6 +58,7 @@ The API supports OpenTelemetry for distributed tracing and metrics. Traces and m
 | Variable | Default | Description |
 |---|---|---|
 | `OPENTELEMETRY_ENABLED` | `false` | Master switch. Must be `true` for any telemetry to be emitted. |
+| `OTEL_SERVICE_NAME` | `iri-facility-api` | The `service.name` resource attribute reported to the OTLP collector. |
 | `OTEL_TRACES_ENABLED` | `true` | Enable trace export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
 | `OTEL_METRICS_ENABLED` | `true` | Enable metric export. Only takes effect when `OPENTELEMETRY_ENABLED=true`. |
 | `OTLP_ENDPOINT` | `""` | gRPC endpoint for the OTLP collector (e.g. `http://otel-collector:4317`). When empty, telemetry is printed to the console. |

@@ -43,6 +43,7 @@ except Exception as exc:
 
 OPENTELEMETRY_ENABLED = os.environ.get("OPENTELEMETRY_ENABLED", "false").lower() == "true"
 OPENTELEMETRY_DEBUG = os.environ.get("OPENTELEMETRY_DEBUG", "false").lower() == "true"
+OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "iri-facility-api")
 OTLP_ENDPOINT = os.environ.get("OTLP_ENDPOINT", "")
 OTEL_SAMPLE_RATE = float(os.environ.get("OTEL_SAMPLE_RATE", "0.2"))
 OTEL_TRACES_ENABLED = os.environ.get("OTEL_TRACES_ENABLED", "true").lower() == "true"
@@ -69,6 +70,7 @@ logger.info(f"LOG_LEVEL={LOG_LEVEL}")
 logger.info(f"OPENTELEMETRY_ENABLED={OPENTELEMETRY_ENABLED}")
 logger.info(f"OPENTELEMETRY_DEBUG={OPENTELEMETRY_DEBUG}")
 logger.info(f"OTLP_ENDPOINT={OTLP_ENDPOINT}")
+logger.info(f"OTEL_SERVICE_NAME={OTEL_SERVICE_NAME}")
 logger.info(f"OTEL_SAMPLE_RATE={OTEL_SAMPLE_RATE}")
 logger.info(f"OTEL_TRACES_ENABLED={OTEL_TRACES_ENABLED}")
 logger.info(f"OTEL_METRICS_ENABLED={OTEL_METRICS_ENABLED}")
