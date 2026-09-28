@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .. import config
+from ..request_context import external_origin
 
 
 class Problem(BaseModel):
@@ -36,16 +37,23 @@ def allowed_methods_for_path(app: FastAPI, path: str) -> list[str]:
     return sorted(methods)
 
 
+def _request_origin(request: Request) -> str:
+    """Return ``proto://host/prefix`` as the client addressed this API (see request_context.external_origin).
+
+    Read from the request itself, not the per-request context variable: the 500
+    handler runs outside the middleware that sets it.
+    """
+    parts = urlsplit(str(request.url))
+    return external_origin(request) or f"{parts.scheme}://{parts.netloc}"
+
+
 def get_url_base(request: Request) -> str:
-    """Return the base URL for the API."""
-    # If behind a proxy (and x-forwarded-* headers present), use the forwarded host and protocol
-    host = (request.headers.get("x-forwarded-host") or request.headers.get("host", "")).split(",")[0].strip()
-    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme).split(",")[0].strip()
-    return f"{proto}://{host}/problems"
+    """Return the base URL for problem types, honoring the gateway's forwarded host, proto and prefix."""
+    return f"{_request_origin(request)}/problems"
 
 
 def safe_instance_url(request: Request) -> str:
-    """Return a URL-safe version of the request URL for the 'instance' field."""
+    """Return the URL-safe request URL, as the client addressed it, for the 'instance' field."""
     parts = urlsplit(str(request.url))
 
     # Encode unsafe characters in each component
@@ -53,7 +61,7 @@ def safe_instance_url(request: Request) -> str:
     safe_query = quote(parts.query, safe="=&?/:@+$,;=-._~")
     safe_fragment = quote(parts.fragment, safe="=&?/:@+$,;=-._~")
 
-    return urlunsplit((parts.scheme, parts.netloc, safe_path, safe_query, safe_fragment))
+    return _request_origin(request) + urlunsplit(("", "", safe_path, safe_query, safe_fragment))
 
 
 def problem_response(*, request: Request, status: int, title, detail, problem_type: str, invalid_params=None, extra_headers=None):
