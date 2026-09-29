@@ -5,6 +5,7 @@
 3. Optionally call the AmSC userinfo endpoint (Ping) to catch tokens revoked since issuance.
 4. Map the tokens amsc_project_context to a local facility username via a facility-maintained JSON file.
    AmSC project with no local mapping entry is a hard authentication failure (401).
+   An entry may restrict the project to specific subs via allowed_sub; any other sub is rejected (401).
 
 To turns this on with AMSC_TOKEN_ENABLED=true and supply issuer/audience/JWKS/mapping configuration.
 """
@@ -12,7 +13,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
 import httpx
 import jwt
@@ -264,12 +265,41 @@ async def check_amsc_userinfo(token: str) -> dict:
 # Step 4: amsc_project_context -> local facility username mapping (JSON)
 # ---------------------------------------------------------------------------
 
-_mapping_cache: dict[str, str] = {}
+class ProjectMapping(NamedTuple):
+    """One project_mapping entry. allowed_sub=None means any sub carrying the project is accepted."""
+
+    local_user: str
+    allowed_sub: frozenset[str] | None = None
+
+
+_MAPPING_ENTRY_KEYS = frozenset({"local_user", "allowed_sub"})
+
+_mapping_cache: dict[str, ProjectMapping] = {}
 _mapping_mtime: float = 0.0
 
 
-def _load_project_mapping() -> dict[str, str]:
-    """Return the amsc_project_context -> local username mapping, reloading on file change."""
+def _parse_mapping_entry(project: str, entry: Any) -> ProjectMapping:
+    """Parse a {"local_user": ..., "allowed_sub": [...]} project_mapping entry."""
+    if not isinstance(entry, dict):
+        raise ValueError(f"AmSC project mapping for '{project}' must be an object with 'local_user'")
+    # A misspelled key (e.g. "allowed_subs") would otherwise silently open the project to every sub.
+    unknown = set(entry) - _MAPPING_ENTRY_KEYS
+    if unknown:
+        raise ValueError(f"AmSC project mapping for '{project}' has unknown key(s): {', '.join(sorted(unknown))}")
+    local_user = entry.get("local_user")
+    if not isinstance(local_user, str) or not local_user:
+        raise ValueError(f"AmSC project mapping for '{project}' requires a non-empty 'local_user'")
+    if "allowed_sub" not in entry:
+        return ProjectMapping(local_user=local_user)
+    allowed_sub = entry["allowed_sub"]
+    # An explicit empty list is kept as-is and admits nobody (fail closed), rather than being read as "all".
+    if not isinstance(allowed_sub, list) or not all(isinstance(sub, str) and sub for sub in allowed_sub):
+        raise ValueError(f"AmSC project mapping for '{project}': 'allowed_sub' must be a list of non-empty strings")
+    return ProjectMapping(local_user=local_user, allowed_sub=frozenset(allowed_sub))
+
+
+def _load_project_mapping() -> dict[str, ProjectMapping]:
+    """Return the amsc_project_context -> ProjectMapping table, reloading on file change."""
     global _mapping_cache, _mapping_mtime
     path = _mapping_file()
     if not path:
@@ -286,19 +316,25 @@ def _load_project_mapping() -> dict[str, str]:
     mapping = data.get("project_mapping") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"AmSC project mapping file {path}: 'project_mapping' must be a mapping")
-    _mapping_cache = {str(key): str(value) for key, value in mapping.items()}
+    _mapping_cache = {str(key): _parse_mapping_entry(str(key), value) for key, value in mapping.items()}
     _mapping_mtime = mtime
     logger.info(f"amsc_auth: reloaded project mapping from {path} ({len(_mapping_cache)} project(s))")
     return _mapping_cache
 
 
-def resolve_amsc_project(amsc_project_context: str) -> str:
-    """Map an AmSC amsc_project_context claim to a local facility username."""
+def resolve_amsc_project(amsc_project_context: str, sub: str | None = None) -> str:
+    """Map an AmSC amsc_project_context claim to a local facility username.
+
+    When the project entry lists allowed_sub, the token's sub must be in it; a
+    caller that does not pass sub is rejected for such projects (fail closed).
+    """
     mapping = _load_project_mapping()
-    username = mapping.get(amsc_project_context)
-    if not username:
+    entry = mapping.get(amsc_project_context)
+    if entry is None:
         raise ValueError(f"No local mapping for AmSC project '{amsc_project_context}'")
-    return username
+    if entry.allowed_sub is not None and sub not in entry.allowed_sub:
+        raise ValueError(f"AmSC subject is not allowed for project '{amsc_project_context}'")
+    return entry.local_user
 
 
 def _validate_startup_config() -> None:

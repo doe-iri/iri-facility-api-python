@@ -151,9 +151,10 @@ class AuthenticatedAdapter(ABC):
         Return the authenticated users local id for an already-validated AmSC Keycard.
 
         Default implementation: map the token's active `amsc_project_context`
-        claim to a local facility username via the configured YAML mapping file.
+        claim to a local facility username via the configured JSON mapping file,
+        enforcing the entry's allowed_sub list against the token's `sub` when present.
         """
-        return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"])
+        return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"], amsc_claims["sub"])
 
     @abstractmethod
     async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None) -> User:
