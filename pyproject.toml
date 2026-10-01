@@ -12,6 +12,7 @@ dependencies = [
     "typer>=0.24.1",
     "pyjwt[crypto]>=2.10.1,<3.0.0",
     "httpx>=0.28.1,<0.29.0",
+    "dnspython>=2.8.0,<3.0.0",
 ]
 [project.optional-dependencies]
 dev = ["pytest>=9"]
