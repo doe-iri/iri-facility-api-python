@@ -113,11 +113,16 @@ class IriRouter(APIRouter):
                         amsc_claims.get("amsc_email"),
                         user_id,
                     )
+                except amsc_auth.AmscTokenRevokedError:
+                    raise
                 except Exception as amsc_exc:
                     logging.getLogger().exception("AmSC error:", exc_info=amsc_exc)
                     exc_msg = f"AmSC authentication failed: {str(amsc_exc)}. || "
             if not user_id:
                 user_id = await self.adapter.get_current_user(token, ip_address)
+        except amsc_auth.AmscTokenRevokedError as exc:
+            # Definitive verdict on a validly signed AmSC token: never let the facility fallback accept it.
+            raise HTTPException(status_code=401, detail=f"AmSC authentication failed: {exc}") from exc
         except Exception as exc:
             logging.getLogger().exception("Facility Specific auth failed: ", exc_info=exc)
             exc_msg += f"Facility Specific authentication failed: {str(exc)}"

@@ -123,7 +123,7 @@ The demo adapter's [`DemoAuthMixin`](https://github.com/doe-iri/iri-facility-api
 
 ### AmSC authentication
 
-Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) *before* falling back to the facility-specific auth path above: JWKS signature/issuer/audience/expiry verification, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
+Optional, off by default. When enabled, `IriRouter.current_user` validates an AmSC Keycard bearer token (RIG audience-scopes it to this facility before forwarding it) *before* falling back to the facility-specific auth path above: JWKS signature/issuer/audience/expiry verification, a DNSBL revocation check, an optional Ping userinfo freshness check, and mapping the tokens active `amsc_project_context` claim to a local facility username via a JSON file. See [`app/amsc_auth.py`](app/amsc_auth.py) for the implementation details
 
 | Variable | Default | Description |
 |---|---|---|
@@ -136,6 +136,9 @@ Optional, off by default. When enabled, `IriRouter.current_user` validates an Am
 | `AMSC_TOKEN_ALGORITHMS` | _(derived from discovery)_ | Comma-separated list of accepted JWT signing algorithms. If unset, derived from the discovery output `id_token_signing_alg_values_supported`. Falls back to `RS256,ES256,RS384,RS512,ES384,ES512` if discovery is unset, unreachable, or has nothing usable after filtering. |
 | `AMSC_TOKEN_LEEWAY_SECONDS` | `30` | Clock-skew leeway applied to `exp`/`nbf` checks. |
 | `AMSC_TOKEN_JWKS_CACHE_TTL_SECONDS` | `3600` | How long JWKS keys and the discovery endpoint are cached before refetching. |
+| `AMSC_REVOCATION_CHECK_ENABLED` | `true` | After signature validation, look the token up in the AmSC DNS blocklist (DNSBL): a TXT query for `sha256(<iss host> + "\0" + jti)` as lowercase hex, split into two 32-character labels under `AMSC_REVOCATION_DNSBL_ZONE`. The issuer is reduced to its hostname, so `https://identity.amsc.ornl.gov/am/oauth2` hashes as `identity.amsc.ornl.gov`. Any TXT record (e.g. `"exp=1793391277"`) means revoked: 401, with no fallback to facility-specific auth. NXDOMAIN or no TXT record means not revoked. Resolver errors and timeouts fail open (logged as a warning), the same as RIG. A token without a `jti` claim is rejected while the check is on. |
+| `AMSC_REVOCATION_DNSBL_ZONE` | `revoked.americansciencecloud.org` | DNS zone the revocation lookups are made under. |
+| `AMSC_REVOCATION_DNSBL_TIMEOUT_SECONDS` | `2` | Total time budget for one revocation lookup before it fails open. |
 | `AMSC_USERINFO_VALIDATION_ENABLED` | `false` | When `true`, every AmSC-authenticated request also calls the userinfo endpoint (Ping) with the caller's token to catch revocation that offline JWT validation cannot see. Fail-closed: if Ping is unreachable or rejects the token, the request is denied. |
 | `AMSC_USERINFO_URL` | _(derived from discovery)_ | Explicit userinfo endpoint, overrides the discovery endpoint. |
 | `AMSC_USERINFO_TIMEOUT_SECONDS` | `5` | Timeout for the discovery endpoint fetch and the userinfo call. |
