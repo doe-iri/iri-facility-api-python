@@ -113,11 +113,16 @@ class IriRouter(APIRouter):
                         amsc_claims.get("amsc_email"),
                         user_id,
                     )
+                except amsc_auth.AmscTokenRevokedError:
+                    raise
                 except Exception as amsc_exc:
                     logging.getLogger().exception("AmSC error:", exc_info=amsc_exc)
                     exc_msg = f"AmSC authentication failed: {str(amsc_exc)}. || "
             if not user_id:
                 user_id = await self.adapter.get_current_user(token, ip_address)
+        except amsc_auth.AmscTokenRevokedError as exc:
+            # Definitive verdict on a validly signed AmSC token: never let the facility fallback accept it.
+            raise HTTPException(status_code=401, detail=f"AmSC authentication failed: {exc}") from exc
         except Exception as exc:
             logging.getLogger().exception("Facility Specific auth failed: ", exc_info=exc)
             exc_msg += f"Facility Specific authentication failed: {str(exc)}"
@@ -151,9 +156,10 @@ class AuthenticatedAdapter(ABC):
         Return the authenticated users local id for an already-validated AmSC Keycard.
 
         Default implementation: map the token's active `amsc_project_context`
-        claim to a local facility username via the configured YAML mapping file.
+        claim to a local facility username via the configured JSON mapping file,
+        enforcing the entry's allowed_sub list against the token's `sub` when present.
         """
-        return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"])
+        return amsc_auth.resolve_amsc_project(amsc_claims["amsc_project_context"], amsc_claims["sub"])
 
     @abstractmethod
     async def get_user(self: "AuthenticatedAdapter", user_id: str, api_key: str, client_ip: str | None) -> User:
