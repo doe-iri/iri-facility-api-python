@@ -30,6 +30,7 @@ from app.routers.compute import compute
 from app.routers.filesystem import filesystem
 from app.routers.storage import storage
 from app.routers.task import task
+from app.routers.skills import skills
 
 configure_logging(config.LOG_LEVEL)
 
@@ -95,5 +96,6 @@ APP.include_router(compute.router, prefix=api_prefix)
 APP.include_router(filesystem.router, prefix=api_prefix)
 APP.include_router(storage.router, prefix=api_prefix)
 APP.include_router(task.router, prefix=api_prefix)
+APP.include_router(skills.router, prefix=api_prefix)
 
 logging.getLogger().info(f"API path: {api_prefix}")

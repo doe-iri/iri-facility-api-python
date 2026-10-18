@@ -99,10 +99,25 @@ Links to data, created by this api, will concatenate these values producing link
   | `IRI_API_ADAPTER_filesystem` | `/filesystem/...` | [`app.routers.filesystem.facility_adapter.FacilityAdapter`](app/routers/filesystem/facility_adapter.py) |
   | `IRI_API_ADAPTER_storage`    | `/storage/...`    | [`app.routers.storage.facility_adapter.FacilityAdapter`](app/routers/storage/facility_adapter.py) |
   | `IRI_API_ADAPTER_task`       | `/task/...`       | [`app.routers.task.facility_adapter.FacilityAdapter`](app/routers/task/facility_adapter.py) |
+  | `IRI_API_ADAPTER_skills`     | `/skills/...`     | [`app.routers.skills.facility_adapter.SkillsAdapter`](app/routers/skills/facility_adapter.py) |
 
   Each value is a `module.path.ClassName` string. The demo adapter's `demo_adapter.combined.DemoAdapter` (from the `examples/demo-adapter` submodule) implements all of them and is what `make dev` wires up by default. A router whose `IRI_API_ADAPTER_*` is not set is hidden from the API at startup; if `IRI_SHOW_MISSING_ROUTES=true` an unconfigured router instead fails fast at startup (the framework has no built-in fallback adapter).
 
 - `IRI_SHOW_MISSING_ROUTES`: by default (`false`), api groups without an `IRI_API_ADAPTER_*` environment variable are silently hidden, so a facility can expose only the groups it implements. If set to `true`, an unconfigured group instead makes startup fail fast, surfacing the missing adapter as a configuration error rather than silently dropping the route.
+
+### Facility skills
+
+The optional `skills` api group publishes the facility's Agent Skills (a directory with a `SKILL.md`, plus optional `references/` and `scripts/` files). It is public, like `/facility`.
+
+- `GET /skills` lists skills: `id` (the directory name), plus `name` and `description` read from the `SKILL.md` frontmatter. Filters: `name`, `modified_since`, `offset`, `limit`. No skills is `200 []`.
+- `GET /skills/{skill_id}` returns the complete bundle: the same fields plus `files[]`, one entry per file with `path`, `encoding` (`utf-8` or `base64`), `content` and `executable`. `SKILL.md` is first. Scripts are inline, never a pointer, so writing each `files[].content` to `path` reconstructs the skill directory.
+
+The bundled `DirectorySkillsAdapter` serves every subdirectory of a directory that contains a `SKILL.md`, loaded once at startup. Hidden files, `__pycache__`, `*.pyc` and symlinks are skipped.
+
+```bash
+IRI_API_ADAPTER_skills=app.routers.skills.directory_adapter.DirectorySkillsAdapter
+IRI_SKILLS_DIR=/path/to/skills   # contains <skill-name>/SKILL.md
+```
 
 ### Facility-specific authentication
 
