@@ -305,8 +305,6 @@ async def post_view(
     request: Request,
     user: User = Depends(router.current_user),
 ) -> task_models.TaskSubmitResponse:
-    if request_model.size > facility_adapter.OPS_SIZE_LIMIT:
-        raise HTTPException(status_code=400, detail=f"Requested size exceeds limit of {facility_adapter.OPS_SIZE_LIMIT} bytes.")
     resource = await _user_resource(resource_id, user)
     return await router.task_adapter.put_task(
         user=user,

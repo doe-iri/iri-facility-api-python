@@ -6,10 +6,28 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
 from enum import Enum
 from pydantic import Field, AliasChoices, BaseModel
 
 from ...types.scalars import CompressionType, CompressionTypeValue
+
+
+def to_int(name, default_value):
+    try:
+        return int(os.environ.get(name) or default_value)
+    except:
+        return default_value
+
+
+# Defined here, not in facility_adapter (which imports this module), so request models can declare it.
+OPS_SIZE_LIMIT = to_int("OPS_SIZE_LIMIT", 5 * 1024 * 1024)
+
+# The head/tail handlers require exactly one of `bytes` or `lines`; declare that in the schema too.
+EXACTLY_ONE_OF_BYTES_OR_LINES = [
+    {"required": ["bytes"], "properties": {"bytes": {"type": "integer"}}},
+    {"required": ["lines"], "properties": {"lines": {"type": "integer"}}},
+]
 
 
 class ContentUnit(str, Enum):
@@ -316,7 +334,7 @@ class PostHeadRequest(FilesystemRequestBase):
     file_bytes: int | None = Field(default=None, alias="bytes", description="Return the first NUM bytes of the file", example=1024)
     lines: int | None = Field(default=None, description="Return the first NUM lines of the file", example=10)
     skip_trailing: bool = Field(default=False, alias="skipTrailing", description="Return the whole file without the last NUM bytes/lines", example=False)
-    model_config = {"populate_by_name": True, "json_schema_extra": {"examples": [{"path": "/home/user/file.txt", "lines": 10}]}}
+    model_config = {"populate_by_name": True, "json_schema_extra": {"oneOf": EXACTLY_ONE_OF_BYTES_OR_LINES, "examples": [{"path": "/home/user/file.txt", "lines": 10}]}}
 
 
 class PostTailRequest(FilesystemRequestBase):
@@ -325,13 +343,13 @@ class PostTailRequest(FilesystemRequestBase):
     file_bytes: int | None = Field(default=None, alias="bytes", ge=1, description="Return the last NUM bytes of the file", example=1024)
     lines: int | None = Field(default=None, ge=1, description="Return the last NUM lines of the file", example=10)
     skip_heading: bool = Field(default=False, alias="skipHeading", description="Return the whole file without the first NUM bytes/lines", example=False)
-    model_config = {"populate_by_name": True, "json_schema_extra": {"examples": [{"path": "/home/user/file.txt", "lines": 10}]}}
+    model_config = {"populate_by_name": True, "json_schema_extra": {"oneOf": EXACTLY_ONE_OF_BYTES_OR_LINES, "examples": [{"path": "/home/user/file.txt", "lines": 10}]}}
 
 
 class PostViewRequest(FilesystemRequestBase):
     """Request body for the view endpoint."""
     path: str = Field(..., description="File path", example="/home/user/file.txt")
-    size: int = Field(default=0, ge=1, description="Number of bytes to retrieve from the file", example=4096)
+    size: int = Field(default=0, ge=1, le=OPS_SIZE_LIMIT, description="Number of bytes to retrieve from the file", example=4096)
     offset: int = Field(default=0, ge=0, description="Byte offset to start reading from", example=0)
     model_config = {"json_schema_extra": {"examples": [{"path": "/home/user/file.txt", "size": 4096, "offset": 0}]}}
 
