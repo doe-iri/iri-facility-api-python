@@ -1,4 +1,3 @@
-import os
 from abc import abstractmethod
 from ...types.user import User
 from ..status import models as status_models
@@ -6,14 +5,7 @@ from . import models as filesystem_models
 from ..iri_router import AuthenticatedAdapter
 
 
-def to_int(name, default_value):
-    try:
-        return int(os.environ.get(name) or default_value)
-    except:
-        return default_value
-
-
-OPS_SIZE_LIMIT = to_int("OPS_SIZE_LIMIT", 5 * 1024 * 1024)
+OPS_SIZE_LIMIT = filesystem_models.OPS_SIZE_LIMIT
 
 
 class FacilityAdapter(AuthenticatedAdapter):
