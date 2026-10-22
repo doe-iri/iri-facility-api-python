@@ -43,6 +43,7 @@ dev: deps
 	IRI_API_ADAPTER_filesystem=demo_adapter.combined.DemoAdapter \
 	IRI_API_ADAPTER_storage=demo_adapter.combined.DemoAdapter \
 	IRI_API_ADAPTER_task=demo_adapter.combined.DemoAdapter \
+	IRI_API_ADAPTER_persistent_service=demo_adapter.persistent_service.adapter.PersistentServiceDemoAdapter \
 	IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.InMemoryIdempotencyStore \
 	IRI_LOG_FILE="$${IRI_LOG_FILE:-$${LOG_FILE:-$(IRI_LOG_FILE)}}" \
 	IRI_LOG_ROTATION_DAYS="$${IRI_LOG_ROTATION_DAYS:-$${LOG_ROTATION_DAYS:-$(IRI_LOG_ROTATION_DAYS)}}" \
@@ -68,9 +69,6 @@ redis-stop: ## Stop the local Redis container
 redis-clean: ## Stop and remove the local Redis container
 	docker rm -f $(REDIS_CONTAINER) 2>/dev/null || true
 
-
-test: deps ## Run unit tests
-	$(BIN)/python -m pytest test/ -v
 
 .PHONY: clean
 clean:
