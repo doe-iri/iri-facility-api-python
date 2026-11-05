@@ -107,17 +107,37 @@ Links to data, created by this api, will concatenate these values producing link
 
 ### Facility skills
 
-The optional `skills` api group publishes the facility's Agent Skills (a directory with a `SKILL.md`, plus optional `references/` and `scripts/` files). It is public, like `/facility`.
+The optional `skills` api group publishes the facility's Agent Skills. It is public, like `/facility`. The site decides what is published, and nothing is discovered by scanning a directory. Responses follow the index format of the [Agent Skills Discovery draft v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc), served at `/skills` instead of a well-known path.
 
-- `GET /skills` lists skills: `id` (the directory name), plus `name` and `description` read from the `SKILL.md` frontmatter. Filters: `name`, `modified_since`, `offset`, `limit`. No skills is `200 []`.
-- `GET /skills/{skill_id}` returns the complete bundle: the same fields plus `files[]`, one entry per file with `path`, `encoding` (`utf-8` or `base64`), `content` and `executable`. `SKILL.md` is first. Scripts are inline, never a pointer, so writing each `files[].content` to `path` reconstructs the skill directory.
+- `GET /skills` returns the index: `$schema` and `skills[]`. Each entry has `name`, `type`, `description`, `url` and `digest`. An entry hosted by this API also has `files[]`, an addition to the draft format, giving the `path`, `url`, `digest` and `executable` of each file with `SKILL.md` first. Every entry also has `self_uri` and HAL `_links`, whose `self` link carries the `https://iri.science/profiles/skill` profile. The index has its own `_links`, with one `iri:has-skill` link per skill when any are defined.
+- `GET /skills/{name}` returns one entry.
+- `GET /skills/{name}/{path}` returns the raw bytes of a file the site listed. Anything else is `404`.
 
-The bundled `DirectorySkillsAdapter` serves every subdirectory of a directory that contains a `SKILL.md`, loaded once at startup. Hidden files, `__pycache__`, `*.pyc` and symlinks are skipped.
+An entry's `digest` covers the artifact at its `url`, which is only `SKILL.md` for a hosted skill, so use `files[].digest` to verify the other files. Files are served at `{name}/{path}`, so relative links inside `SKILL.md` resolve as written. `executable` records the source file's mode and does not ask a client to run it.
+
+The bundled `ManifestSkillsAdapter` reads a JSON manifest. A site that needs something else can implement `SkillsAdapter` itself.
 
 ```bash
-IRI_API_ADAPTER_skills=app.routers.skills.directory_adapter.DirectorySkillsAdapter
-IRI_SKILLS_DIR=/path/to/skills   # contains <skill-name>/SKILL.md
+IRI_API_ADAPTER_skills=app.routers.skills.manifest_adapter.ManifestSkillsAdapter
+IRI_SKILLS_MANIFEST=/path/to/skills.json
 ```
+
+```json
+{"skills": [
+  {"name": "my-skill",
+   "files": {
+     "SKILL.md": "my-skill/SKILL.md",
+     "scripts/run.py": "/opt/skills/run.py"
+   }},
+  {"name": "other-skill", "type": "archive", "description": "Hosted elsewhere.",
+   "url": "https://example.org/other-skill.tar.gz", "digest": "sha256:<64 lowercase hex characters>"}
+]}
+```
+
+- An entry with `files` is hosted by this API. Keys are published paths and values are source files, absolute or relative to the manifest. Files are read once at startup and only listed files are served. `name` must match the `SKILL.md` frontmatter, and `description` comes from the entry or else the frontmatter, where it must be a single line.
+- An entry with `url` is returned as given, and the API never fetches it.
+
+Invalid input stops the API at startup, rather than publishing a partial set of skills: a missing manifest or source file, a duplicate name, an entry with both `files` and `url` or neither, an unknown field, or a value that fails validation.
 
 ### Facility-specific authentication
 

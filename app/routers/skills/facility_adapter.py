@@ -8,24 +8,16 @@ class SkillsAdapter(ABC):
     Use the `IRI_API_ADAPTER_<domain>` environment variable to install your
     facility adapter before the API starts.
 
-    `app.routers.skills.directory_adapter.DirectorySkillsAdapter` is a ready-made
-    implementation that serves skills from a directory on disk.
+    The site decides what is published. `app.routers.skills.manifest_adapter.ManifestSkillsAdapter`
+    is a ready-made implementation driven by a JSON manifest.
     """
 
     @abstractmethod
-    async def list_skills(
-        self: "SkillsAdapter",
-        modified_since: str | None = None,
-        name: str | None = None,
-        offset: int | None = None,
-        limit: int | None = None,
-    ) -> list[skills_models.SkillSummary]:
+    async def get_skills(self: "SkillsAdapter") -> list[skills_models.Skill]:
+        """Return every skill to publish."""
         pass
 
     @abstractmethod
-    async def get_skill(
-        self: "SkillsAdapter",
-        skill_id: str,
-        modified_since: str | None = None,
-    ) -> skills_models.Skill | None:
+    async def get_skill_file(self: "SkillsAdapter", name: str, path: str) -> bytes | None:
+        """Return the raw bytes of a file hosted by this API, or None if there is no such file."""
         pass
