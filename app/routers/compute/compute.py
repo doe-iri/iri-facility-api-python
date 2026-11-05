@@ -59,7 +59,8 @@ async def submit_job(
     - **job_request**: a PSIJ job spec as defined <a href="https://exaworks.org/psij-python/docs/v/0.9.11/.generated/tree.html#jobspec">here</a>
     - **Idempotency-Key**: optional client-generated UUID. A retry with the same key and body
       returns the original response without re-submitting the job. Same key with a different body
-      returns 422. An in-flight duplicate returns 409.
+      returns 422. An in-flight duplicate returns 409. A deployment that does not support the header
+      returns 400 without submitting the job.
 
     This command will attempt to submit a job and return its id.
     """

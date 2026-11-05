@@ -12,7 +12,7 @@ The backing store is defined via IRI_IDEMPOTENCY_STORE (see create_store). The
 library ships no built-in store; reference implementations are provided by the demo
 adapter (demo_adapter.compute.idempotency.InMemoryIdempotencyStore /
 RedisIdempotencyStore). If IRI_IDEMPOTENCY_STORE is unset, idempotency is disabled
-and a request that sends an Idempotency-Key receives 501.
+and a request that sends an Idempotency-Key receives 400.
 """
 
 import hashlib
@@ -81,9 +81,11 @@ class IdempotencyStore(ABC):
 async def run_with_idempotency(store: IdempotencyStore | None, cache_key: str, body_hash: str, adapter_fn) -> JSONResponse:
     """Run adapter_fn under idempotency control."""
     if store is None:
+        # API clients read this detail, so it states their options rather than server configuration.
         raise HTTPException(
-            status_code=501,
-            detail="Idempotency-Key provided but no idempotency store is configured (set IRI_IDEMPOTENCY_STORE).",
+            status_code=400,
+            detail="This deployment does not support the Idempotency-Key header, so the request was not processed. "
+            "Resend it without the header to proceed without retry protection.",
         )
     action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
 
@@ -111,7 +113,7 @@ def create_store() -> IdempotencyStore | None:
     The named class is imported and instantiated with no arguments — it reads any
     connection strings or config it needs from env vars. If IRI_IDEMPOTENCY_STORE is
     unset, returns None: idempotency is disabled and a request carrying an
-    Idempotency-Key gets 501 (see run_with_idempotency). Reference store
+    Idempotency-Key gets 400 (see run_with_idempotency). Reference store
     implementations live in the demo adapter
     (demo_adapter.compute.idempotency.InMemoryIdempotencyStore / RedisIdempotencyStore).
     """

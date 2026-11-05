@@ -179,7 +179,7 @@ Compute `submit_job` and `update_job` endpoints support an optional `Idempotency
 ### Backing store
 
 The core library ships no backing store. Configure one with `IRI_IDEMPOTENCY_STORE`;
-if it is unset, a request that sends `Idempotency-Key` returns `501`.
+if it is unset, a request that sends `Idempotency-Key` returns `400` and is not processed.
 
 The demo adapter package provides reference stores:
 
