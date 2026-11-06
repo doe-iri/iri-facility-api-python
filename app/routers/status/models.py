@@ -58,6 +58,53 @@ class Endpoint(str, enum.Enum):
     filesystem = "filesystem"
 
 
+class StorageOperation(str, enum.Enum):
+    """Storage-discovery operation an adapter implements for a Resource (internal, never serialized).
+
+    RFC Resource Operation Affordances: these relations have no legacy
+    `supported_endpoints` category (section 3.3), and resource_type alone MUST NOT
+    imply support (section 4), so adapters declare them explicitly.
+    """
+    resolve_storage_locations = "resolve-storage-locations"
+    get_storage_access_endpoints = "get-storage-access-endpoints"
+
+
+# Storage router path segment for each storage-discovery relation.
+_STORAGE_OPERATION_PATHS = {
+    StorageOperation.resolve_storage_locations: "locations",
+    StorageOperation.get_storage_access_endpoints: "access-endpoints",
+}
+
+# RFC Resource Operation Affordances section 4: Resource types eligible to advertise each
+# storage-discovery relation, as (types matched with their extensions, generic types
+# matched exactly). The generic parents match only exactly because some of their children
+# are not eligible (e.g. compute:gpu, or storage:mount for access endpoints).
+_STORAGE_OPERATION_SOURCE_TYPES = {
+    StorageOperation.resolve_storage_locations: (
+        (
+            "urn:doe-iri:resource:compute:system",
+            "urn:doe-iri:resource:compute:node",
+            "urn:doe-iri:resource:storage:filesystem",
+            "urn:doe-iri:resource:storage:mount",
+            "urn:doe-iri:resource:storage:system",
+            "urn:doe-iri:resource:storage:block",
+            "urn:doe-iri:resource:storage:object",
+            "urn:doe-iri:resource:service:dtn",
+        ),
+        ("urn:doe-iri:resource:compute", "urn:doe-iri:resource:storage"),
+    ),
+    StorageOperation.get_storage_access_endpoints: (
+        (
+            "urn:doe-iri:resource:storage:filesystem",
+            "urn:doe-iri:resource:storage:system",
+            "urn:doe-iri:resource:storage:block",
+            "urn:doe-iri:resource:storage:object",
+        ),
+        ("urn:doe-iri:resource:storage",),
+    ),
+}
+
+
 class Resource(NamedObject):
     """Represents a resource in the system."""
     def _self_path(self) -> str:
@@ -70,6 +117,11 @@ class Resource(NamedObject):
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
+    storage_operations: list[StorageOperation] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Storage-discovery operations the adapter implements for this Resource; each is advertised as its iri:* HAL link.",
+    )
     related_resource_ids: dict[str, list[str]] = Field(
         default_factory=dict,
         exclude=True,
@@ -98,6 +150,18 @@ class Resource(NamedObject):
                     "per status/resource.md section 5.3)",
                     self.id, relation, source_types, self.resource_type,
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_storage_operations(self):
+        for operation in self.storage_operations:
+            prefix_types, exact_types = _STORAGE_OPERATION_SOURCE_TYPES[operation]
+            if self.resource_type in exact_types or any(urn_has_complete_prefix(t, self.resource_type) for t in prefix_types):
+                continue
+            raise ValueError(
+                f"storage_operations: 'iri:{operation.value}' is not eligible for resource_type "
+                f"{self.resource_type} (RFC Resource Operation Affordances section 4)"
+            )
         return self
 
     @computed_field(description="URI of the site where this resource is located")
@@ -138,6 +202,10 @@ class Resource(NamedObject):
                 links[f"iri:{relation}"] = build_hal_link(f"{fs_base}/{op}/{self.id}", media_type=None)
             links["iri:upload-file"] = build_hal_link(f"{fs_base}/upload/{self.id}{{?path}}", media_type=None, templated=True)
             advertises_operations = True
+        for operation, path in _STORAGE_OPERATION_PATHS.items():
+            if operation in self.storage_operations:
+                links[f"iri:{operation.value}"] = build_hal_link(f"{get_url_prefix()}/storage/{path}/{self.id}", media_type=None)
+                advertises_operations = True
         if advertises_operations:
             links["service-desc"] = build_hal_link(f"{get_url_prefix()}/openapi.json", media_type=SERVICE_DESC_MEDIA_TYPE)
         for relation, target_ids in self.related_resource_ids.items():
