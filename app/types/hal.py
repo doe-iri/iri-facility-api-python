@@ -108,11 +108,11 @@ RELATION_METADATA: dict[str, RelationSpec] = {
     "provides-block": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:block"], "urn:doe-iri:resource:storage:system"),
     "provides-object": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:object"], "urn:doe-iri:resource:storage:system"),
     "has-mount": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:mount"], "urn:doe-iri:resource:storage:filesystem"),
-    "mounted-on": RelationSpec("one", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:system"], "urn:doe-iri:resource:storage:mount"),
+    "mounted-on": RelationSpec("many", None, "urn:doe-iri:resource:storage:mount"),
     "attached-to": RelationSpec("many", None, "urn:doe-iri:resource:storage:block"),
     "has-node": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:node"], "urn:doe-iri:resource:compute:system"),
     "has-cpu": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:cpu"], "urn:doe-iri:resource:compute:node"),
     "has-gpu": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:gpu"], "urn:doe-iri:resource:compute:node"),
     "hosted-on": RelationSpec("many", None, ("urn:doe-iri:resource:service:dtn", "urn:doe-iri:resource:service:inference")),
-    "accesses-mount": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:mount"], "urn:doe-iri:resource:service:dtn"),
+    "accesses-mount": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:mount"], ("urn:doe-iri:resource:service:dtn", "urn:doe-iri:resource:compute:system")),
 }
