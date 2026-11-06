@@ -17,6 +17,7 @@ PROFILE_FACILITY = "https://iri.science/profiles/facility"
 PROFILE_FACILITY_SITE = "https://iri.science/profiles/facility/site"
 PROFILE_STATUS_RESOURCE = "https://iri.science/profiles/status/resource"
 PROFILE_ACCOUNT_CAPABILITY = "https://iri.science/profiles/account/capability"
+PROFILE_SKILL = "https://iri.science/profiles/skill"
 
 _RD = "https://iri.science/profiles/resource-definition"
 
