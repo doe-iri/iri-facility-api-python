@@ -2,6 +2,7 @@ from abc import abstractmethod
 from ...types.user import User
 from . import models
 from ..iri_router import AuthenticatedAdapter
+from typing import Any
 
 
 class FacilityAdapter(AuthenticatedAdapter):
@@ -55,5 +56,5 @@ class FacilityAdapter(AuthenticatedAdapter):
         user: User,
         server_id: str,
         kubeconfig_request: models.KubeconfigRequest
-    ) -> models.Namespace:
+    ) -> Any:
         pass

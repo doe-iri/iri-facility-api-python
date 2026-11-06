@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated
 from ...types.base import IRIBaseModel
 
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator, ConfigDict
 
 # --- Shared types -----------------------------------------------------------
 
@@ -86,6 +86,7 @@ class ProjectList(IRIBaseModel):
 # --- Namespaces -------------------------------------------------------------
 
 class NamespaceCreateRequest(IRIBaseModel):
+    model_config = ConfigDict(extra="forbid")
     id: UrlSafeName
     project_id: OpaqueId | None = Field(
         default=None,
@@ -107,6 +108,7 @@ class Namespace(IRIBaseModel):
 # --- Kubeconfig -------------------------------------------------------------
 
 class KubeconfigRequest(IRIBaseModel):
+    model_config = ConfigDict(extra="forbid")
     cluster_ids: list[OpaqueId] | None = Field(
         default=None,
         description="Restrict the kubeconfig to these clusters. Omit for all accessible clusters.",
@@ -122,20 +124,3 @@ class KubeconfigRequest(IRIBaseModel):
         if len(set(v)) != len(v):
             raise ValueError("cluster_ids must not contain duplicates")
         return v
-
-
-# --- Errors -----------------------------------------------------------------
-
-class ErrorCode(str, Enum):
-    """Mirrors the domain exceptions adapters raise."""
-    NOT_FOUND = "not_found"
-    FORBIDDEN = "forbidden"
-    CONFLICT = "conflict"
-    UNAVAILABLE = "unavailable"
-    UNSUPPORTED = "unsupported"
-    INVALID_INPUT = "invalid_input"
-
-
-class ErrorResponse(IRIBaseModel):
-    code: ErrorCode
-    message: str
