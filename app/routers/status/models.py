@@ -63,7 +63,8 @@ class StorageOperation(str, enum.Enum):
 
     RFC Resource Operation Affordances: these relations have no legacy
     `supported_endpoints` category (section 3.3), and resource_type alone MUST NOT
-    imply support (section 4), so adapters declare them explicitly.
+    imply support (section 4), so adapters declare them explicitly. The declaration is
+    not checked against resource_type, so facility-defined types need no core change.
     """
     resolve_storage_locations = "resolve-storage-locations"
     get_storage_access_endpoints = "get-storage-access-endpoints"
@@ -73,35 +74,6 @@ class StorageOperation(str, enum.Enum):
 _STORAGE_OPERATION_PATHS = {
     StorageOperation.resolve_storage_locations: "locations",
     StorageOperation.get_storage_access_endpoints: "access-endpoints",
-}
-
-# RFC Resource Operation Affordances section 4: Resource types eligible to advertise each
-# storage-discovery relation, as (types matched with their extensions, generic types
-# matched exactly). The generic parents match only exactly because some of their children
-# are not eligible (e.g. compute:gpu, or storage:mount for access endpoints).
-_STORAGE_OPERATION_SOURCE_TYPES = {
-    StorageOperation.resolve_storage_locations: (
-        (
-            "urn:doe-iri:resource:compute:system",
-            "urn:doe-iri:resource:compute:node",
-            "urn:doe-iri:resource:storage:filesystem",
-            "urn:doe-iri:resource:storage:mount",
-            "urn:doe-iri:resource:storage:system",
-            "urn:doe-iri:resource:storage:block",
-            "urn:doe-iri:resource:storage:object",
-            "urn:doe-iri:resource:service:dtn",
-        ),
-        ("urn:doe-iri:resource:compute", "urn:doe-iri:resource:storage"),
-    ),
-    StorageOperation.get_storage_access_endpoints: (
-        (
-            "urn:doe-iri:resource:storage:filesystem",
-            "urn:doe-iri:resource:storage:system",
-            "urn:doe-iri:resource:storage:block",
-            "urn:doe-iri:resource:storage:object",
-        ),
-        ("urn:doe-iri:resource:storage",),
-    ),
 }
 
 
@@ -150,18 +122,6 @@ class Resource(NamedObject):
                     "per status/resource.md section 5.3)",
                     self.id, relation, source_types, self.resource_type,
                 )
-        return self
-
-    @model_validator(mode="after")
-    def _validate_storage_operations(self):
-        for operation in self.storage_operations:
-            prefix_types, exact_types = _STORAGE_OPERATION_SOURCE_TYPES[operation]
-            if self.resource_type in exact_types or any(urn_has_complete_prefix(t, self.resource_type) for t in prefix_types):
-                continue
-            raise ValueError(
-                f"storage_operations: 'iri:{operation.value}' is not eligible for resource_type "
-                f"{self.resource_type} (RFC Resource Operation Affordances section 4)"
-            )
         return self
 
     @computed_field(description="URI of the site where this resource is located")
