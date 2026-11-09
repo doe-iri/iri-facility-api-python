@@ -95,6 +95,7 @@ class AccessEndpoint(BaseModel):
     resource_id: str = Field(..., description="ID of the storage resource this endpoint belongs to")
     protocol: AccessProtocol = Field(..., description="Data access protocol")
     display_name: Optional[str] = Field(default=None, description="Human-readable name for this endpoint", example="Globus endpoint example")
+    description: Optional[str] = Field(default=None, description="Additional information about this endpoint, such as access prerequisites", example="Join the facility Globus group before use")
     auth_type: str = Field(..., description="Authentication mechanism required to use this endpoint", example="globus")
     capabilities: list[AccessCapability] = Field(..., description="Supported data operations")
     # Globus-specific

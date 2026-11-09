@@ -58,6 +58,25 @@ class Endpoint(str, enum.Enum):
     filesystem = "filesystem"
 
 
+class StorageOperation(str, enum.Enum):
+    """Storage-discovery operation an adapter implements for a Resource (internal, never serialized).
+
+    RFC Resource Operation Affordances: these relations have no legacy
+    `supported_endpoints` category (section 3.3), and resource_type alone MUST NOT
+    imply support (section 4), so adapters declare them explicitly. The declaration is
+    not checked against resource_type, so facility-defined types need no core change.
+    """
+    resolve_storage_locations = "resolve-storage-locations"
+    get_storage_access_endpoints = "get-storage-access-endpoints"
+
+
+# Storage router path segment for each storage-discovery relation.
+_STORAGE_OPERATION_PATHS = {
+    StorageOperation.resolve_storage_locations: "locations",
+    StorageOperation.get_storage_access_endpoints: "access-endpoints",
+}
+
+
 class Resource(NamedObject):
     """Represents a resource in the system."""
     def _self_path(self) -> str:
@@ -70,6 +89,11 @@ class Resource(NamedObject):
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
+    storage_operations: list[StorageOperation] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Storage-discovery operations the adapter implements for this Resource; each is advertised as its iri:* HAL link.",
+    )
     related_resource_ids: dict[str, list[str]] = Field(
         default_factory=dict,
         exclude=True,
@@ -138,6 +162,10 @@ class Resource(NamedObject):
                 links[f"iri:{relation}"] = build_hal_link(f"{fs_base}/{op}/{self.id}", media_type=None)
             links["iri:upload-file"] = build_hal_link(f"{fs_base}/upload/{self.id}{{?path}}", media_type=None, templated=True)
             advertises_operations = True
+        for operation, path in _STORAGE_OPERATION_PATHS.items():
+            if operation in self.storage_operations:
+                links[f"iri:{operation.value}"] = build_hal_link(f"{get_url_prefix()}/storage/{path}/{self.id}", media_type=None)
+                advertises_operations = True
         if advertises_operations:
             links["service-desc"] = build_hal_link(f"{get_url_prefix()}/openapi.json", media_type=SERVICE_DESC_MEDIA_TYPE)
         for relation, target_ids in self.related_resource_ids.items():
