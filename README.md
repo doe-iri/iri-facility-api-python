@@ -99,10 +99,45 @@ Links to data, created by this api, will concatenate these values producing link
   | `IRI_API_ADAPTER_filesystem` | `/filesystem/...` | [`app.routers.filesystem.facility_adapter.FacilityAdapter`](app/routers/filesystem/facility_adapter.py) |
   | `IRI_API_ADAPTER_storage`    | `/storage/...`    | [`app.routers.storage.facility_adapter.FacilityAdapter`](app/routers/storage/facility_adapter.py) |
   | `IRI_API_ADAPTER_task`       | `/task/...`       | [`app.routers.task.facility_adapter.FacilityAdapter`](app/routers/task/facility_adapter.py) |
+  | `IRI_API_ADAPTER_skills`     | `/skills/...`     | [`app.routers.skills.facility_adapter.SkillsAdapter`](app/routers/skills/facility_adapter.py) |
 
   Each value is a `module.path.ClassName` string. The demo adapter's `demo_adapter.combined.DemoAdapter` (from the `examples/demo-adapter` submodule) implements all of them and is what `make dev` wires up by default. A router whose `IRI_API_ADAPTER_*` is not set is hidden from the API at startup; if `IRI_SHOW_MISSING_ROUTES=true` an unconfigured router instead fails fast at startup (the framework has no built-in fallback adapter).
 
 - `IRI_SHOW_MISSING_ROUTES`: by default (`false`), api groups without an `IRI_API_ADAPTER_*` environment variable are silently hidden, so a facility can expose only the groups it implements. If set to `true`, an unconfigured group instead makes startup fail fast, surfacing the missing adapter as a configuration error rather than silently dropping the route.
+
+### Facility skills
+
+The optional `skills` api group publishes the facility's Agent Skills. It is public, like `/facility`. The site decides what is published, and nothing is discovered by scanning a directory. Responses follow the index format of the [Agent Skills Discovery draft v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc), served at `/skills` instead of a well-known path.
+
+- `GET /skills` returns the index: `$schema` and `skills[]`. Each entry has `name`, `type`, `description`, `url` and `digest`. An entry hosted by this API also has `files[]`, an addition to the draft format, giving the `path`, `url`, `digest` and `executable` of each file with `SKILL.md` first. Every entry also has `self_uri` and HAL `_links`, whose `self` link carries the `https://iri.science/profiles/skill` profile. The index has its own `_links`, with one `iri:has-skill` link per skill when any are defined.
+- `GET /skills/{name}` returns one entry.
+- `GET /skills/{name}/{path}` returns the raw bytes of a file the site listed. Anything else is `404`.
+
+An entry's `digest` covers the artifact at its `url`, which is only `SKILL.md` for a hosted skill, so use `files[].digest` to verify the other files. Files are served at `{name}/{path}`, so relative links inside `SKILL.md` resolve as written. `executable` records the source file's mode and does not ask a client to run it.
+
+The bundled `ManifestSkillsAdapter` reads a JSON manifest. A site that needs something else can implement `SkillsAdapter` itself.
+
+```bash
+IRI_API_ADAPTER_skills=app.routers.skills.manifest_adapter.ManifestSkillsAdapter
+IRI_SKILLS_MANIFEST=/path/to/skills.json
+```
+
+```json
+{"skills": [
+  {"name": "my-skill",
+   "files": {
+     "SKILL.md": "my-skill/SKILL.md",
+     "scripts/run.py": "/opt/skills/run.py"
+   }},
+  {"name": "other-skill", "type": "archive", "description": "Hosted elsewhere.",
+   "url": "https://example.org/other-skill.tar.gz", "digest": "sha256:<64 lowercase hex characters>"}
+]}
+```
+
+- An entry with `files` is hosted by this API. Keys are published paths and values are source files, absolute or relative to the manifest. Files are read once at startup and only listed files are served. `name` must match the `SKILL.md` frontmatter, and `description` comes from the entry or else the frontmatter, where it must be a single line.
+- An entry with `url` is returned as given, and the API never fetches it.
+
+Invalid input stops the API at startup, rather than publishing a partial set of skills: a missing manifest or source file, a duplicate name, an entry with both `files` and `url` or neither, an unknown field, or a value that fails validation.
 
 ### Facility-specific authentication
 
