@@ -2,6 +2,7 @@
 
 from fastapi import Depends, Header, Request, Response
 
+from ...idempotency import build_body_hash, build_cache_key, run_with_idempotency
 from ...types.http import forbidExtraQueryParams
 from ...types.user import User
 from .. import iri_router
@@ -85,7 +86,19 @@ async def create_namespace(
     request: Request,
     user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
+    if idempotency_key:
+        return await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, "create_namespace"),
+            build_body_hash({
+                "server_id": server_id,
+                "cluster_id": cluster_id,
+                "namespace_request": namespace_request.model_dump(),
+            }),
+            lambda: router.adapter.create_namespace(user=user, server_id=server_id, cluster_id=cluster_id, namespace_request=namespace_request),
+        )
     return await router.adapter.create_namespace(user=user, server_id=server_id, cluster_id=cluster_id, namespace_request=namespace_request)
 
 
@@ -112,7 +125,18 @@ async def create_kubeconfig(
     request: Request,
     user: User = Depends(router.current_user),
     _forbid=Depends(forbidExtraQueryParams()),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
+    if idempotency_key:
+        kubeconfig = await run_with_idempotency(
+            request.app.state.idempotency_store,
+            build_cache_key(user.id, idempotency_key, "create_kubeconfig"),
+            build_body_hash({
+                "server_id": server_id,
+                "kubeconfig_request": kubeconfig_request.model_dump(),
+            }),
+            lambda: router.adapter.create_kubeconfig(user=user, server_id=server_id, kubeconfig_request=kubeconfig_request),
+        )
     kubeconfig = await router.adapter.create_kubeconfig(user=user, server_id=server_id, kubeconfig_request=kubeconfig_request)
     return Response(
         content=kubeconfig,
