@@ -16,6 +16,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_servers(
         self: "FacilityAdapter",
         user: User,
+        resource_id: str,
     ) -> models.ServerList:
         pass
 
@@ -24,6 +25,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_clusters(
         self: "FacilityAdapter",
         user: User,
+        resource_id: str,
         server_id: str,
     ) -> models.ClusterList:
         pass
@@ -33,6 +35,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def get_projects(
         self: "FacilityAdapter",
         user: User,
+        resource_id: str,
         server_id: str,
         cluster_id: str,
     ) -> models.ProjectList:
@@ -43,6 +46,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def create_namespace(
         self: "FacilityAdapter",
         user: User,
+        resource_id: str,
         server_id: str,
         cluster_id: str,
         namespace_request: models.NamespaceCreateRequest
@@ -54,6 +58,7 @@ class FacilityAdapter(AuthenticatedAdapter):
     async def create_kubeconfig(
         self: "FacilityAdapter",
         user: User,
+        resource_id: str,
         server_id: str,
         kubeconfig_request: models.KubeconfigRequest
     ) -> Any:
