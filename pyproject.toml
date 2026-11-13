@@ -20,3 +20,6 @@ dev = ["pytest>=9"]
 [tool.ruff]
 line-length = 200
 exclude = [".venv", "__pycache__", "build", "dist"]
+
+[tool.setuptools]
+packages = ["app"]
