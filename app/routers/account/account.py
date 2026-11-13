@@ -115,6 +115,7 @@ async def get_project(
     description="Get a list of allocations for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProjectAllocationsByProject",
+    response_model_exclude_none=True,
     openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_project_allocations(
@@ -136,6 +137,7 @@ async def get_project_allocations(
     description="Get a single project allocation at this facility for this user.",
     responses=DEFAULT_RESPONSES,
     operation_id="getProjectAllocationByProject",
+    response_model_exclude_none=True,
     openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_project_allocation(
@@ -162,6 +164,7 @@ async def get_project_allocation(
     description="Get a list of user allocations for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getUserAllocationsByProjectAllocation",
+    response_model_exclude_none=True,
     openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_user_allocations(
@@ -188,6 +191,7 @@ async def get_user_allocations(
     description="Get a user allocation for the currently authenticated user's projects at this facility.",
     responses=DEFAULT_RESPONSES,
     operation_id="getUserAllocationByProjectAllocation",
+    response_model_exclude_none=True,
     openapi_extra=iri_meta_dict("production", "required")
 )
 async def get_user_allocation(
