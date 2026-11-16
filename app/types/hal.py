@@ -1,6 +1,6 @@
 """HAL hypermedia primitives shared by every IRI implementation.
 
-See iri-facility-api-docs/registry/relations/README.md for the authoritative
+See iri-facility-api-docs/registry/rels/README.md for the authoritative
 source of information.
 """
 from dataclasses import dataclass
@@ -16,6 +16,8 @@ IRI_CURIE = {
 PROFILE_FACILITY = "https://iri.science/profiles/facility"
 PROFILE_FACILITY_SITE = "https://iri.science/profiles/facility/site"
 PROFILE_STATUS_RESOURCE = "https://iri.science/profiles/status/resource"
+PROFILE_STATUS_EVENT = "https://iri.science/profiles/status/event"
+PROFILE_STATUS_INCIDENT = "https://iri.science/profiles/status/incident"
 PROFILE_ACCOUNT_CAPABILITY = "https://iri.science/profiles/account/capability"
 
 _RD = "https://iri.science/profiles/resource-definition"
@@ -42,7 +44,7 @@ def resource_type_profile(resource_type: str) -> str | None:
 
 # Canonical relation URIs for registered DOE-IRI operation-affordance relations
 # (rfc-resource-operation-affordances.md). Keys are the exact relation names from
-# registry/relations/README.md -- NOT OpenAPI operationIds or router path segments,
+# registry/rels/README.md -- NOT OpenAPI operationIds or router path segments,
 # which for the 18 filesystem operations are shorter legacy strings (see
 # status/models.py `_FILESYSTEM_OPERATIONS` for that path-segment -> relation mapping).
 # Bind one of these to an Operation Object via iri_meta.iri_meta_dict(relations=[...]) so
@@ -100,7 +102,9 @@ class RelationSpec:
     """Static metadata for one registered Resource-to-Resource iri:* relation."""
     cardinality: str  # "one" | "many"
     target_profile: str | None
-    source_type: str | tuple[str, ...]
+    # None: the registry restricts the source by role, not by Resource Type
+    # (e.g. accesses-mount: any Resource that is a configured filesystem consumer).
+    source_type: str | tuple[str, ...] | None
 
 
 RELATION_METADATA: dict[str, RelationSpec] = {
@@ -114,5 +118,10 @@ RELATION_METADATA: dict[str, RelationSpec] = {
     "has-cpu": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:cpu"], "urn:doe-iri:resource:compute:node"),
     "has-gpu": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:compute:gpu"], "urn:doe-iri:resource:compute:node"),
     "hosted-on": RelationSpec("many", None, ("urn:doe-iri:resource:service:dtn", "urn:doe-iri:resource:service:inference")),
-    "accesses-mount": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:mount"], "urn:doe-iri:resource:service:dtn"),
+    # accesses-mount 1.1.0 / accessed-by 1.0.0: the same configured consumer-mount
+    # association seen from either side; each direction is independently optional.
+    "accesses-mount": RelationSpec("many", RESOURCE_TYPE_PROFILE["urn:doe-iri:resource:storage:mount"], None),
+    # Consumers can be any Resource Type, so the link carries the generic Resource
+    # profile, which accessed-by.md section 3 names as the default target profile.
+    "accessed-by": RelationSpec("many", PROFILE_STATUS_RESOURCE, "urn:doe-iri:resource:storage:mount"),
 }

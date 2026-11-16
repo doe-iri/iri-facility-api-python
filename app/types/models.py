@@ -3,6 +3,7 @@
 from pydantic import Field
 
 from .base import NamedObject
+from .hal import PROFILE_ACCOUNT_CAPABILITY
 from .scalars import AllocationUnit, AllocationUnitValue, StrictDateTime
 
 
@@ -17,6 +18,9 @@ class Capability(NamedObject):
 
     def _self_path(self) -> str:
         return f"/account/capabilities/{self.id}"
+
+    def _link_profile(self) -> str | None:
+        return PROFILE_ACCOUNT_CAPABILITY
 
     last_modified: StrictDateTime|None = Field(default=None, description="ISO 8601 timestamp when this object was last modified.", example="2026-02-21T12:00:00Z")
 

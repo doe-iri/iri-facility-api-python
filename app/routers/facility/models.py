@@ -3,7 +3,7 @@ from pydantic import Field, HttpUrl, computed_field
 
 from ...request_context import get_url_prefix
 from ...types.base import NamedObject
-from ...types.hal import PROFILE_FACILITY, PROFILE_FACILITY_SITE, build_hal_link
+from ...types.hal import PROFILE_FACILITY, PROFILE_FACILITY_SITE, PROFILE_STATUS_RESOURCE, build_hal_link
 
 
 class Site(NamedObject):
@@ -35,7 +35,7 @@ class Site(NamedObject):
     def _extra_links(self) -> dict:
         if not self.resource_ids:
             return {}
-        return {"iri:has-resource": [build_hal_link(uri, profile=None) for uri in self.resource_uris]}
+        return {"iri:has-resource": [build_hal_link(uri, profile=PROFILE_STATUS_RESOURCE) for uri in self.resource_uris]}
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, short_name=None, country_name=None):
@@ -68,6 +68,11 @@ class Facility(NamedObject):
         return PROFILE_FACILITY
 
     def _extra_links(self) -> dict:
-        if not self.site_ids:
-            return {}
-        return {"iri:has-site": [build_hal_link(uri, profile=PROFILE_FACILITY_SITE) for uri in self.site_uris]}
+        links: dict = {}
+        if self.site_ids:
+            links["iri:has-site"] = [build_hal_link(uri, profile=PROFILE_FACILITY_SITE) for uri in self.site_uris]
+        if self.support_uri:
+            # rfc-hal-links.md: support_uri maps to the standard `help` relation; the
+            # target is a support portal, not a HAL document, so no media type is claimed.
+            links["help"] = build_hal_link(str(self.support_uri), media_type=None)
+        return links
