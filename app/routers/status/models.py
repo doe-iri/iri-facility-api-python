@@ -10,6 +10,8 @@ from ...types.base import NamedObject
 from ...types.hal import (
     PROFILE_ACCOUNT_CAPABILITY,
     PROFILE_FACILITY_SITE,
+    PROFILE_STATUS_EVENT,
+    PROFILE_STATUS_INCIDENT,
     PROFILE_STATUS_RESOURCE,
     RELATION_METADATA,
     SERVICE_DESC_MEDIA_TYPE,
@@ -20,7 +22,7 @@ from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_p
 LOGGER = get_stream_logger(__name__)
 
 # RFC: Migrating Resource.supported_endpoints to HAL Operation Affordances (Section 3.2).
-# (filesystem router path segment, registered relation name) -- see registry/relations/README.md.
+# (filesystem router path segment, registered relation name) -- see registry/rels/README.md.
 # The path segment is the real OpenAPI path/operationId spelling (unchanged); the relation
 # name is the registered `iri:*` name, which is not always the same string.
 _FILESYSTEM_OPERATIONS = (
@@ -114,6 +116,8 @@ class Resource(NamedObject):
                     f"related_resource_ids: relation '{relation}' has cardinality 'one' but got "
                     f"{len(target_ids)} targets: {target_ids}"
                 )
+            if spec.source_type is None:
+                continue
             source_types = spec.source_type if isinstance(spec.source_type, tuple) else (spec.source_type,)
             if not any(urn_has_complete_prefix(t, self.resource_type) for t in source_types):
                 LOGGER.warning(
@@ -226,6 +230,15 @@ class Event(NamedObject):
         """Return the incident URI for this event."""
         return f"{get_url_prefix()}/status/incidents/{self.incident_id}" if self.incident_id else None
 
+    def _link_profile(self) -> str | None:
+        return PROFILE_STATUS_EVENT
+
+    def _extra_links(self) -> dict:
+        links: dict = {"iri:impacts": build_hal_link(self.resource_uri, profile=PROFILE_STATUS_RESOURCE)}
+        if self.incident_uri:
+            links["iri:generated-by"] = build_hal_link(self.incident_uri, profile=PROFILE_STATUS_INCIDENT)
+        return links
+
     @classmethod
     def find(cls, items, incident_id=None, name=None, description=None, modified_since=None, resource_id=None, status=None, from_=None, to=None, time_=None) -> list:
         items = super().find(items, name=name, description=description, modified_since=modified_since)
@@ -298,6 +311,17 @@ class Incident(NamedObject):
     def resource_uris(self) -> list[str]:
         """Return the list of resource URIs for this incident."""
         return [f"{get_url_prefix()}/status/resources/{r}" for r in self.resource_ids]
+
+    def _link_profile(self) -> str | None:
+        return PROFILE_STATUS_INCIDENT
+
+    def _extra_links(self) -> dict:
+        links: dict = {}
+        if self.event_ids:
+            links["iri:has-event"] = [build_hal_link(uri, profile=PROFILE_STATUS_EVENT) for uri in self.event_uris]
+        if self.resource_ids:
+            links["iri:may-impact"] = [build_hal_link(uri, profile=PROFILE_STATUS_RESOURCE) for uri in self.resource_uris]
+        return links
 
     @classmethod
     def find(cls, items, name=None, description=None, modified_since=None, status=None, type_=None, from_=None, to=None, time_=None, resource_id=None, resolution=None) -> list:
