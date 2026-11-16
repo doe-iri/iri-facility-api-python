@@ -65,7 +65,12 @@ async def _lifespan(app: FastAPI):
     await app.state.idempotency_store.close()
 
 
-APP = FastAPI(servers=[{"url": config.API_URL_ROOT}], lifespan=_lifespan, **config.API_CONFIG)
+APP = FastAPI(
+    servers=[{"url": config.API_URL_ROOT}],
+    lifespan=_lifespan,
+    openapi_tags=config.OPENAPI_TAGS,
+    **config.API_CONFIG,
+)
 
 
 class _ExternalRequestContextMiddleware(BaseHTTPMiddleware):
