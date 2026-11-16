@@ -1,6 +1,7 @@
 """Configuration for the IRI Facility API reference implementation."""
-import os
 import json
+import os
+
 from .apilogger import get_stream_logger
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")
@@ -41,6 +42,29 @@ try:
 except Exception as exc:
     logger.error(f"Error parsing IRI_API_PARAMS: {exc}")
 
+
+def _parse_openapi_tags(value, source):
+    """Validate OpenAPI tag metadata loaded from configuration."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{source} must contain valid JSON") from exc
+
+    if value is not None and (not isinstance(value, list) or any(not isinstance(tag, dict) for tag in value)):
+        raise ValueError(f"{source} must contain a JSON array of objects or null")
+    return value
+
+
+# Keep supporting openapi_tags in the generic FastAPI parameters while giving
+# the dedicated environment variable precedence. Pop the generic value so the
+# FastAPI constructor never receives the keyword twice.
+_OPENAPI_TAGS_FROM_API_PARAMS = API_CONFIG.pop("openapi_tags", None)
+if "OPENAPI_TAGS" in os.environ:
+    OPENAPI_TAGS = _parse_openapi_tags(os.environ["OPENAPI_TAGS"], "OPENAPI_TAGS")
+else:
+    OPENAPI_TAGS = _parse_openapi_tags(_OPENAPI_TAGS_FROM_API_PARAMS, "IRI_API_PARAMS.openapi_tags")
+
 OPENTELEMETRY_ENABLED = os.environ.get("OPENTELEMETRY_ENABLED", "false").lower() == "true"
 OPENTELEMETRY_DEBUG = os.environ.get("OPENTELEMETRY_DEBUG", "false").lower() == "true"
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "iri-facility-api")
@@ -63,6 +87,7 @@ logger.info("IRI Facility API starting with config:")
 logger.info("="*40)
 logger.info(f"API_VERSION={API_VERSION}")
 logger.info(f"API_CONFIG={API_CONFIG}")
+logger.info(f"OPENAPI_TAGS={OPENAPI_TAGS}")
 logger.info(f"API_URL_ROOT={API_URL_ROOT}")
 logger.info(f"API_PREFIX={API_PREFIX}")
 logger.info(f"API_URL={API_URL}")

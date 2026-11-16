@@ -44,6 +44,12 @@ A reference implementation that fakes every facility adapter is provided by the 
 ### Customizing the API meta-data
 You can optionally override the [FastAPI metadata](https://fastapi.tiangolo.com/tutorial/metadata/), such as `name`, `description`, `terms_of_service`, etc. by providing a valid json object in the `IRI_API_PARAMS` environment variable.
 
+Set `OPENAPI_TAGS` to a JSON array to add top-level tag metadata to the OpenAPI document. It defaults to `null` (`None`) when unset and accepts any [FastAPI OpenAPI tag metadata](https://fastapi.tiangolo.com/tutorial/metadata/#metadata-for-tags), including `externalDocs`. For compatibility, `openapi_tags` inside `IRI_API_PARAMS` is also supported; `OPENAPI_TAGS` takes precedence when both are set.
+
+```bash
+OPENAPI_TAGS='[{"name":"Agent Skills","description":"Agent Skills","externalDocs":{"description":"Agent skill instructions","url":"https://api.example.org/skills/compute/SKILL.md"}}]'
+```
+
 If using docker (see next section), your dockerfile could extend this reference implementation via a `FROM` line and add your custom facility adapter code and init parameters in `ENV` lines.
 
 ### Environment variables
@@ -51,6 +57,7 @@ If using docker (see next section), your dockerfile could extend this reference 
 - `API_URL_ROOT`: the base url when constructing links returned by the api (eg.: https://iri.myfacility.com)
 - `API_PREFIX`: the path prefix where the api is hosted. Defaults to `/`. (eg.: `/api`)
 - `API_URL`: the path to the api itself. Defaults to `api/v2`.
+- `OPENAPI_TAGS`: optional JSON array of OpenAPI tag metadata. Defaults to `null` (`None`).
 ### OpenTelemetry
 
 The API supports OpenTelemetry for distributed tracing and metrics. Traces and metrics can be independently enabled or disabled.
