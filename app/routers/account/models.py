@@ -1,6 +1,6 @@
 """Models for account-related API endpoints, including users, projects, and allocations."""
 import datetime
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import IRIBaseModel
@@ -37,7 +37,33 @@ class AllocationEntry(IRIBaseModel):
     unit: AllocationUnitValue = Field(..., description="DOE IRI URN for the allocation unit.", example=AllocationUnit.node_hours)
 
 
-class ProjectAllocation(IRIBaseModel):
+class AllocationPeriod(IRIBaseModel):
+    """Optional validity window shared by project and user allocations."""
+
+    start: datetime.datetime | None = Field(
+        default=None,
+        description="Time at which the allocation becomes valid. Omitted when the facility does not report a start time.",
+        example="2026-01-01T00:00:00Z",
+    )
+    end: datetime.datetime | None = Field(
+        default=None,
+        description="Time at which the allocation stops being valid. Omitted when the facility does not report an end time. When both start and end are present, end is not earlier than start.",
+        example="2026-12-31T23:59:59Z",
+    )
+
+    @field_validator("start", "end", mode="before")
+    @classmethod
+    def _norm_period_dt(cls, v):
+        return cls.normalize_dt(v)
+
+    @model_validator(mode="after")
+    def _check_period_order(self):
+        if self.start is not None and self.end is not None and self.end < self.start:
+            raise ValueError("allocation end must not be earlier than start")
+        return self
+
+
+class ProjectAllocation(AllocationPeriod):
     """
     A project's allocation for a capability. (aka. repo)
     This allocation is a piece of the total allocation for the capability. (eg. 5% of the total node hours of Perlmutter GPU nodes)
@@ -69,7 +95,7 @@ class WhoAmI(IRIBaseModel):
     username: str = Field(..., description="Unique identifier of the authenticated user.", example="user-123")
 
 
-class UserAllocation(IRIBaseModel):
+class UserAllocation(AllocationPeriod):
     """
     A user's allcation in a project.
     This allocation is a piece of the project's allocation.
