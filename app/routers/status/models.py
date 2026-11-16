@@ -15,6 +15,7 @@ from ...types.hal import (
     PROFILE_STATUS_RESOURCE,
     RELATION_METADATA,
     SERVICE_DESC_MEDIA_TYPE,
+    ComputeOperation,
     build_hal_link,
 )
 from ...types.scalars import ResourceType, ResourceTypeValue, urn_has_complete_prefix, validate_doe_iri_urn
@@ -79,6 +80,16 @@ _STORAGE_OPERATION_PATHS = {
 }
 
 
+# Compute router path segment and job-id templating for each operation relation.
+_COMPUTE_OPERATION_PATHS = {
+    ComputeOperation.submit_job: ("job", False),
+    ComputeOperation.update_job: ("job", True),
+    ComputeOperation.get_job: ("status", True),
+    ComputeOperation.query_jobs: ("status", False),
+    ComputeOperation.cancel_job: ("cancel", True),
+}
+
+
 class Resource(NamedObject):
     """Represents a resource in the system."""
     def _self_path(self) -> str:
@@ -91,6 +102,11 @@ class Resource(NamedObject):
     current_status: Status|None = Field(default=None, description="The current status comes from the status of the last event for this resource", example="up")
     resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
+    compute_operations: list[ComputeOperation] = Field(
+        default_factory=lambda: list(ComputeOperation),
+        exclude=True,
+        description="Compute operations the adapter implements for this Resource; an explicit list restricts its advertised iri:* HAL links.",
+    )
     storage_operations: list[StorageOperation] = Field(
         default_factory=list,
         exclude=True,
@@ -152,14 +168,20 @@ class Resource(NamedObject):
                 build_hal_link(uri, profile=PROFILE_ACCOUNT_CAPABILITY) for uri in self.capability_uris
             ]
         advertises_operations = False
-        if urn_has_complete_prefix("urn:doe-iri:resource:compute:system", self.resource_type) and "compute" in self.supported_endpoints:
+        if self.resource_type == ResourceType.compute_system and "compute" in self.supported_endpoints:
             compute_base = f"{get_url_prefix()}/compute"
-            links["iri:submit-job"] = build_hal_link(f"{compute_base}/job/{self.id}", media_type=None)
-            links["iri:update-job"] = build_hal_link(f"{compute_base}/job/{self.id}/{{job_id}}", media_type=None, templated=True)
-            links["iri:get-job"] = build_hal_link(f"{compute_base}/status/{self.id}/{{job_id}}", media_type=None, templated=True)
-            links["iri:query-jobs"] = build_hal_link(f"{compute_base}/status/{self.id}", media_type=None)
-            links["iri:cancel-job"] = build_hal_link(f"{compute_base}/cancel/{self.id}/{{job_id}}", media_type=None, templated=True)
-            advertises_operations = True
+            for operation, (path, job_templated) in _COMPUTE_OPERATION_PATHS.items():
+                if operation not in self.compute_operations:
+                    continue
+                href = f"{compute_base}/{path}/{self.id}"
+                if job_templated:
+                    href += "/{job_id}"
+                links[f"iri:{operation.value}"] = build_hal_link(
+                    href,
+                    media_type=None,
+                    templated=job_templated,
+                )
+                advertises_operations = True
         if "filesystem" in self.supported_endpoints:
             fs_base = f"{get_url_prefix()}/filesystem"
             for op, relation in _FILESYSTEM_OPERATIONS:

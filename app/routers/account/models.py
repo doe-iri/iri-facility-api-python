@@ -1,9 +1,18 @@
 """Models for account-related API endpoints, including users, projects, and allocations."""
 import datetime
+
 from pydantic import Field, computed_field, field_validator, model_validator
 
 from ...request_context import get_url_prefix
 from ...types.base import IRIBaseModel
+from ...types.hal import (
+    IRI_CURIE,
+    PROFILE_ACCOUNT_CAPABILITY,
+    PROFILE_ACCOUNT_PROJECT,
+    PROFILE_ACCOUNT_PROJECT_ALLOCATION,
+    PROFILE_ACCOUNT_USER_ALLOCATION,
+    build_hal_link,
+)
 from ...types.scalars import AllocationUnit, AllocationUnitValue
 
 
@@ -27,6 +36,14 @@ class Project(IRIBaseModel):
     def self_uri(self) -> str:
         """Return the URI for this project resource."""
         return f"{get_url_prefix()}/account/projects/{self.id}"
+
+    @computed_field(description="HAL hypermedia links for this project.")
+    @property
+    def _links(self) -> dict:
+        return {
+            "self": build_hal_link(self.self_uri, profile=PROFILE_ACCOUNT_PROJECT),
+            "curies": [IRI_CURIE],
+        }
 
 
 class AllocationEntry(IRIBaseModel):
@@ -88,6 +105,17 @@ class ProjectAllocation(AllocationPeriod):
         """Return the URI for the associated capability."""
         return f"{get_url_prefix()}/account/capabilities/{self.capability_id}"
 
+    @computed_field(description="HAL hypermedia links for this project allocation.")
+    @property
+    def _links(self) -> dict:
+        self_href = f"{get_url_prefix()}/account/projects/{self.project_id}/project_allocations/{self.id}"
+        return {
+            "self": build_hal_link(self_href, profile=PROFILE_ACCOUNT_PROJECT_ALLOCATION),
+            "curies": [IRI_CURIE],
+            "iri:has-project": build_hal_link(self.project_uri, profile=PROFILE_ACCOUNT_PROJECT),
+            "iri:has-capability": build_hal_link(self.capability_uri, profile=PROFILE_ACCOUNT_CAPABILITY),
+        }
+
 
 class WhoAmI(IRIBaseModel):
     """The authenticated caller's username"""
@@ -112,3 +140,16 @@ class UserAllocation(AllocationPeriod):
     def project_allocation_uri(self) -> str:
         """Return the URI for the associated project allocation."""
         return f"{get_url_prefix()}/account/projects/{self.project_id}/project_allocations/{self.project_allocation_id}"
+
+    @computed_field(description="HAL hypermedia links for this user allocation.")
+    @property
+    def _links(self) -> dict:
+        self_href = f"{self.project_allocation_uri}/user_allocations/{self.id}"
+        return {
+            "self": build_hal_link(self_href, profile=PROFILE_ACCOUNT_USER_ALLOCATION),
+            "curies": [IRI_CURIE],
+            "iri:has-project-allocation": build_hal_link(
+                self.project_allocation_uri,
+                profile=PROFILE_ACCOUNT_PROJECT_ALLOCATION,
+            ),
+        }
