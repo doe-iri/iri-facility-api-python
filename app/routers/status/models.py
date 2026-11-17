@@ -103,9 +103,9 @@ class Resource(NamedObject):
     resource_type: ResourceTypeValue = Field(..., description="DOE IRI URN for the resource type", example=ResourceType.service)
     supported_endpoints: list[Endpoint] = Field(default_factory=list, description="a list of endpoints where this resource can be used")
     compute_operations: list[ComputeOperation] = Field(
-        default_factory=lambda: list(ComputeOperation),
+        default_factory=list,
         exclude=True,
-        description="Compute operations the adapter implements for this Resource; an explicit list restricts its advertised iri:* HAL links.",
+        description="Compute operations the adapter implements for this Resource and may advertise as iri:* HAL links.",
     )
     storage_operations: list[StorageOperation] = Field(
         default_factory=list,

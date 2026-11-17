@@ -151,7 +151,7 @@ class Job(IRIBaseModel):
         description="Internal identifier of the compute Resource that owns this Job.",
     )
     compute_operations: list[ComputeOperation] = Field(
-        default_factory=lambda: list(ComputeOperation),
+        default_factory=list,
         exclude=True,
         description="Internal operation declaration inherited from the compute Resource.",
     )
