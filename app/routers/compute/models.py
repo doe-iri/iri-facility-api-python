@@ -1,10 +1,11 @@
 """Models for compute router, including job specifications, job status, and related data structures."""
 from enum import Enum
-from typing import Annotated
 
-from pydantic import ConfigDict, Field, StrictBool
+from pydantic import ConfigDict, Field, StrictBool, computed_field
 
+from ...request_context import get_url_prefix
 from ...types.base import IRIBaseModel
+from ...types.hal import IRI_CURIE, PROFILE_COMPUTE_JOB, SERVICE_DESC_MEDIA_TYPE, ComputeOperation, build_hal_link
 
 
 class ResourceSpec(IRIBaseModel):
@@ -144,5 +145,40 @@ class JobStatus(IRIBaseModel):
 class Job(IRIBaseModel):
     """Represents a job in the system."""
     id: str = Field(..., description="Unique identifier of the job", example="job-12345")
+    resource_id: str|None = Field(
+        default=None,
+        exclude=True,
+        description="Internal identifier of the compute Resource that owns this Job.",
+    )
+    compute_operations: list[ComputeOperation] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Internal operation declaration inherited from the compute Resource.",
+    )
     status: JobStatus|None = Field(default=None, description="Current status of the job")
     job_spec: JobSpec|None = Field(default=None, description="Specification used to create the job")
+
+    @computed_field(description="HAL hypermedia links for this Job")
+    @property
+    def _links(self) -> dict:
+        if self.resource_id is None:
+            return {}
+
+        status_href = f"{get_url_prefix()}/compute/status/{self.resource_id}/{self.id}"
+        links = {
+            "self": build_hal_link(status_href, profile=PROFILE_COMPUTE_JOB),
+            "curies": [IRI_CURIE],
+            "service-desc": build_hal_link(
+                f"{get_url_prefix()}/openapi.json",
+                media_type=SERVICE_DESC_MEDIA_TYPE,
+            ),
+        }
+        operation_hrefs = {
+            ComputeOperation.get_job: status_href,
+            ComputeOperation.update_job: f"{get_url_prefix()}/compute/job/{self.resource_id}/{self.id}",
+            ComputeOperation.cancel_job: f"{get_url_prefix()}/compute/cancel/{self.resource_id}/{self.id}",
+        }
+        for operation, href in operation_hrefs.items():
+            if operation in self.compute_operations:
+                links[f"iri:{operation.value}"] = build_hal_link(href, media_type=None)
+        return links

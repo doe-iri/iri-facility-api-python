@@ -4,6 +4,7 @@ See iri-facility-api-docs/registry/rels/README.md for the authoritative
 source of information.
 """
 from dataclasses import dataclass
+from enum import Enum
 
 IRI_RELS_TEMPLATE = "https://iri.science/rels/{rel}"
 
@@ -19,6 +20,11 @@ PROFILE_STATUS_RESOURCE = "https://iri.science/profiles/status/resource"
 PROFILE_STATUS_EVENT = "https://iri.science/profiles/status/event"
 PROFILE_STATUS_INCIDENT = "https://iri.science/profiles/status/incident"
 PROFILE_ACCOUNT_CAPABILITY = "https://iri.science/profiles/account/capability"
+PROFILE_ACCOUNT_PROJECT = "https://iri.science/profiles/account/project"
+PROFILE_ACCOUNT_PROJECT_ALLOCATION = "https://iri.science/profiles/account/project-allocation"
+PROFILE_ACCOUNT_USER_ALLOCATION = "https://iri.science/profiles/account/user-allocation"
+PROFILE_COMPUTE_JOB = "https://iri.science/profiles/compute/job"
+PROFILE_TASK = "https://iri.science/profiles/task"
 
 _RD = "https://iri.science/profiles/resource-definition"
 
@@ -76,6 +82,17 @@ OPERATION_RELATIONS: dict[str, str] = {
     "resolve-storage-locations": IRI_RELS_TEMPLATE.format(rel="resolve-storage-locations"),
     "get-storage-access-endpoints": IRI_RELS_TEMPLATE.format(rel="get-storage-access-endpoints"),
 }
+
+
+class ComputeOperation(str, Enum):
+    """Compute operation a Resource supports and may advertise as a HAL affordance."""
+
+    submit_job = "submit-job"
+    update_job = "update-job"
+    get_job = "get-job"
+    query_jobs = "query-jobs"
+    cancel_job = "cancel-job"
+
 
 SERVICE_DESC_MEDIA_TYPE = "application/vnd.oai.openapi+json"
 

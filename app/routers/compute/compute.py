@@ -10,7 +10,8 @@ from ...types.user import User
 from .. import iri_router
 from ..error_handlers import DEFAULT_RESPONSES
 from ..iri_meta import iri_meta_dict
-from ..status.status import router as status_router, models as status_models
+from ..status.status import models as status_models
+from ..status.status import router as status_router
 from . import facility_adapter, models
 
 router = iri_router.IriRouter(
@@ -18,6 +19,16 @@ router = iri_router.IriRouter(
     prefix="/compute",
     tags=["compute"],
 )
+
+
+def _bind_job_resource(job: models.Job, resource: status_models.Resource) -> models.Job:
+    """Attach the non-serialized Resource context required for bound Job links."""
+    return job.model_copy(
+        update={
+            "resource_id": resource.id,
+            "compute_operations": resource.compute_operations,
+        }
+    )
 
 
 @router.get(
@@ -66,14 +77,19 @@ async def submit_job(
     """
     resource = await status_router.adapter.get_resource(resource_id)
 
+    # Bind inside the callable: run_with_idempotency serializes and caches the result.
+    async def submit() -> models.Job:
+        job = await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
+        return _bind_job_resource(job, resource)
+
     if idempotency_key:
         return await run_with_idempotency(
             request.app.state.idempotency_store,
             build_cache_key(user.id, idempotency_key, "submit_job"),
             build_body_hash(job_spec.model_dump()),
-            lambda: router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec),
+            submit,
         )
-    return await router.adapter.submit_job(resource=resource, user=user, job_spec=job_spec)
+    return await submit()
 
 
 @router.put(
@@ -103,14 +119,18 @@ async def update_job(
     """
     resource = await status_router.adapter.get_resource(resource_id)
 
+    async def update() -> models.Job:
+        job = await router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id)
+        return _bind_job_resource(job, resource)
+
     if idempotency_key:
         return await run_with_idempotency(
             request.app.state.idempotency_store,
             build_cache_key(user.id, idempotency_key, f"update_job:{job_id}"),
             build_body_hash(job_spec.model_dump()),
-            lambda: router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id),
+            update,
         )
-    return await router.adapter.update_job(resource=resource, user=user, job_spec=job_spec, job_id=job_id)
+    return await update()
 
 
 @router.get(
@@ -135,9 +155,14 @@ async def get_job_status(
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    job = await router.adapter.get_job(resource=resource, user=user, job_id=job_id, historical=historical, include_spec=include_spec)
-
-    return job
+    job = await router.adapter.get_job(
+        resource=resource,
+        user=user,
+        job_id=job_id,
+        historical=historical,
+        include_spec=include_spec,
+    )
+    return _bind_job_resource(job, resource)
 
 
 @router.post(
@@ -164,9 +189,16 @@ async def get_job_statuses(
     # This could be done via slurm (in the adapter) or via psij's "attach" (https://exaworks.org/psij-python/docs/v/0.9.11/user_guide.html#detaching-and-attaching-jobs)
     resource = await status_router.adapter.get_resource(resource_id)
 
-    jobs = await router.adapter.get_jobs(resource=resource, user=user, offset=offset, limit=limit, filters=filters, historical=historical, include_spec=include_spec)
-
-    return jobs
+    jobs = await router.adapter.get_jobs(
+        resource=resource,
+        user=user,
+        offset=offset,
+        limit=limit,
+        filters=filters,
+        historical=historical,
+        include_spec=include_spec,
+    )
+    return [_bind_job_resource(job, resource) for job in jobs]
 
 
 @router.delete(
