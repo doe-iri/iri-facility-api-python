@@ -34,6 +34,7 @@ RESOURCE_TYPE_PROFILE: dict[str, str] = {
     "urn:doe-iri:resource:storage:object": f"{_RD}/storage/object",
     "urn:doe-iri:resource:service:dtn": f"{_RD}/service/dtn",
     "urn:doe-iri:resource:service:inference": f"{_RD}/service/inference",
+    "urn:doe-iri:resource:service:streaming-transport": f"{_RD}/service/streaming-transport",
 }
 
 
@@ -75,6 +76,11 @@ OPERATION_RELATIONS: dict[str, str] = {
     "upload-file": IRI_RELS_TEMPLATE.format(rel="upload-file"),
     "resolve-storage-locations": IRI_RELS_TEMPLATE.format(rel="resolve-storage-locations"),
     "get-storage-access-endpoints": IRI_RELS_TEMPLATE.format(rel="get-storage-access-endpoints"),
+    # Provisional (rfc-streaming-data-transport.md section 9).
+    "create-stream-reservation": IRI_RELS_TEMPLATE.format(rel="create-stream-reservation"),
+    "query-stream-reservations": IRI_RELS_TEMPLATE.format(rel="query-stream-reservations"),
+    "get-stream-reservation-status": IRI_RELS_TEMPLATE.format(rel="get-stream-reservation-status"),
+    "rotate-stream-credential": IRI_RELS_TEMPLATE.format(rel="rotate-stream-credential"),
 }
 
 SERVICE_DESC_MEDIA_TYPE = "application/vnd.oai.openapi+json"

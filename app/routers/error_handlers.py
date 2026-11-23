@@ -181,6 +181,7 @@ def install_error_handlers(app: FastAPI):
                 title="Conflict",
                 detail=err_msg or "Conflict occurred.",
                 problem_type="conflict",
+                extra_headers=exc.headers,
             )
 
         # Generic fallback
@@ -190,6 +191,7 @@ def install_error_handlers(app: FastAPI):
             title="Error",
             detail=err_msg or "An error occurred.",
             problem_type="generic-error",
+            extra_headers=exc.headers,
         )
 
     # STARLETTE HTTP EXCEPTIONS

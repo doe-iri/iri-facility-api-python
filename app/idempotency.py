@@ -21,6 +21,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from enum import Enum
 
 from fastapi import HTTPException
@@ -78,8 +79,19 @@ class IdempotencyStore(ABC):
         """Release connections and resources at application shutdown."""
 
 
-async def run_with_idempotency(store: IdempotencyStore | None, cache_key: str, body_hash: str, adapter_fn) -> JSONResponse:
-    """Run adapter_fn under idempotency control."""
+async def run_with_idempotency(
+    store: IdempotencyStore | None,
+    cache_key: str,
+    body_hash: str,
+    adapter_fn,
+    status_code: int = 200,
+    headers_fn: Callable[[dict], dict] | None = None,
+) -> JSONResponse:
+    """Run adapter_fn under idempotency control.
+
+    status_code is the success status; headers_fn derives extra response headers from the
+    response body, so a cache hit gets the same headers (e.g. Location) as the first response.
+    """
     if store is None:
         # API clients read this detail, so it states their options rather than server configuration.
         raise HTTPException(
@@ -90,7 +102,8 @@ async def run_with_idempotency(store: IdempotencyStore | None, cache_key: str, b
     action, cached_body, cached_status = await store.check_and_lock(cache_key, body_hash)
 
     if action == "hit":
-        return JSONResponse(content=cached_body, status_code=cached_status or 200, headers={"Idempotency-Key-Reply": "hit"})
+        headers = headers_fn(cached_body) if headers_fn else {}
+        return JSONResponse(content=cached_body, status_code=cached_status or status_code, headers={**headers, "Idempotency-Key-Reply": "hit"})
     if action == "conflict":
         raise HTTPException(status_code=409, detail="A request with this Idempotency-Key is already in progress.", headers={"Retry-After": "2"})
     if action == "fingerprint_mismatch":
@@ -98,9 +111,10 @@ async def run_with_idempotency(store: IdempotencyStore | None, cache_key: str, b
 
     try:
         result = await adapter_fn()
-        body = result.model_dump(exclude_unset=True)
-        await store.store_result(cache_key, body_hash, body, 200)
-        return JSONResponse(content=body, status_code=200, headers={"Idempotency-Key-Reply": "miss"})
+        body = result.model_dump(mode="json", exclude_unset=True)
+        await store.store_result(cache_key, body_hash, body, status_code)
+        headers = headers_fn(body) if headers_fn else {}
+        return JSONResponse(content=body, status_code=status_code, headers={**headers, "Idempotency-Key-Reply": "miss"})
     except Exception as exc:
         log.error("Adapter raised during idempotent call; releasing lock for key %s: %s", cache_key, exc)
         await store.delete_lock(cache_key)
