@@ -167,6 +167,7 @@ class ResourceType(str, Enum):
     storage_filesystem = "urn:doe-iri:resource:storage:filesystem"
     storage_mount = "urn:doe-iri:resource:storage:mount"
     service_dtn = "urn:doe-iri:resource:service:dtn"
+    service_streaming_transport = "urn:doe-iri:resource:service:streaming-transport"
     network = "urn:doe-iri:resource:network"
     unknown = "urn:doe-iri:resource:unknown"
 
@@ -176,6 +177,8 @@ class AllocationUnit(str, Enum):
     node_hours = "urn:doe-iri:allocation:compute:node-hours"
     bytes = "urn:doe-iri:allocation:storage:bytes"
     inodes = "urn:doe-iri:allocation:storage:inodes"
+    instance_hours = "urn:doe-iri:allocation:service:instance-hours"
+    instances = "urn:doe-iri:allocation:service:instances"
 
 
 class CompressionType(str, Enum):

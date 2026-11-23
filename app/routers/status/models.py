@@ -79,6 +79,16 @@ _STORAGE_OPERATION_PATHS = {
 }
 
 
+class StreamingOperation(str, enum.Enum):
+    """Streaming reservation operation an adapter implements for a Resource (internal, never serialized).
+
+    Declared explicitly for the same reason as StorageOperation (rfc-streaming-data-transport.md section 9).
+    Both relations target the same collection URI.
+    """
+    create_stream_reservation = "create-stream-reservation"
+    query_stream_reservations = "query-stream-reservations"
+
+
 class Resource(NamedObject):
     """Represents a resource in the system."""
     def _self_path(self) -> str:
@@ -95,6 +105,11 @@ class Resource(NamedObject):
         default_factory=list,
         exclude=True,
         description="Storage-discovery operations the adapter implements for this Resource; each is advertised as its iri:* HAL link.",
+    )
+    streaming_operations: list[StreamingOperation] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Streaming reservation operations the adapter implements for this Resource; each is advertised as its iri:* HAL link.",
     )
     related_resource_ids: dict[str, list[str]] = Field(
         default_factory=dict,
@@ -170,6 +185,9 @@ class Resource(NamedObject):
             if operation in self.storage_operations:
                 links[f"iri:{operation.value}"] = build_hal_link(f"{get_url_prefix()}/storage/{path}/{self.id}", media_type=None)
                 advertises_operations = True
+        for operation in self.streaming_operations:
+            links[f"iri:{operation.value}"] = build_hal_link(f"{get_url_prefix()}/streaming/{self.id}/reservations", media_type=None)
+            advertises_operations = True
         if advertises_operations:
             links["service-desc"] = build_hal_link(f"{get_url_prefix()}/openapi.json", media_type=SERVICE_DESC_MEDIA_TYPE)
         for relation, target_ids in self.related_resource_ids.items():
